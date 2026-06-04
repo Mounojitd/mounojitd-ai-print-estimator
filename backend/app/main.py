@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api import estimate
+from .api import estimate, paper
 from .routers import masters, quotations
 
 app = FastAPI(
@@ -21,6 +21,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(paper.router)
 app.include_router(estimate.router)
 app.include_router(masters.router)
 app.include_router(quotations.router)
@@ -31,7 +32,13 @@ app.mount("/static", StaticFiles(directory=_STATIC), name="static")
 
 @app.get("/", include_in_schema=False)
 def home():
-    """The Create-Estimate page (the link NKK sir wanted)."""
+    """Step 1 — the paper calculator (NKK sir: paper first, then price)."""
+    return FileResponse(os.path.join(_STATIC, "paper.html"))
+
+
+@app.get("/price", include_in_schema=False)
+def price():
+    """Step 3 — the pricing / estimate page."""
     return FileResponse(os.path.join(_STATIC, "index.html"))
 
 
