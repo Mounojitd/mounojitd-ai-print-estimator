@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Print Estimator</title>
+<style>
+  :root{
+    --ink:#1b2330; --muted:#6b7480; --line:#e4e7ec; --bg:#f4f6f9;
+    --brand:#1f4e78; --brand2:#2c6fb3; --accent:#c0651f; --good:#1f7a4d;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.45}
+  header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:26px 22px}
+  header h1{margin:0;font-size:22px;letter-spacing:.2px}
+  header p{margin:4px 0 0;opacity:.85;font-size:13px}
+  .wrap{max-width:1040px;margin:0 auto;padding:22px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:840px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 1px 2px rgba(16,24,40,.04)}
+  .card h2{margin:0 0 4px;font-size:15px}
+  .card .hint{color:var(--muted);font-size:12px;margin:0 0 14px}
+  label{display:block;font-size:12px;font-weight:600;color:#384150;margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:#fff}
+  textarea{resize:vertical;min-height:84px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+  .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;padding:6px 11px;font-size:13px;cursor:pointer;user-select:none}
+  .chip input{width:auto}
+  button{cursor:pointer;border:0;border-radius:9px;font-weight:600;font-size:14px;padding:11px 16px;color:#fff;background:var(--brand);width:100%;margin-top:14px}
+  button.alt{background:var(--accent)}
+  button:disabled{opacity:.6;cursor:wait}
+  .or{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:12px;margin:16px 0}
+  .or:before,.or:after{content:"";height:1px;background:var(--line);flex:1}
+  /* result */
+  #result{margin-top:18px;display:none}
+  .total{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:10px;
+          background:linear-gradient(135deg,#13361f,#1f7a4d);color:#fff;border-radius:12px;padding:18px 20px}
+  .total .big{font-size:30px;font-weight:700}
+  .total .unit{font-size:14px;opacity:.9}
+  .total .prod{font-size:14px;font-weight:600}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}
+  td{padding:7px 4px;border-bottom:1px solid var(--line)}
+  td.r{text-align:right;font-variant-numeric:tabular-nums}
+  tr.sum td{font-weight:700;border-top:2px solid #cfd6df}
+  .plan{font-size:12px;color:#334;background:#f0f5fb;border:1px solid #dbe7f4;border-radius:8px;padding:10px 12px;margin-top:12px}
+  .plan code{color:var(--brand)}
+  .notes{font-size:12px;color:var(--muted);margin-top:10px}
+  .notes li{margin:3px 0}
+  .err{color:#a3242a;font-size:13px;margin-top:10px}
+  .badge{display:inline-block;background:#eef3f8;color:var(--brand);border-radius:6px;padding:2px 7px;font-size:11px;font-weight:700;margin-left:6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="padding-top:0;padding-bottom:0">
+    <h1>AI Print Estimator <span class="badge">live</span></h1>
+    <p>Describe a job in plain English, or fill the details — get a real quote from your master data.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- NL card -->
+    <div class="card">
+      <h2>🗣️ Describe the job</h2>
+      <p class="hint">e.g. “10,000 A4 brochures, 170gsm art paper, 4+4, matte lamination”. Claude reads it; your data prices it.</p>
+      <textarea id="nl" placeholder="Type the job the way you'd say it…">10,000 A4 brochures, 170gsm art paper, 4+4, matte lamination</textarea>
+      <button class="alt" id="btnNl" onclick="quoteNL()">✨ Estimate with AI</button>
+    </div>
+
+    <!-- Form card -->
+    <div class="card">
+      <h2>📝 Or fill the details</h2>
+      <p class="hint">No API key needed — computes straight from your masters.</p>
+      <label>Product</label>
+      <input id="product" value="A4 brochure" />
+      <div class="row3">
+        <div><label>Quantity</label><input id="quantity" type="number" value="10000" /></div>
+        <div><label>Size</label>
+          <select id="size_name">
+            <option>A3</option><option selected>A4</option><option>A5</option>
+            <option>A6</option><option>DL</option><option>LETTER</option><option>LEGAL</option>
+          </select></div>
+        <div><label>GSM</label><input id="gsm" type="number" value="170" /></div>
+      </div>
+      <div class="row3">
+        <div><label>Paper grade</label>
+          <select id="paper_grade">
+            <option>ART PAPER</option><option>ART PAPER(MATT)</option><option>ART BOARD</option>
+            <option>MAPLITHO</option><option>SBS</option><option>FBB</option>
+          </select></div>
+        <div><label>Colours front</label><input id="cf" type="number" value="4" /></div>
+        <div><label>Colours back</label><input id="cb" type="number" value="4" /></div>
+      </div>
+      <div class="row">
+        <div><label>Category (GST)</label>
+          <select id="category">
+            <option value="brochure" selected>Brochure / leaflet (18%)</option>
+            <option value="book">Book (0%)</option>
+            <option value="cards">Cards (18%)</option>
+            <option value="packaging">Packaging (18%)</option>
+            <option value="printing_service">Printing service (18%)</option>
+          </select></div>
+        <div><label>Delivery</label>
+          <select id="inter_state">
+            <option value="false" selected>Same state (CGST+SGST)</option>
+            <option value="true">Other state (IGST)</option>
+          </select></div>
+      </div>
+      <label>Finishing</label>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" id="f_matt" checked /> Matt lamination</label>
+        <label class="chip"><input type="checkbox" id="f_gloss" /> Gloss lamination</label>
+        <label class="chip"><input type="checkbox" id="f_spotuv" /> Spot UV</label>
+        <label class="chip"><input type="checkbox" id="f_foil" /> Foiling</label>
+      </div>
+      <button id="btnForm" onclick="quoteForm()">Get Quote →</button>
+    </div>
+  </div>
+
+  <div id="err" class="err"></div>
+
+  <!-- RESULT -->
+  <div id="result" class="card">
+    <div class="total">
+      <div>
+        <div id="r_product" style="font-size:13px;opacity:.9"></div>
+        <div class="big" id="r_total"></div>
+        <div class="unit" id="r_unit"></div>
+      </div>
+      <div style="text-align:right">
+        <div class="prod" id="r_prod"></div>
+        <div class="unit" id="r_gst"></div>
+      </div>
+    </div>
+    <table id="r_table"></table>
+    <div class="plan" id="r_plan"></div>
+    <ul class="notes" id="r_notes"></ul>
+  </div>
+</div>
+
+<script>
+const inr = n => "₹" + (n==null?"–":Number(n).toLocaleString("en-IN",{maximumFractionDigits:2}));
+
+function setBusy(id,b){const el=document.getElementById(id);el.disabled=b;el.dataset.t=el.dataset.t||el.textContent;el.textContent=b?"Calculating…":el.dataset.t;}
+function showErr(m){document.getElementById("err").textContent=m||"";}
+
+async function post(url, body){
+  const r = await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const data = await r.json();
+  if(!r.ok) throw new Error(data.detail || ("HTTP "+r.status));
+  return data;
+}
+
+function render(e){
+  showErr("");
+  document.getElementById("result").style.display="block";
+  document.getElementById("r_product").textContent = e.product + "  ·  ×" + e.quantity.toLocaleString("en-IN");
+  document.getElementById("r_total").textContent = inr(e.grand_total);
+  document.getElementById("r_unit").textContent = inr(e.unit_price) + " per piece";
+  document.getElementById("r_prod").textContent = "Production " + inr(e.production_cost) + "  ·  Margin " + inr(e.margin);
+  const gstLine = e.inter_state
+      ? ("IGST "+e.gst_pct+"% "+inr(e.igst))
+      : ("CGST "+(e.gst_pct/2)+"% "+inr(e.cgst)+"  ·  SGST "+(e.gst_pct/2)+"% "+inr(e.sgst));
+  document.getElementById("r_gst").textContent = gstLine;
+
+  const L=e.lines;
+  const rows=[["Paper",L.paper],["Plates",L.plates],["Printing",L.printing],["Finishing",L.finishing],
+              ["Packing ("+ (e.weight_kg) +" kg)",L.packing],["Freight",L.freight],["Overhead",L.overhead]];
+  let html="";
+  rows.forEach(([k,v])=>{html+=`<tr><td>${k}</td><td class="r">${inr(v)}</td></tr>`;});
+  html+=`<tr class="sum"><td>Pre-tax</td><td class="r">${inr(e.pre_tax)}</td></tr>`;
+  html+=`<tr><td>GST ${e.gst_pct}%</td><td class="r">${inr(e.gst)}</td></tr>`;
+  html+=`<tr class="sum"><td>Grand total</td><td class="r">${inr(e.grand_total)}</td></tr>`;
+  document.getElementById("r_table").innerHTML=html;
+
+  const c=e.components[0]||{};
+  document.getElementById("r_plan").innerHTML =
+    `Plan: <code>${c.ups}-up</code> on the chosen sheet · `+
+    `${c.good_sheets} good + ${c.setup_waste_sheets} setup + ${c.running_waste_sheets} waste = `+
+    `<code>${c.total_sheets} sheets</code> · ${e.weight_kg} kg`;
+
+  document.getElementById("r_notes").innerHTML = (e.notes||[]).map(n=>`<li>${n}</li>`).join("");
+  document.getElementById("result").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+
+async function quoteForm(){
+  showErr(""); setBusy("btnForm",true);
+  try{
+    const fin=[];
+    if(f_matt.checked)  fin.push({name:"Matt lamination",kind:"lamination",variant:"matt"});
+    if(f_gloss.checked) fin.push({name:"Gloss lamination",kind:"lamination",variant:"gloss"});
+    if(f_spotuv.checked)fin.push({name:"Spot UV",kind:"uv",variant:"spot"});
+    if(f_foil.checked)  fin.push({name:"Foiling",kind:"foiling",variant:"any"});
+    const spec={
+      product:product.value, category:category.value, quantity:+quantity.value,
+      size_name:size_name.value, gsm:+gsm.value, paper_grade:paper_grade.value,
+      colours_front:+cf.value, colours_back:+cb.value, finishing:fin,
+      inter_state: inter_state.value==="true"
+    };
+    render(await post("/api/estimate",spec));
+  }catch(e){showErr(e.message);}finally{setBusy("btnForm",false);}
+}
+
+async function quoteNL(){
+  showErr(""); setBusy("btnNl",true);
+  try{ render(await post("/api/estimate/nl",{text:document.getElementById("nl").value})); }
+  catch(e){ showErr(e.message + "  (Tip: the AI box needs ANTHROPIC_API_KEY — the form works without it.)"); }
+  finally{ setBusy("btnNl",false); }
+}
+
+// Reset finishing defaults on load (browsers restore stale checkbox state on reload)
+window.addEventListener("pageshow", () => {
+  document.getElementById("f_matt").checked = true;
+  ["f_gloss","f_spotuv","f_foil"].forEach(id => document.getElementById(id).checked = false);
+});
+</script>
+</body>
+</html>

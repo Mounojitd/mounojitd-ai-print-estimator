@@ -1,0 +1,14 @@
+# Render.com blueprint — free public web service.
+# Push this repo to GitHub, then on render.com: New + → Blueprint → pick the repo.
+services:
+  - type: web
+    name: ai-print-estimator
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    autoDeploy: true
+    envVars:
+      # Optional: set this to enable the "Estimate with AI" Claude parsing.
+      # Without it, the natural-language box falls back to the built-in rules parser.
+      - key: ANTHROPIC_API_KEY
+        sync: false

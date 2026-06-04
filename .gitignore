@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+*.log
+_probe/
+_xlsx_probe/
+tools/                 # cloudflared.exe etc. — don't commit binaries
+# NOTE: db/files/*.xlsx ARE committed on purpose — they are the master data.
