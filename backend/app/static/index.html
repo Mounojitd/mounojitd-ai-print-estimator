@@ -202,6 +202,18 @@ async function quoteForm(){
     if(f_gloss.checked) fin.push({name:"Gloss lamination",kind:"lamination",variant:"gloss"});
     if(f_spotuv.checked)fin.push({name:"Spot UV",kind:"uv",variant:"spot"});
     if(f_foil.checked)  fin.push({name:"Foiling",kind:"foiling",variant:"any"});
+    // If we came from Step 1 (paper calc) and kept the custom size, price using
+    // the paper calc's REAL sheet count (correct for multi-page books/calendars).
+    if(window.PAPER && size_name.value==="CUSTOM"){
+      const o=window.PAPER.opt;
+      render(await post("/api/estimate/from-paper",{
+        product:product.value, category:category.value, quantity:+quantity.value, gsm:+gsm.value,
+        sheet_w_in:o.sheet_w, sheet_h_in:o.sheet_h, ups:o.ups, good_sheets:o.good_sheets,
+        total_sheets:o.total_sheets, total_weight_kg:o.total_weight_kg, paper_cost:o.paper_cost,
+        colours_front:+cf.value, colours_back:+cb.value, finishing:fin, inter_state:inter_state.value==="true"
+      }));
+      return;
+    }
     const spec={
       product:product.value, category:category.value, quantity:+quantity.value,
       size_name:size_name.value, gsm:+gsm.value, paper_grade:paper_grade.value,
@@ -247,6 +259,9 @@ function prefillFromPaper(){
   if(h.books) document.getElementById("quantity").value=h.books;
   if(h.gsm)   document.getElementById("gsm").value=h.gsm;
   setSelect("paper_grade", h.grade);
+  // remember the chosen sheet so pricing uses Step-1's real sheet count
+  const opt = (h.best_cost && h.best_cost.paper_cost!=null) ? h.best_cost : (h.best && h.best.paper_cost!=null ? h.best : null);
+  window.PAPER = opt ? {opt, books:h.books, gsm:h.gsm} : null;
   // page came from the paper step in inches → use Custom size
   if(h.page_w && h.page_h){
     document.getElementById("size_name").value="CUSTOM";

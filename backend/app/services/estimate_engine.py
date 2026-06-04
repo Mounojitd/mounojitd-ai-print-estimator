@@ -18,7 +18,7 @@ from . import (
     print_calculator,
 )
 from .estimation_config import OVERHEAD_PCT, PACKING, D
-from .types import Component, Estimate, Finishing, Job, Size
+from .types import Component, ComponentResult, Estimate, Finishing, Job, Size
 
 
 def estimate(job: Job) -> Estimate:
@@ -36,6 +36,11 @@ def estimate(job: Job) -> Estimate:
         total_weight += r.paper_weight_kg
         notes.extend(f"[{r.name}] {n}" for n in r.notes)
 
+    return _finalize(job, comp_results, total_sheets_all, total_weight, notes)
+
+
+def _finalize(job, comp_results, total_sheets_all, total_weight, notes) -> Estimate:
+    """Shared tail: finishing → packing → freight → overhead → margin → GST."""
     paper_cost = sum((r.paper_cost for r in comp_results), D(0))
     plate_cost = sum((r.plate_cost for r in comp_results), D(0))
     printing_cost = sum((r.printing_cost for r in comp_results), D(0))
@@ -102,6 +107,59 @@ def estimate(job: Job) -> Estimate:
         unit_price=unit_price,
         notes=notes,
     )
+
+
+def estimate_from_paper(
+    *, product: str, category: str, quantity: int, gsm: int,
+    sheet_w_in: float, sheet_h_in: float, ups: int,
+    good_sheets: int, total_sheets: int, total_weight_kg: float, paper_cost: float,
+    colours_front: int, colours_back: int,
+    finishing: list[Finishing] | None = None, inter_state: bool = False,
+    process: str = "offset", rate_book=None,
+) -> Estimate:
+    """Price a job from the PAPER CALCULATOR's real sheet count (Step 1 → Step 3).
+
+    Paper cost + sheet count come from the paper calc (correct for multi-page
+    books/calendars); this adds plates + impressions (on the real sheet count) +
+    finishing + packing/freight + overhead + margin + GST.
+    """
+    from .rates import RateBook
+    rb = rate_book or RateBook()
+    sheet_mm = Size(D(str(sheet_w_in)) * D("25.4"), D(str(sheet_h_in)) * D("25.4"))
+    machine = rb.select_machine(sheet_mm, max(colours_front, colours_back))
+
+    comp = Component(name="sheet", page_size=sheet_mm, pages=2,
+                     colours_front=colours_front, colours_back=colours_back, gsm=gsm,
+                     cost_per_sheet=D(0), signature_pages=2, trim=True)
+    job = Job(product=product, category=category, quantity=quantity, components=[comp],
+              machine_sheet=sheet_mm,
+              machine_size_class=(machine.size_class if machine else "big"),
+              machine_name=(machine.machine if machine else None),
+              plate_per_colour=(machine.plate_per_colour if machine else None),
+              process=process, finishing=finishing or [], inter_state=inter_state)
+
+    notes: list[str] = []
+    colour_mode = "single" if max(colours_front, colours_back) <= 1 else "4color"
+    if machine:
+        impr = rb.impression(machine.machine, quantity, colour_mode)
+        if impr:
+            job.impression_rate_per_sheet = impr["rate"]
+            job.printing_min_charge = impr["min_charge"]
+        notes.append(f"MACHINE→ {machine.machine} ({machine.vendor}) "
+                     f"plate ₹{machine.plate_per_colour}/colour [{machine.size_class}]")
+
+    r = ComponentResult(
+        name="sheet", ups=ups, orientation="from paper calc", flat_piece=sheet_mm,
+        forms=1, good_sheets=int(good_sheets), setup_waste_sheets=0, running_waste_sheets=0,
+        total_sheets=int(total_sheets), paper_cost=D(str(paper_cost)).quantize(D("0.01")),
+        plate_cost=D(0), printing_cost=D(0), paper_weight_kg=D(str(total_weight_kg)),
+    )
+    r.plate_cost = plate_calculator.calculate(comp, job, r.forms)
+    r.printing_cost = print_calculator.calculate(comp, job, r.total_sheets)
+    notes.append(f"PAPER+SHEETS from Step-1: {total_sheets} sheets · {sheet_w_in}×{sheet_h_in} in · {ups}-up · paper ₹{paper_cost}")
+    if not (machine and rb.impression(machine.machine, quantity, colour_mode)):
+        notes.append("PRINTING uses placeholder rate — fill Printing_Rate_Master to make it real")
+    return _finalize(job, [r], int(good_sheets), D(str(total_weight_kg)), notes)
 
 
 # --------------------------------------------------------------------------

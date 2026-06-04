@@ -223,9 +223,9 @@ def _page_size(spec: JobSpec) -> Size:
     return STANDARD_SIZES[spec.size_name]
 
 
-def _finishing(spec: JobSpec) -> list[Finishing]:
+def finishing_from_specs(specs: list[FinishingSpec]) -> list[Finishing]:
     out: list[Finishing] = []
-    for f in spec.finishing:
+    for f in specs:
         key = (f.kind, f.variant if (f.kind, f.variant) in FINISHING_RATES else "any")
         rate = FINISHING_RATES.get(key) or FINISHING_RATES.get((f.kind, "any"))
         if rate is None:
@@ -252,7 +252,7 @@ def spec_to_estimate(spec: JobSpec, rb: RateBook | None = None) -> Estimate:
         grade=spec.paper_grade,
         colours_front=spec.colours_front,
         colours_back=spec.colours_back,
-        finishing=_finishing(spec),
+        finishing=finishing_from_specs(spec.finishing),
         inter_state=spec.inter_state,
         exclude_grade=exclude,
         rate_book=rb,
