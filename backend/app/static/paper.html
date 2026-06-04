@@ -166,7 +166,13 @@ function render(d){
       `<td>${o.efficiency_pct}%</td><td>${o.price_per_sheet!=null?'₹'+o.price_per_sheet:'—'}</td><td>${inr(o.paper_cost)}</td></tr>`;
   }).join("");
 }
-function goPrice(){sessionStorage.setItem("paperResult",JSON.stringify(LAST));window.location.href="/price";}
+function goPrice(){
+  const h={page_w:f("pw"),page_h:f("ph"),gsm:+$("gsm").value,grade:$("grade").value,
+           books:+$("books").value,
+           best:LAST&&LAST.best, best_cost:LAST&&LAST.best_cost};
+  sessionStorage.setItem("paperHandoff",JSON.stringify(h));
+  window.location.href="/price";
+}
 </script>
 </body>
 </html>

@@ -76,16 +76,22 @@
     <div class="card">
       <h2>📝 Or fill the details</h2>
       <p class="hint">No API key needed — computes straight from your masters.</p>
+      <div id="fromPaper" style="display:none;background:#f0f7f1;border:1px solid #cfe6d4;border-radius:8px;padding:9px 11px;font-size:12px;color:#1f5b38;margin-bottom:10px"></div>
       <label>Product</label>
       <input id="product" value="A4 brochure" />
       <div class="row3">
         <div><label>Quantity</label><input id="quantity" type="number" value="10000" /></div>
         <div><label>Size</label>
-          <select id="size_name">
+          <select id="size_name" onchange="toggleCustom()">
             <option>A3</option><option selected>A4</option><option>A5</option>
             <option>A6</option><option>DL</option><option>LETTER</option><option>LEGAL</option>
+            <option value="CUSTOM">Custom (in)</option>
           </select></div>
         <div><label>GSM</label><input id="gsm" type="number" value="170" /></div>
+      </div>
+      <div class="row" id="customRow" style="display:none">
+        <div><label>Custom width (in)</label><input id="custom_w" type="number" step="0.01" value="8.5" /></div>
+        <div><label>Custom height (in)</label><input id="custom_h" type="number" step="0.01" value="6" /></div>
       </div>
       <div class="row3">
         <div><label>Paper grade</label>
@@ -202,8 +208,17 @@ async function quoteForm(){
       colours_front:+cf.value, colours_back:+cb.value, finishing:fin,
       inter_state: inter_state.value==="true"
     };
+    if(size_name.value==="CUSTOM"){
+      spec.page_width_mm = +custom_w.value * 25.4;
+      spec.page_height_mm = +custom_h.value * 25.4;
+    }
     render(await post("/api/estimate",spec));
   }catch(e){showErr(e.message);}finally{setBusy("btnForm",false);}
+}
+
+function toggleCustom(){
+  document.getElementById("customRow").style.display =
+    document.getElementById("size_name").value==="CUSTOM" ? "grid" : "none";
 }
 
 async function quoteNL(){
@@ -217,7 +232,37 @@ async function quoteNL(){
 window.addEventListener("pageshow", () => {
   document.getElementById("f_matt").checked = true;
   ["f_gloss","f_spotuv","f_foil"].forEach(id => document.getElementById(id).checked = false);
+  prefillFromPaper();
 });
+
+// Step 2→3: if we arrived from the Paper Calculator, prefill the pricing form.
+function setSelect(id,val){
+  const sel=document.getElementById(id); if(!val) return;
+  const v=String(val).toUpperCase();
+  for(const o of sel.options){ if(o.value.toUpperCase()===v||o.text.toUpperCase()===v){ sel.value=o.value; return; } }
+}
+function prefillFromPaper(){
+  let h; try{ h=JSON.parse(sessionStorage.getItem("paperHandoff")||"null"); }catch(e){ h=null; }
+  if(!h) return;
+  if(h.books) document.getElementById("quantity").value=h.books;
+  if(h.gsm)   document.getElementById("gsm").value=h.gsm;
+  setSelect("paper_grade", h.grade);
+  // page came from the paper step in inches → use Custom size
+  if(h.page_w && h.page_h){
+    document.getElementById("size_name").value="CUSTOM";
+    document.getElementById("custom_w").value=h.page_w;
+    document.getElementById("custom_h").value=h.page_h;
+    toggleCustom();
+  }
+  const b=h.best, bc=h.best_cost;
+  const box=document.getElementById("fromPaper");
+  box.style.display="block";
+  box.innerHTML="📄 <b>From Step 1 (Paper):</b> "+
+    (b?`best sheet <b>${b.sheet_w}×${b.sheet_h} in</b>, ${b.ups}-up, ${b.total_sheets.toLocaleString("en-IN")} sheets`:"")+
+    (bc&&bc.paper_cost!=null?` · paper ≈ ₹${Number(bc.paper_cost).toLocaleString("en-IN")}`:"")+
+    ". Prefilled below — set colours &amp; finishing, then quote.";
+  sessionStorage.removeItem("paperHandoff");
+}
 </script>
 </body>
 </html>
