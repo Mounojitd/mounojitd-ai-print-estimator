@@ -196,25 +196,52 @@ function calc(){
   }).join("");
 }
 
-// ---- live imposition diagram ----
+// ---- live imposition diagram (numbered cells + work-and-turn front/back) ----
 let LASTOPTS=[];
-function drawDiagram(o){
-  const box=$("diagram");
-  if(!o||!o.ups){ box.innerHTML=""; return; }
+function buildSheetSVG(o, numFn){
   const long=Math.max(o.sw,o.sh), short=Math.min(o.sw,o.sh);
-  const W=420, sc=W/long, H=Math.round(short*sc);
+  const W=380, sc=W/long, H=Math.round(short*sc);
   const g=o.gripper*sc, sl=o.sidelay*sc, gut=o.gutter*sc, bl=o.bleed*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
+  const fs=Math.max(7,Math.min(13,cw/2.6));
   let cells="";
   for(let r=0;r<o.rows;r++) for(let c=0;c<o.cols;c++){
     const x=sl+c*(cw+gut), y=r*(ch+gut);
     cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3" stroke-width="0.7"/>`;
     if(bl>1) cells+=`<rect x="${(x+bl).toFixed(1)}" y="${(y+bl).toFixed(1)}" width="${(cw-2*bl).toFixed(1)}" height="${(ch-2*bl).toFixed(1)}" fill="none" stroke="#9bbbe0" stroke-dasharray="2 2" stroke-width="0.5"/>`;
+    cells+=`<text x="${(x+cw/2).toFixed(1)}" y="${(y+ch/2+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold">${numFn(r,c)}</text>`;
   }
   const uH=(H-g).toFixed(1);
   const side=`<rect x="0" y="0" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/><rect x="${(W-sl).toFixed(1)}" y="0" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/>`;
   const grip=`<rect x="0" y="${(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
-  box.innerHTML=`<div class="muted" style="margin-bottom:4px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted &nbsp;<span style="color:#d99">▮</span>gripper &nbsp;<span style="color:#d9b94b">▮</span>side-lay</div>`+
-    `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
+}
+function drawDiagram(o){
+  const box=$("diagram");
+  if(!o||!o.ups){ box.innerHTML=""; return; }
+  const dbl=$("sided").value==="2";
+  const front=(r,c)=> r*o.cols+c+1;
+  const back =(r,c)=> r*o.cols+(o.cols-1-c)+1;
+  const head=`<div class="muted" style="margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay</div>`;
+  const svgs = dbl
+    ? `<div style="display:flex;gap:14px;flex-wrap:wrap">
+         <div style="flex:1;min-width:190px"><div class="muted" style="margin-bottom:3px">▶ FRONT</div>${buildSheetSVG(o,front)}</div>
+         <div style="flex:1;min-width:190px"><div class="muted" style="margin-bottom:3px">◀ BACK (work-and-turn, sheet flipped ↔)</div>${buildSheetSVG(o,back)}</div>
+       </div>`
+    : buildSheetSVG(o,front);
+  box.innerHTML=head+svgs+`<button onclick="printSheet()" style="width:auto;padding:7px 13px;margin-top:8px;background:#444">🖨 Print cut sheet</button>`;
+  box.dataset.title=`${o.sw}×${o.sh} in · ${o.ups}-up · ${dbl?"double":"single"}-sided`;
+}
+function printSheet(){
+  const box=$("diagram");
+  const body=box.innerHTML.replace(/<button[\s\S]*?<\/button>/,"");
+  const w=window.open("","_blank","width=940,height=720");
+  w.document.write(`<html><head><title>Cut sheet — ${box.dataset.title||""}</title>`+
+    `<style>body{font-family:Arial,Helvetica,sans-serif;padding:22px;color:#222}h2{margin:0 0 8px}`+
+    `.muted{color:#666;font-size:12px}svg{max-width:420px}</style></head><body>`+
+    `<h2>Imposition cut sheet</h2><div class="muted" style="margin-bottom:10px">${box.dataset.title||""}</div>`+
+    body+`<p class="muted" style="margin-top:14px">Numbers = leaf/page positions on the sheet. `+
+    `Red = gripper · yellow = side-lay · dashed = finished page (trim after bleed).</p></body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} }, 350);
 }
 function drawIdx(i){ if(LASTOPTS[i]) drawDiagram(LASTOPTS[i]); }
 
