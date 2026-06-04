@@ -120,6 +120,7 @@
         <div class="bestbox waste" id="bwBox"><div class="lbl">♻️ Minimum wastage</div><div class="big" id="bwLine"></div><div class="sub" id="bwSub"></div></div>
         <div class="bestbox cost" id="bcBox"><div class="lbl">💰 Minimum cost (real master)</div><div class="big" id="bcLine"></div><div class="sub" id="bcSub"></div></div>
       </div>
+      <div id="diagram" style="margin:4px 0 12px"></div>
       <table id="tbl" style="display:none">
         <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets</th><th>Weight</th><th>Waste %</th><th>₹/sheet</th><th>Paper ₹</th></tr></thead>
         <tbody id="tb"></tbody>
@@ -162,12 +163,15 @@ function render(d){
   else {$("bcBox").style.display="none";}
   $("next").style.display="block";
   $("tbl").style.display="table";
-  $("tb").innerHTML=d.options.map(o=>{
+  drawDiagram(bp||bw||bc||d.options.find(o=>o.ups));
+  $("tb").innerHTML=d.options.map((o,idx)=>{
+    const click = o.ups?`onclick="drawIdx(${idx})" style="cursor:pointer"`:"";
+    o._click=click;
     const isP=bp&&o.sheet_w===bp.sheet_w&&o.sheet_h===bp.sheet_h;
     const isC=bc&&o.sheet_w===bc.sheet_w&&o.sheet_h===bc.sheet_h&&o.paper_cost===bc.paper_cost;
     const isW=bw&&o.sheet_w===bw.sheet_w&&o.sheet_h===bw.sheet_h&&o.wastage_pct===bw.wastage_pct;
     if(!o.ups) return `<tr><td>${o.sheet_w}×${o.sheet_h}</td><td colspan="6" style="text-align:left;color:#a3242a">won't fit</td></tr>`;
-    return `<tr class="${isP||isC||isW?'best':''}"><td>${o.sheet_w}×${o.sheet_h}${isP?'<span class="pill p">PAPER</span>':''}${isW?'<span class="pill w">WASTE</span>':''}${isC?'<span class="pill c">₹</span>':''}</td>`+
+    return `<tr ${o._click||''} class="${isP||isC||isW?'best':''}"><td>${o.sheet_w}×${o.sheet_h}${isP?'<span class="pill p">PAPER</span>':''}${isW?'<span class="pill w">WASTE</span>':''}${isC?'<span class="pill c">₹</span>':''}</td>`+
       `<td>${o.ups} ${o.orientation==='rotated'?'↻':''}</td><td>${o.total_sheets.toLocaleString("en-IN")}</td><td>${o.total_weight_kg} kg</td>`+
       `<td>${o.wastage_pct}%</td><td>${o.price_per_sheet!=null?'₹'+o.price_per_sheet:'—'}</td><td>${inr(o.paper_cost)}</td></tr>`;
   }).join("");
@@ -179,6 +183,35 @@ function goPrice(){
   sessionStorage.setItem("paperHandoff",JSON.stringify(h));
   window.location.href="/price";
 }
+
+// ---- live imposition diagram ----
+function drawDiagram(o){
+  const box=$("diagram");
+  if(!o||!o.ups){ box.innerHTML=""; return; }
+  const gripper=f("gripper")/25.4, sidelay=f("sidelay")/25.4, gutter=(+f("gutter")||0), bleed=(+f("bleed")||0);
+  const long=Math.max(o.sheet_w,o.sheet_h), short=Math.min(o.sheet_w,o.sheet_h);
+  const W=420, sc=W/long, H=Math.round(short*sc);
+  const g=gripper*sc, sl=sidelay*sc, gut=gutter*sc, bl=bleed*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
+  let cells="";
+  for(let r=0;r<o.rows;r++) for(let c=0;c<o.cols;c++){
+    const x=sl+c*(cw+gut), y=r*(ch+gut);
+    cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3" stroke-width="0.7"/>`;
+    if(bl>1) cells+=`<rect x="${(x+bl).toFixed(1)}" y="${(y+bl).toFixed(1)}" width="${(cw-2*bl).toFixed(1)}" height="${(ch-2*bl).toFixed(1)}" fill="none" stroke="#9bbbe0" stroke-dasharray="2 2" stroke-width="0.5"/>`;
+  }
+  const usableH=(H-g).toFixed(1);
+  const side=`<rect x="0" y="0" width="${sl.toFixed(1)}" height="${usableH}" fill="#fdf0cf"/><rect x="${(W-sl).toFixed(1)}" y="0" width="${sl.toFixed(1)}" height="${usableH}" fill="#fdf0cf"/>`;
+  const grip=`<rect x="0" y="${(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
+  box.innerHTML=`<div class="muted" style="margin-bottom:4px">Layout — <b>${o.sheet_w}×${o.sheet_h} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orientation}) · ${o.wastage_pct}% wasted &nbsp;<span style="color:#d99">▮</span>gripper ${f("gripper")}mm &nbsp;<span style="color:#d9b94b">▮</span>side-lay</div>`+
+    `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
+}
+function drawIdx(i){ if(LAST&&LAST.options[i]) drawDiagram(LAST.options[i]); }
+
+// redraw live as the size/inputs change
+let _t; function liveCalc(){ clearTimeout(_t); _t=setTimeout(()=>{ if(LAST) calc(); }, 280); }
+["pw","ph","pages","books","sided","gsm","bleed","gutter","grain","gripper","sidelay"]
+  .forEach(id=>{const e=$(id); if(e) e.addEventListener("input",liveCalc);});
+$("rotate").addEventListener("change",liveCalc);
+document.querySelectorAll(".ss").forEach(c=>c.addEventListener("change",liveCalc));
 </script>
 </body>
 </html>

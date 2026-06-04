@@ -43,14 +43,18 @@ class SheetOption:
     efficiency_pct: float = 0.0              # used (cell) area / sheet area
     wastage_pct: float = 0.0                # 100 − efficiency = unused sheet area
     wasted_area_sqin: float = 0.0           # unused area summed over all sheets
+    cols: int = 0                           # imposition grid (for the diagram)
+    rows: int = 0
+    cell_used_w: float = 0.0                # placed cell size along the long edge (in)
+    cell_used_h: float = 0.0                # placed cell size along the short edge (in)
     price_per_sheet: float | None = None     # real ₹/sheet from the master
     paper_cost: float | None = None          # ₹ for total_sheets
     paper_source: str | None = None          # paper_id / vendor used
 
 
 def _ups(usable_long: float, usable_short: float, cw: float, ch: float,
-         gutter: float, orientations: list[str]) -> tuple[int, str]:
-    best, orient = 0, "—"
+         gutter: float, orientations: list[str]) -> tuple[int, str, int, int, float, float]:
+    best, res = 0, ("—", 0, 0, 0.0, 0.0)
     for name in orientations:
         a, b = (cw, ch) if name == "upright" else (ch, cw)
         if a <= 0 or b <= 0:
@@ -59,8 +63,8 @@ def _ups(usable_long: float, usable_short: float, cw: float, ch: float,
         rows = int((usable_short + gutter) // (b + gutter))
         n = cols * rows
         if n > best:
-            best, orient = n, name
-    return best, orient
+            best, res = n, (name, cols, rows, a, b)
+    return (best, *res)
 
 
 def compute(
@@ -95,10 +99,12 @@ def compute(
     options: list[SheetOption] = []
     for sw, sh in sheets:
         long_dim, short_dim = max(sw, sh), min(sw, sh)
-        ups, orient = _ups(long_dim - 2 * sidelay, short_dim - gripper,
-                            cell_w, cell_h, gutter, orientations)
+        ups, orient, cols, rows, used_w, used_h = _ups(
+            long_dim - 2 * sidelay, short_dim - gripper, cell_w, cell_h, gutter, orientations)
         opt = SheetOption(sheet_w=sw, sheet_h=sh)
         if ups > 0:
+            opt.cols, opt.rows = cols, rows
+            opt.cell_used_w, opt.cell_used_h = round(used_w, 3), round(used_h, 3)
             spb = math.ceil(leaves / ups)
             good = spb * books
             run = math.ceil(good * running_pct / 100.0)

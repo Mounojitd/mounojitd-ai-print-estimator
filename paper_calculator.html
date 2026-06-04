@@ -108,6 +108,7 @@
         <div class="big" id="bestLine"></div>
         <div class="sub" id="bestSub"></div>
       </div>
+      <div id="diagram" style="margin:6px 0 12px"></div>
       <table id="tbl" style="display:none">
         <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets/book</th><th>Total sheets</th><th>Weight</th><th>Waste %</th></tr></thead>
         <tbody id="tb"></tbody>
@@ -135,18 +136,18 @@ function compute(){
                 : (rotate ? ["upright","rotated"] : ["upright"]);
 
   const upsIn=(L,S)=>{
-    let best=0,orient="—";
+    let best=0,res=["—",0,0,0,0];
     for(const name of orients){
       const [a,b] = name==="upright" ? [cell_w,cell_h] : [cell_h,cell_w];
       const cols=Math.floor((L+gutter)/(a+gutter)), rows=Math.floor((S+gutter)/(b+gutter));
-      const n=cols*rows; if(n>best){best=n;orient=name;}
+      const n=cols*rows; if(n>best){best=n;res=[name,cols,rows,a,b];}
     }
-    return [best,orient];
+    return [best,...res];
   };
 
   const options=sizes.map(([sw,sh])=>{
     const long=Math.max(sw,sh), short=Math.min(sw,sh);
-    const [ups,orient]=upsIn(long-2*sidelay, short-gripper);
+    const [ups,orient,cols,rows,uw,uh]=upsIn(long-2*sidelay, short-gripper);
     if(ups<=0) return {sw,sh,ups:0};
     const sheets_per_book=Math.ceil(leaves/ups);
     const good=sheets_per_book*books;
@@ -155,7 +156,8 @@ function compute(){
     const area_m2=(sw*0.0254)*(sh*0.0254);
     const sheet_wt=area_m2*gsm/1000;
     const eff=100*ups*cell_w*cell_h/(sw*sh);
-    return {sw,sh,ups,orient,sheets_per_book,good,run,total,
+    return {sw,sh,ups,orient,cols,rows,cell_used_w:uw,cell_used_h:uh,bleed,gripper,sidelay,gutter,
+      sheets_per_book,good,run,total,
       total_wt:+(sheet_wt*total).toFixed(2),
       eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1)};
   });
@@ -181,15 +183,47 @@ function calc(){
   const bw=r.best_waste;
   if(bw){ $("meta").textContent += `  ·  ♻️ lowest wastage: ${bw.sw}×${bw.sh} in (${bw.waste}% wasted)`; }
   $("tbl").style.display="table";
-  $("tb").innerHTML=r.options.map(o=>{
+  LASTOPTS=r.options;
+  drawDiagram(b||bw||r.options.find(o=>o.ups));
+  $("tb").innerHTML=r.options.map((o,idx)=>{
     const isB=b&&o.sw===b.sw&&o.sh===b.sh;
     const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh;
     const ups=o.ups>0?`${o.ups} (${o.orient})`:"won't fit";
-    return `<tr class="${isB||isW?'best':''}"><td>${o.sw}×${o.sh}${isB?'<span class="pill">BEST</span>':''}${isW?'<span class="pill" style="background:#2c6fb3">WASTE</span>':''}</td>`+
+    const click=o.ups?`onclick="drawIdx(${idx})" style="cursor:pointer"`:"";
+    return `<tr ${click} class="${isB||isW?'best':''}"><td>${o.sw}×${o.sh}${isB?'<span class="pill">BEST</span>':''}${isW?'<span class="pill" style="background:#2c6fb3">WASTE</span>':''}</td>`+
       `<td>${ups}</td><td>${o.ups>0?o.sheets_per_book:'—'}</td><td>${o.ups>0?o.total.toLocaleString("en-IN"):'—'}</td>`+
       `<td>${o.ups>0?o.total_wt+' kg':'—'}</td><td>${o.ups>0?o.waste+'%':'—'}</td></tr>`;
   }).join("");
 }
+
+// ---- live imposition diagram ----
+let LASTOPTS=[];
+function drawDiagram(o){
+  const box=$("diagram");
+  if(!o||!o.ups){ box.innerHTML=""; return; }
+  const long=Math.max(o.sw,o.sh), short=Math.min(o.sw,o.sh);
+  const W=420, sc=W/long, H=Math.round(short*sc);
+  const g=o.gripper*sc, sl=o.sidelay*sc, gut=o.gutter*sc, bl=o.bleed*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
+  let cells="";
+  for(let r=0;r<o.rows;r++) for(let c=0;c<o.cols;c++){
+    const x=sl+c*(cw+gut), y=r*(ch+gut);
+    cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3" stroke-width="0.7"/>`;
+    if(bl>1) cells+=`<rect x="${(x+bl).toFixed(1)}" y="${(y+bl).toFixed(1)}" width="${(cw-2*bl).toFixed(1)}" height="${(ch-2*bl).toFixed(1)}" fill="none" stroke="#9bbbe0" stroke-dasharray="2 2" stroke-width="0.5"/>`;
+  }
+  const uH=(H-g).toFixed(1);
+  const side=`<rect x="0" y="0" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/><rect x="${(W-sl).toFixed(1)}" y="0" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/>`;
+  const grip=`<rect x="0" y="${(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
+  box.innerHTML=`<div class="muted" style="margin-bottom:4px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted &nbsp;<span style="color:#d99">▮</span>gripper &nbsp;<span style="color:#d9b94b">▮</span>side-lay</div>`+
+    `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
+}
+function drawIdx(i){ if(LASTOPTS[i]) drawDiagram(LASTOPTS[i]); }
+
+// redraw live as the size/inputs change
+let _t; function liveCalc(){ clearTimeout(_t); _t=setTimeout(calc,250); }
+["pw","ph","pages","books","sided","gsm","bleed","gutter","grain","gripper","sidelay","setup","running"]
+  .forEach(id=>{const e=$(id); if(e) e.addEventListener("input",liveCalc);});
+$("rotate").addEventListener("change",liveCalc);
+document.querySelectorAll(".ss").forEach(c=>c.addEventListener("change",liveCalc));
 window.addEventListener("DOMContentLoaded", calc);  // show a result immediately
 </script>
 </body>
