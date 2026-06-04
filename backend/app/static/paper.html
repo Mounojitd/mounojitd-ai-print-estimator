@@ -14,11 +14,12 @@
   .steps{display:flex;gap:8px;margin-top:12px;font-size:12px}
   .steps span{background:rgba(255,255,255,.15);padding:4px 10px;border-radius:20px}
   .steps span.on{background:#fff;color:var(--brand);font-weight:700}
-  .wrap{max-width:1040px;margin:0 auto;padding:22px}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px}
   .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
-  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  @media(max-width:880px){.grid{grid-template-columns:1fr}}
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}
   .card h2{margin:0 0 12px;font-size:15px}
+  .card h2.sub{margin-top:18px}
   label{display:block;font-size:12px;font-weight:600;color:#384150;margin:10px 0 4px}
   input,select{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -28,15 +29,21 @@
   .chip input{width:auto}
   button{cursor:pointer;border:0;border-radius:9px;font-weight:600;font-size:14px;padding:11px 16px;color:#fff;background:var(--brand);width:100%;margin-top:14px}
   .muted{color:var(--muted);font-size:12px}
-  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
-  th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  th,td{padding:7px 5px;border-bottom:1px solid var(--line);text-align:right}
   th:first-child,td:first-child{text-align:left}
-  th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+  th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
   tr.best{background:#e9f6ee}
   tr.best td{font-weight:700}
-  .pill{display:inline-block;background:var(--good);color:#fff;border-radius:5px;padding:1px 6px;font-size:11px;margin-left:6px}
-  .bestbox{background:linear-gradient(135deg,#13361f,#1f7a4d);color:#fff;border-radius:12px;padding:16px 18px;margin-bottom:14px;display:none}
-  .bestbox .big{font-size:24px;font-weight:700}
+  .pill{display:inline-block;color:#fff;border-radius:5px;padding:1px 5px;font-size:10px;margin-left:5px}
+  .pill.p{background:var(--good)} .pill.c{background:var(--accent)}
+  .bestrow{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .bestbox{flex:1;min-width:200px;border-radius:12px;padding:14px 16px;color:#fff;display:none}
+  .bestbox.paper{background:linear-gradient(135deg,#13361f,#1f7a4d)}
+  .bestbox.cost{background:linear-gradient(135deg,#5a2d0c,#c0651f)}
+  .bestbox .lbl{font-size:11px;opacity:.85}
+  .bestbox .big{font-size:20px;font-weight:700;margin:2px 0}
+  .bestbox .sub{font-size:12px;opacity:.92}
   .next{background:var(--accent);display:none}
   .err{color:#a3242a;font-size:13px;margin-top:8px}
 </style>
@@ -45,110 +52,121 @@
 <header>
   <div class="wrap" style="padding-top:0;padding-bottom:0">
     <h1>📄 Paper Calculator</h1>
-    <p>Step 1 — find the sheet size with the <b>minimum paper usage</b>, then move to pricing.</p>
+    <p>Step 1 — minimum paper usage <b>and minimum cost</b> from your real paper master, then price.</p>
     <div class="steps"><span class="on">1 · Paper</span><span>2 · Review</span><span>3 · Price</span></div>
   </div>
 </header>
 
 <div class="wrap">
   <div class="grid">
-    <!-- inputs -->
     <div class="card">
       <h2>Book specification</h2>
-      <label>Finished page size (inches)</label>
+      <label>Finished page size (inches) — W × H</label>
       <div class="row"><input id="pw" type="number" step="0.01" value="8.5" /><input id="ph" type="number" step="0.01" value="6" /></div>
       <div class="row">
         <div><label>Total pages</label><input id="pages" type="number" value="14" /></div>
         <div><label>Number of books</label><input id="books" type="number" value="1000" /></div>
       </div>
       <div class="row">
-        <div><label>Printing</label>
-          <select id="sided"><option value="true" selected>Double-sided</option><option value="false">Single-sided</option></select></div>
+        <div><label>Printing</label><select id="sided"><option value="true" selected>Double-sided</option><option value="false">Single-sided</option></select></div>
         <div><label>Paper GSM</label><input id="gsm" type="number" value="300" /></div>
       </div>
+      <label>Paper grade (for real ₹ lookup)</label>
+      <select id="grade">
+        <option value="">Any grade</option>
+        <option value="ART BOARD" selected>ART BOARD</option>
+        <option value="ART PAPER">ART PAPER</option>
+        <option value="MAPLITHO">MAPLITHO</option>
+        <option value="SBS">SBS</option>
+        <option value="FBB">FBB</option>
+      </select>
 
-      <h2 style="margin-top:18px">Margins</h2>
+      <h2 class="sub">Margins &amp; layout</h2>
       <div class="row3">
         <div><label>Bleed (in)</label><input id="bleed" type="number" step="0.01" value="0.125" /></div>
+        <div><label>Gutter (in)</label><input id="gutter" type="number" step="0.01" value="0" /></div>
+        <div><label>Grain</label><select id="grain"><option value="either" selected>Either</option><option value="long">Long (upright)</option><option value="short">Short (rotated)</option></select></div>
+      </div>
+      <div class="row3">
         <div><label>Gripper (mm)</label><input id="gripper" type="number" value="13" /></div>
         <div><label>Side-lay (mm)</label><input id="sidelay" type="number" value="3" /></div>
+        <div style="display:flex;align-items:flex-end"><label class="chip" style="margin:0"><input type="checkbox" id="rotate" /> Rotate</label></div>
       </div>
-      <label class="chip" style="margin-top:10px"><input type="checkbox" id="rotate" /> Allow rotation (turn the page on the sheet)</label>
 
-      <h2 style="margin-top:18px">Sheet sizes to consider (inches)</h2>
+      <h2 class="sub">Wastage</h2>
+      <div class="row">
+        <div><label>Make-ready sheets</label><input id="setup" type="number" value="100" /></div>
+        <div><label>Running waste (%)</label><input id="running" type="number" step="0.5" value="5" /></div>
+      </div>
+
+      <h2 class="sub">Sheet sizes to consider (in)</h2>
       <div class="chips">
         <label class="chip"><input type="checkbox" class="ss" value="18,25" checked /> 18×25</label>
         <label class="chip"><input type="checkbox" class="ss" value="20,30" checked /> 20×30</label>
+        <label class="chip"><input type="checkbox" class="ss" value="23,36" checked /> 23×36</label>
         <label class="chip"><input type="checkbox" class="ss" value="25,36" checked /> 25×36</label>
         <label class="chip"><input type="checkbox" class="ss" value="30,40" checked /> 30×40</label>
       </div>
-
-      <button id="btn" onclick="calc()">Find minimum paper usage →</button>
+      <button onclick="calc()">Calculate →</button>
       <div id="err" class="err"></div>
     </div>
 
-    <!-- results -->
     <div class="card">
       <h2>Result</h2>
-      <p class="muted" id="meta">Enter the spec and calculate. PAGE = one side · LEAF = one sheet (2 pages).</p>
-
-      <div class="bestbox" id="bestbox">
-        <div class="muted" style="color:#cfe8d8">Minimum paper usage</div>
-        <div class="big" id="best_line"></div>
-        <div id="best_sub" style="font-size:13px;opacity:.92"></div>
+      <p class="muted" id="meta">PAGE = one side · LEAF = one sheet (2 pages). Enter spec and calculate.</p>
+      <div class="bestrow">
+        <div class="bestbox paper" id="bpBox"><div class="lbl">✅ Minimum paper usage</div><div class="big" id="bpLine"></div><div class="sub" id="bpSub"></div></div>
+        <div class="bestbox cost" id="bcBox"><div class="lbl">💰 Minimum cost (real master)</div><div class="big" id="bcLine"></div><div class="sub" id="bcSub"></div></div>
       </div>
-
       <table id="tbl" style="display:none">
-        <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets/book</th><th>Total sheets</th><th>Weight</th><th>Efficiency</th></tr></thead>
+        <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets</th><th>Weight</th><th>Eff.</th><th>₹/sheet</th><th>Paper ₹</th></tr></thead>
         <tbody id="tb"></tbody>
       </table>
-
-      <button class="next" id="next" onclick="goPrice()">Looks good — continue to pricing →</button>
+      <button class="next" id="next" onclick="goPrice()">Continue to pricing →</button>
     </div>
   </div>
 </div>
 
 <script>
 let LAST=null;
-const f=(id)=>document.getElementById(id);
+const $=id=>document.getElementById(id), f=id=>parseFloat($(id).value);
+const inr=n=>n==null?"—":"₹"+Number(n).toLocaleString("en-IN",{maximumFractionDigits:0});
 function calc(){
-  f("err").textContent=""; f("btn").disabled=true;
+  $("err").textContent="";
   const sizes=[...document.querySelectorAll(".ss:checked")].map(c=>c.value.split(",").map(Number));
-  if(!sizes.length){f("err").textContent="Pick at least one sheet size.";f("btn").disabled=false;return;}
-  const body={
-    page_w:+f("pw").value,page_h:+f("ph").value,total_pages:+f("pages").value,books:+f("books").value,
-    double_sided:f("sided").value==="true",bleed:+f("bleed").value,gripper_mm:+f("gripper").value,
-    sidelay_mm:+f("sidelay").value,allow_rotation:f("rotate").checked,gsm:+f("gsm").value,sheet_sizes:sizes
-  };
+  if(!sizes.length){$("err").textContent="Pick at least one sheet size.";return;}
+  const body={page_w:f("pw"),page_h:f("ph"),total_pages:+$("pages").value,books:+$("books").value,
+    double_sided:$("sided").value==="true",gsm:+$("gsm").value,grade:$("grade").value||null,
+    bleed:f("bleed"),gutter:f("gutter"),grain:$("grain").value,gripper_mm:f("gripper"),
+    sidelay_mm:f("sidelay"),allow_rotation:$("rotate").checked,setup_waste:+$("setup").value,
+    running_pct:f("running"),sheet_sizes:sizes,with_cost:true};
   fetch("/api/paper",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)})
-    .then(r=>r.json()).then(d=>{ if(d.detail){throw new Error(JSON.stringify(d.detail));} render(d); })
-    .catch(e=>f("err").textContent=e.message).finally(()=>f("btn").disabled=false);
+    .then(r=>r.json()).then(d=>{if(d.detail)throw new Error(JSON.stringify(d.detail));render(d);})
+    .catch(e=>$("err").textContent=e.message);
 }
 function render(d){
-  LAST=d;
-  const i=d.inputs;
-  f("meta").textContent=`${i.page} · ${i.total_pages} pages (${i.sided}-sided → ${i.leaves_per_book} leaves/book) · cell ${i.cell}`;
-  const b=d.best;
-  if(b){
-    f("bestbox").style.display="block";
-    f("best_line").textContent=`${b.sheet_w}×${b.sheet_h} in  ·  ${b.ups}-up  ·  ${b.total_sheets.toLocaleString("en-IN")} sheets`;
-    f("best_sub").textContent=`${b.sheets_per_book} sheet/book × ${(+f("books").value).toLocaleString("en-IN")} + ${b.setup_waste} setup + ${b.running_waste} waste · ${b.total_weight_kg} kg · ${b.efficiency_pct}% efficient`;
-    f("next").style.display="block";
-  }
-  f("tbl").style.display="table";
-  f("tb").innerHTML=d.options.map(o=>{
-    const isBest=b&&o.sheet_w===b.sheet_w&&o.sheet_h===b.sheet_h;
-    const ups=o.ups>0?o.ups+" ("+o.orientation+")":"—";
-    return `<tr class="${isBest?'best':''}"><td>${o.sheet_w}×${o.sheet_h}${isBest?'<span class="pill">BEST</span>':''}</td>`+
-      `<td>${ups}</td><td>${o.ups>0?o.sheets_per_book:'—'}</td><td>${o.ups>0?o.total_sheets.toLocaleString("en-IN"):'—'}</td>`+
-      `<td>${o.ups>0?o.total_weight_kg+' kg':'—'}</td><td>${o.ups>0?o.efficiency_pct+'%':'—'}</td></tr>`;
+  LAST=d; const i=d.inputs;
+  $("meta").textContent=`${i.page} · ${i.total_pages} pages (${i.sided}-sided → ${i.leaves_per_book} leaves/book) · cell ${i.cell} · grain ${i.grain}`;
+  const bp=d.best, bc=d.best_cost;
+  if(bp){$("bpBox").style.display="block";
+    $("bpLine").textContent=`${bp.sheet_w}×${bp.sheet_h} in · ${bp.ups}-up · ${bp.total_sheets.toLocaleString("en-IN")} sheets`;
+    $("bpSub").textContent=`${bp.total_weight_kg} kg · ${bp.efficiency_pct}% efficient`;}
+  if(bc){$("bcBox").style.display="block";
+    $("bcLine").textContent=`${bc.sheet_w}×${bc.sheet_h} in · ${inr(bc.paper_cost)}`;
+    $("bcSub").textContent=`${inr(bc.price_per_sheet)}/sheet · ${bc.paper_source||""}`;}
+  else {$("bcBox").style.display="none";}
+  $("next").style.display="block";
+  $("tbl").style.display="table";
+  $("tb").innerHTML=d.options.map(o=>{
+    const isP=bp&&o.sheet_w===bp.sheet_w&&o.sheet_h===bp.sheet_h;
+    const isC=bc&&o.sheet_w===bc.sheet_w&&o.sheet_h===bc.sheet_h&&o.paper_cost===bc.paper_cost;
+    if(!o.ups) return `<tr><td>${o.sheet_w}×${o.sheet_h}</td><td colspan="6" style="text-align:left;color:#a3242a">won't fit</td></tr>`;
+    return `<tr class="${isP||isC?'best':''}"><td>${o.sheet_w}×${o.sheet_h}${isP?'<span class="pill p">PAPER</span>':''}${isC?'<span class="pill c">₹</span>':''}</td>`+
+      `<td>${o.ups} ${o.orientation==='rotated'?'↻':''}</td><td>${o.total_sheets.toLocaleString("en-IN")}</td><td>${o.total_weight_kg} kg</td>`+
+      `<td>${o.efficiency_pct}%</td><td>${o.price_per_sheet!=null?'₹'+o.price_per_sheet:'—'}</td><td>${inr(o.paper_cost)}</td></tr>`;
   }).join("");
 }
-function goPrice(){
-  // carry the paper result into the pricing step
-  sessionStorage.setItem("paperResult", JSON.stringify(LAST));
-  window.location.href="/price";
-}
+function goPrice(){sessionStorage.setItem("paperResult",JSON.stringify(LAST));window.location.href="/price";}
 </script>
 </body>
 </html>

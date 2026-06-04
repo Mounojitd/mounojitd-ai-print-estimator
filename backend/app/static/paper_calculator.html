@@ -68,13 +68,17 @@
         <div><label>Paper GSM</label><input id="gsm" type="number" value="300" /></div>
       </div>
 
-      <h2 class="sub">Margins</h2>
+      <h2 class="sub">Margins &amp; layout</h2>
       <div class="row3">
         <div><label>Bleed (in)</label><input id="bleed" type="number" step="0.01" value="0.125" /></div>
+        <div><label>Gutter (in)</label><input id="gutter" type="number" step="0.01" value="0" /></div>
+        <div><label>Grain</label><select id="grain"><option value="either" selected>Either</option><option value="long">Long (upright)</option><option value="short">Short (rotated)</option></select></div>
+      </div>
+      <div class="row3">
         <div><label>Gripper (mm)</label><input id="gripper" type="number" value="13" /></div>
         <div><label>Side-lay (mm)</label><input id="sidelay" type="number" value="3" /></div>
+        <div style="display:flex;align-items:flex-end"><label class="chip" style="margin:0"><input type="checkbox" id="rotate" /> Rotate</label></div>
       </div>
-      <label class="chip" style="margin-top:10px"><input type="checkbox" id="rotate" /> Allow rotation on the sheet</label>
 
       <h2 class="sub">Wastage</h2>
       <div class="row">
@@ -121,16 +125,22 @@ function compute(){
   const page_w=f("pw"), page_h=f("ph"), pages=Math.max(1,Math.round(f("pages"))), books=Math.max(1,Math.round(f("books")));
   const sided=parseInt($("sided").value), gsm=f("gsm"), bleed=f("bleed");
   const gripper=f("gripper")/MM, sidelay=f("sidelay")/MM, rotate=$("rotate").checked;
+  const gutter=f("gutter")||0, grain=$("grain").value;
   const setup=Math.max(0,Math.round(f("setup"))), running=f("running");
   const sizes=[...document.querySelectorAll(".ss:checked")].map(c=>c.value.split(",").map(Number));
 
   const cell_w=page_w+2*bleed, cell_h=page_h+2*bleed;
   const leaves = sided===2 ? Math.ceil(pages/2) : pages;
+  const orients = grain==="long" ? ["upright"] : grain==="short" ? ["rotated"]
+                : (rotate ? ["upright","rotated"] : ["upright"]);
 
   const upsIn=(L,S)=>{
     let best=0,orient="—";
-    const cands=[[cell_w,cell_h,"upright"]]; if(rotate) cands.push([cell_h,cell_w,"rotated"]);
-    for(const [a,b,name] of cands){ const n=Math.floor(L/a)*Math.floor(S/b); if(n>best){best=n;orient=name;} }
+    for(const name of orients){
+      const [a,b] = name==="upright" ? [cell_w,cell_h] : [cell_h,cell_w];
+      const cols=Math.floor((L+gutter)/(a+gutter)), rows=Math.floor((S+gutter)/(b+gutter));
+      const n=cols*rows; if(n>best){best=n;orient=name;}
+    }
     return [best,orient];
   };
 

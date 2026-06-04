@@ -220,6 +220,28 @@ class RateBook:
                 return r
         return None
 
+    def paper_price(self, gsm: int, w_in: float, h_in: float,
+                    grade: str | None = None, tol_mm: float = 8.0) -> tuple[float, str, str] | None:
+        """Cheapest ₹/sheet for a paper of this gsm at ~this sheet size (inches).
+
+        Returns (price_per_sheet, paper_id, vendor) or None. Sheet size is matched
+        within tol_mm in either orientation; grade is an optional substring filter.
+        """
+        target = sorted([w_in * float(IN_MM), h_in * float(IN_MM)])
+        gc = (grade or "").lower()
+        best = None
+        for p in self.papers():
+            if gsm and p.gsm != gsm:
+                continue
+            if gc and gc not in p.description.lower():
+                continue
+            dims = sorted([float(p.sheet.w), float(p.sheet.h)])
+            if abs(dims[0] - target[0]) <= tol_mm and abs(dims[1] - target[1]) <= tol_mm:
+                price = float(p.price_per_sheet)
+                if best is None or price < best[0]:
+                    best = (price, p.paper_id, p.vendor)
+        return best
+
     def select_machine(self, paper_sheet: Size, colours_needed: int) -> MachineRate | None:
         """Cheapest-plate machine that accepts the paper sheet and the colours."""
         def fits(m: MachineRate) -> bool:
