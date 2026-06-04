@@ -36,11 +36,12 @@
   tr.best{background:#e9f6ee}
   tr.best td{font-weight:700}
   .pill{display:inline-block;color:#fff;border-radius:5px;padding:1px 5px;font-size:10px;margin-left:5px}
-  .pill.p{background:var(--good)} .pill.c{background:var(--accent)}
+  .pill.p{background:var(--good)} .pill.c{background:var(--accent)} .pill.w{background:#2c6fb3}
   .bestrow{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-  .bestbox{flex:1;min-width:200px;border-radius:12px;padding:14px 16px;color:#fff;display:none}
+  .bestbox{flex:1;min-width:180px;border-radius:12px;padding:14px 16px;color:#fff;display:none}
   .bestbox.paper{background:linear-gradient(135deg,#13361f,#1f7a4d)}
   .bestbox.cost{background:linear-gradient(135deg,#5a2d0c,#c0651f)}
+  .bestbox.waste{background:linear-gradient(135deg,#0c3a5a,#2c6fb3)}
   .bestbox .lbl{font-size:11px;opacity:.85}
   .bestbox .big{font-size:20px;font-weight:700;margin:2px 0}
   .bestbox .sub{font-size:12px;opacity:.92}
@@ -116,10 +117,11 @@
       <p class="muted" id="meta">PAGE = one side · LEAF = one sheet (2 pages). Enter spec and calculate.</p>
       <div class="bestrow">
         <div class="bestbox paper" id="bpBox"><div class="lbl">✅ Minimum paper usage</div><div class="big" id="bpLine"></div><div class="sub" id="bpSub"></div></div>
+        <div class="bestbox waste" id="bwBox"><div class="lbl">♻️ Minimum wastage</div><div class="big" id="bwLine"></div><div class="sub" id="bwSub"></div></div>
         <div class="bestbox cost" id="bcBox"><div class="lbl">💰 Minimum cost (real master)</div><div class="big" id="bcLine"></div><div class="sub" id="bcSub"></div></div>
       </div>
       <table id="tbl" style="display:none">
-        <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets</th><th>Weight</th><th>Eff.</th><th>₹/sheet</th><th>Paper ₹</th></tr></thead>
+        <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets</th><th>Weight</th><th>Waste %</th><th>₹/sheet</th><th>Paper ₹</th></tr></thead>
         <tbody id="tb"></tbody>
       </table>
       <button class="next" id="next" onclick="goPrice()">Continue to pricing →</button>
@@ -147,10 +149,13 @@ function calc(){
 function render(d){
   LAST=d; const i=d.inputs;
   $("meta").textContent=`${i.page} · ${i.total_pages} pages (${i.sided}-sided → ${i.leaves_per_book} leaves/book) · cell ${i.cell} · grain ${i.grain}`;
-  const bp=d.best, bc=d.best_cost;
+  const bp=d.best, bc=d.best_cost, bw=d.best_waste;
   if(bp){$("bpBox").style.display="block";
     $("bpLine").textContent=`${bp.sheet_w}×${bp.sheet_h} in · ${bp.ups}-up · ${bp.total_sheets.toLocaleString("en-IN")} sheets`;
-    $("bpSub").textContent=`${bp.total_weight_kg} kg · ${bp.efficiency_pct}% efficient`;}
+    $("bpSub").textContent=`${bp.total_weight_kg} kg · ${bp.wastage_pct}% wasted`;}
+  if(bw){$("bwBox").style.display="block";
+    $("bwLine").textContent=`${bw.sheet_w}×${bw.sheet_h} in · ${bw.wastage_pct}% wasted`;
+    $("bwSub").textContent=`${bw.efficiency_pct}% used · ${bw.ups}-up`;}
   if(bc){$("bcBox").style.display="block";
     $("bcLine").textContent=`${bc.sheet_w}×${bc.sheet_h} in · ${inr(bc.paper_cost)}`;
     $("bcSub").textContent=`${inr(bc.price_per_sheet)}/sheet · ${bc.paper_source||""}`;}
@@ -160,10 +165,11 @@ function render(d){
   $("tb").innerHTML=d.options.map(o=>{
     const isP=bp&&o.sheet_w===bp.sheet_w&&o.sheet_h===bp.sheet_h;
     const isC=bc&&o.sheet_w===bc.sheet_w&&o.sheet_h===bc.sheet_h&&o.paper_cost===bc.paper_cost;
+    const isW=bw&&o.sheet_w===bw.sheet_w&&o.sheet_h===bw.sheet_h&&o.wastage_pct===bw.wastage_pct;
     if(!o.ups) return `<tr><td>${o.sheet_w}×${o.sheet_h}</td><td colspan="6" style="text-align:left;color:#a3242a">won't fit</td></tr>`;
-    return `<tr class="${isP||isC?'best':''}"><td>${o.sheet_w}×${o.sheet_h}${isP?'<span class="pill p">PAPER</span>':''}${isC?'<span class="pill c">₹</span>':''}</td>`+
+    return `<tr class="${isP||isC||isW?'best':''}"><td>${o.sheet_w}×${o.sheet_h}${isP?'<span class="pill p">PAPER</span>':''}${isW?'<span class="pill w">WASTE</span>':''}${isC?'<span class="pill c">₹</span>':''}</td>`+
       `<td>${o.ups} ${o.orientation==='rotated'?'↻':''}</td><td>${o.total_sheets.toLocaleString("en-IN")}</td><td>${o.total_weight_kg} kg</td>`+
-      `<td>${o.efficiency_pct}%</td><td>${o.price_per_sheet!=null?'₹'+o.price_per_sheet:'—'}</td><td>${inr(o.paper_cost)}</td></tr>`;
+      `<td>${o.wastage_pct}%</td><td>${o.price_per_sheet!=null?'₹'+o.price_per_sheet:'—'}</td><td>${inr(o.paper_cost)}</td></tr>`;
   }).join("");
 }
 function goPrice(){

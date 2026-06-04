@@ -109,7 +109,7 @@
         <div class="sub" id="bestSub"></div>
       </div>
       <table id="tbl" style="display:none">
-        <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets/book</th><th>Total sheets</th><th>Weight</th><th>Efficiency</th></tr></thead>
+        <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets/book</th><th>Total sheets</th><th>Weight</th><th>Waste %</th></tr></thead>
         <tbody id="tb"></tbody>
       </table>
     </div>
@@ -154,13 +154,15 @@ function compute(){
     const total=good+setup+run;
     const area_m2=(sw*0.0254)*(sh*0.0254);
     const sheet_wt=area_m2*gsm/1000;
+    const eff=100*ups*cell_w*cell_h/(sw*sh);
     return {sw,sh,ups,orient,sheets_per_book,good,run,total,
       total_wt:+(sheet_wt*total).toFixed(2),
-      eff:+(100*ups*cell_w*cell_h/(sw*sh)).toFixed(1)};
+      eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1)};
   });
   const usable=options.filter(o=>o.ups>0);
   usable.sort((a,b)=> a.total-b.total || (a.sw*a.sh*a.total)-(b.sw*b.sh*b.total));
-  return {options, best:usable[0]||null, cell_w:+cell_w.toFixed(3), cell_h:+cell_h.toFixed(3), leaves, sided, pages, books, setup};
+  const best_waste = usable.length ? [...usable].sort((a,b)=>a.waste-b.waste)[0] : null;
+  return {options, best:usable[0]||null, best_waste, cell_w:+cell_w.toFixed(3), cell_h:+cell_h.toFixed(3), leaves, sided, pages, books, setup};
 }
 
 function calc(){
@@ -174,15 +176,18 @@ function calc(){
   if(b){
     $("bestbox").style.display="block";
     $("bestLine").textContent=`${b.sw}×${b.sh} in · ${b.ups}-up · ${b.total.toLocaleString("en-IN")} sheets`;
-    $("bestSub").textContent=`${b.sheets_per_book} sheet/book × ${r.books.toLocaleString("en-IN")} books + ${r.setup} make-ready + ${b.run} waste · ${b.total_wt} kg · ${b.eff}% efficient (${b.orient})`;
+    $("bestSub").textContent=`${b.sheets_per_book} sheet/book × ${r.books.toLocaleString("en-IN")} books + ${r.setup} make-ready + ${b.run} waste · ${b.total_wt} kg · ${b.waste}% wasted (${b.orient})`;
   } else { $("bestbox").style.display="none"; }
+  const bw=r.best_waste;
+  if(bw){ $("meta").textContent += `  ·  ♻️ lowest wastage: ${bw.sw}×${bw.sh} in (${bw.waste}% wasted)`; }
   $("tbl").style.display="table";
   $("tb").innerHTML=r.options.map(o=>{
     const isB=b&&o.sw===b.sw&&o.sh===b.sh;
+    const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh;
     const ups=o.ups>0?`${o.ups} (${o.orient})`:"won't fit";
-    return `<tr class="${isB?'best':''}"><td>${o.sw}×${o.sh}${isB?'<span class="pill">BEST</span>':''}</td>`+
+    return `<tr class="${isB||isW?'best':''}"><td>${o.sw}×${o.sh}${isB?'<span class="pill">BEST</span>':''}${isW?'<span class="pill" style="background:#2c6fb3">WASTE</span>':''}</td>`+
       `<td>${ups}</td><td>${o.ups>0?o.sheets_per_book:'—'}</td><td>${o.ups>0?o.total.toLocaleString("en-IN"):'—'}</td>`+
-      `<td>${o.ups>0?o.total_wt+' kg':'—'}</td><td>${o.ups>0?o.eff+'%':'—'}</td></tr>`;
+      `<td>${o.ups>0?o.total_wt+' kg':'—'}</td><td>${o.ups>0?o.waste+'%':'—'}</td></tr>`;
   }).join("");
 }
 window.addEventListener("DOMContentLoaded", calc);  // show a result immediately

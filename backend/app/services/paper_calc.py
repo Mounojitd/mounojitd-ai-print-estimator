@@ -40,7 +40,9 @@ class SheetOption:
     total_sheets: int = 0
     sheet_weight_kg: float = 0.0
     total_weight_kg: float = 0.0
-    efficiency_pct: float = 0.0
+    efficiency_pct: float = 0.0              # used (cell) area / sheet area
+    wastage_pct: float = 0.0                # 100 − efficiency = unused sheet area
+    wasted_area_sqin: float = 0.0           # unused area summed over all sheets
     price_per_sheet: float | None = None     # real ₹/sheet from the master
     paper_cost: float | None = None          # ₹ for total_sheets
     paper_source: str | None = None          # paper_id / vendor used
@@ -112,7 +114,10 @@ def compute(
             opt.total_sheets = total
             opt.sheet_weight_kg = round(sheet_wt, 4)
             opt.total_weight_kg = round(sheet_wt * total, 2)
-            opt.efficiency_pct = round(100.0 * ups * cell_w * cell_h / (sw * sh), 1)
+            eff = 100.0 * ups * cell_w * cell_h / (sw * sh)
+            opt.efficiency_pct = round(eff, 1)
+            opt.wastage_pct = round(100.0 - eff, 1)
+            opt.wasted_area_sqin = round((sw * sh) * (1 - eff / 100.0) * total, 0)
             if price_fn:
                 hit = price_fn(sw, sh)
                 if hit:
@@ -126,6 +131,7 @@ def compute(
     best_paper = min(usable, key=lambda o: (o.total_sheets, o.sheet_w * o.sheet_h * o.total_sheets)) if usable else None
     priced = [o for o in usable if o.paper_cost is not None]
     best_cost = min(priced, key=lambda o: o.paper_cost) if priced else None
+    best_waste = min(usable, key=lambda o: o.wastage_pct) if usable else None   # least sheet wasted
 
     return {
         "inputs": {
@@ -136,6 +142,7 @@ def compute(
             "cell": f"{round(cell_w, 3)}×{round(cell_h, 3)} in (page + bleed)",
         },
         "options": [o.__dict__ for o in options],
-        "best": best_paper.__dict__ if best_paper else None,        # minimum paper usage
+        "best": best_paper.__dict__ if best_paper else None,        # minimum paper usage (fewest sheets)
         "best_cost": best_cost.__dict__ if best_cost else None,     # minimum ₹ (real master)
+        "best_waste": best_waste.__dict__ if best_waste else None,  # minimum wastage % (least sheet wasted)
     }
