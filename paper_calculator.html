@@ -73,7 +73,7 @@
       </div>
       <div class="row">
         <div class="fld"><label>Total pages</label><input id="pages" type="number" placeholder="e.g. 14" /></div>
-        <div class="fld"><label>Number of books</label><input id="books" type="number" placeholder="e.g. 1000" /></div>
+        <div class="fld"><label>Number of products</label><input id="books" type="number" placeholder="e.g. 1000" /></div>
       </div>
       <div class="row">
         <div class="fld"><label>Printing</label><select id="sided"><option value="2">Double-sided</option><option value="1">Single-sided</option></select></div>
@@ -186,7 +186,7 @@ function num(id, def){ const v=$(id).value.trim(); if(v==="") return def; const 
 function run(){
   $("err").textContent="";
   document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
-  const required=[["pw","page width"],["ph","page height"],["pages","total pages"],["books","number of books"],["gsm","paper GSM"]];
+  const required=[["pw","page width"],["ph","page height"],["pages","total pages"],["books","number of products"],["gsm","paper GSM"]];
   const missing=[];
   for(const [id,name] of required){ const v=$(id).value.trim(); if(v===""||!(parseFloat(v)>0)){ $(id).classList.add("bad"); missing.push(name); } }
   const sizes=[...document.querySelectorAll(".ss:checked")].map(c=>c.value.split(",").map(Number));
