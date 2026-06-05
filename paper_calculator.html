@@ -51,6 +51,12 @@
   .modal .body{padding:16px 20px}
   .mbtn{cursor:pointer;border:0;border-radius:9px;font-weight:600;font-size:14px;padding:10px 14px;margin:4px 6px 0 0}
   .mbtn.p{background:var(--brand);color:#fff} .mbtn.g{background:#666;color:#fff}
+  .pbox{background:#f6f8fa;border:1px solid #e4e7ec;border-radius:8px;padding:10px;margin-top:10px}
+  .ptitle{font-size:12px;font-weight:700;color:#1f4e78;margin-bottom:6px}
+  .prow{display:flex;gap:8px;margin-bottom:6px}
+  .prow span{flex:1}
+  .prow label{font-size:11px;margin-bottom:2px;display:block;font-weight:600}
+  .prow input,.prow select{width:100%;padding:7px;font-size:13px;border:1px solid var(--line);border-radius:7px}
 </style>
 </head>
 <body>
@@ -98,20 +104,6 @@
         <div class="fld"><label>Running waste (%)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
       </div>
 
-      <h2>Printing &amp; price <span style="text-transform:none;font-weight:400;color:#6b7480">(for the quote)</span></h2>
-      <div class="row">
-        <div class="fld"><label>Colours front</label><input id="cf" type="number" placeholder="e.g. 4" /></div>
-        <div class="fld"><label>Colours back</label><input id="cb" type="number" placeholder="4  (0 = single side)" /></div>
-      </div>
-      <div class="row">
-        <div class="fld"><label>Lamination</label><select id="lam"><option value="none">None</option><option value="matt">Matt</option><option value="gloss">Gloss</option><option value="bopp">BOPP</option></select></div>
-        <div class="fld"><label>Paper rate (₹/sheet)</label><input id="paperRate" type="number" step="0.01" placeholder="e.g. 13.86" /></div>
-      </div>
-      <div class="row">
-        <div class="fld"><label>Margin %</label><input id="margin" type="number" placeholder="28" /></div>
-        <div class="fld"><label>GST %</label><input id="gst" type="number" placeholder="18" /></div>
-      </div>
-
       <h2>Sheet sizes to consider (in)</h2>
       <div class="chips">
         <label class="chip"><input type="checkbox" class="ss" value="18,25" checked /> 18×25</label>
@@ -151,10 +143,21 @@
     </div>
     <div class="body">
       <div id="m_diagram"></div>
-      <button class="mbtn" style="background:#1f7a4d;color:#fff" onclick="showPrice()">💰 See Price →</button>
-      <button class="mbtn p" onclick="printFromModal()">🖨 Print cut sheet</button>
-      <button class="mbtn g" onclick="closeModal()">Close</button>
-      <div id="m_price" style="margin-top:12px"></div>
+      <div class="pbox">
+        <div class="ptitle">💰 Printing &amp; price</div>
+        <div class="prow">
+          <span><label>Colours front</label><input id="cf" type="number" value="4" oninput="showPrice()" /></span>
+          <span><label>Colours back</label><input id="cb" type="number" value="4" oninput="showPrice()" /></span>
+          <span><label>Lamination</label><select id="lam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt</option><option value="gloss">Gloss</option><option value="bopp">BOPP</option></select></span>
+        </div>
+        <div class="prow">
+          <span><label>Paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="e.g. 13.86" oninput="showPrice()" /></span>
+          <span><label>Margin %</label><input id="margin" type="number" value="28" oninput="showPrice()" /></span>
+          <span><label>GST %</label><input id="gst" type="number" value="18" oninput="showPrice()" /></span>
+        </div>
+      </div>
+      <div id="m_price" style="margin-top:10px"></div>
+      <div style="margin-top:12px"><button class="mbtn p" onclick="printFromModal()">🖨 Print cut sheet</button><button class="mbtn g" onclick="closeModal()">Close</button></div>
     </div>
   </div>
 </div>
@@ -294,6 +297,7 @@ function openModal(o){
   $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets · ${o.total_wt} kg`;
   $("m_diagram").innerHTML=diagramHTML(o);
   $("overlay").classList.add("show");
+  showPrice();   // price comes out automatically
 }
 function closeModal(){ $("overlay").classList.remove("show"); }
 function printFromModal(){
