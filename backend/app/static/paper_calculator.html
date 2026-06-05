@@ -98,6 +98,20 @@
         <div class="fld"><label>Running waste (%)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
       </div>
 
+      <h2>Printing &amp; price <span style="text-transform:none;font-weight:400;color:#6b7480">(for the quote)</span></h2>
+      <div class="row">
+        <div class="fld"><label>Colours front</label><input id="cf" type="number" placeholder="e.g. 4" /></div>
+        <div class="fld"><label>Colours back</label><input id="cb" type="number" placeholder="4  (0 = single side)" /></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Lamination</label><select id="lam"><option value="none">None</option><option value="matt">Matt</option><option value="gloss">Gloss</option><option value="bopp">BOPP</option></select></div>
+        <div class="fld"><label>Paper rate (₹/sheet)</label><input id="paperRate" type="number" step="0.01" placeholder="e.g. 13.86" /></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Margin %</label><input id="margin" type="number" placeholder="28" /></div>
+        <div class="fld"><label>GST %</label><input id="gst" type="number" placeholder="18" /></div>
+      </div>
+
       <h2>Sheet sizes to consider (in)</h2>
       <div class="chips">
         <label class="chip"><input type="checkbox" class="ss" value="18,25" checked /> 18×25</label>
@@ -137,8 +151,10 @@
     </div>
     <div class="body">
       <div id="m_diagram"></div>
+      <button class="mbtn" style="background:#1f7a4d;color:#fff" onclick="showPrice()">💰 See Price →</button>
       <button class="mbtn p" onclick="printFromModal()">🖨 Print cut sheet</button>
       <button class="mbtn g" onclick="closeModal()">Close</button>
+      <div id="m_price" style="margin-top:12px"></div>
     </div>
   </div>
 </div>
@@ -288,6 +304,49 @@ function printFromModal(){
   w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
 }
 document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
+
+/* ---------- PRICE (rates baked in: Naba Mudran / Anderson agreement) ---------- */
+const PRINT={
+  small:{4:{lot:1500,steps:[[1e12,125]]},2:{lot:1000,steps:[[1e12,125]]},1:{lot:600,steps:[[1e12,125]]},plate:475},
+  big:{4:{lot:2325,steps:[[10000,195],[1e12,175]]},2:{lot:1225,steps:[[10000,205],[1e12,185]]},1:{lot:625,steps:[[10000,208],[1e12,195]]},plate:575}
+};
+const LAM100={gloss:0.35,bopp:0.40,matt:0.45}, LAM_MIN=1000;
+function sizeBand(w,h){const lo=Math.max(w,h),sh=Math.min(w,h);return (lo>=34&&sh>=22)?"big":"small";}
+function sideCost(band,cols,sheets){ if(cols<=0) return 0; const t=PRINT[band], s=t[cols]||t[4];
+  if(sheets<=3000) return s.lot; const rate=s.steps.find(([mx])=>sheets<=mx)[1]; return cols*(sheets/1000)*rate; }
+function priceJob(o, p){
+  const sw=o.sw, sh=o.sh, sheets=o.total, band=sizeBand(sw,sh);
+  const printing=sideCost(band,p.cf,sheets)+sideCost(band,p.cb,sheets);
+  const plates=(Math.max(0,p.cf)+Math.max(0,p.cb))*PRINT[band].plate;
+  const area100=sw*sh/100;
+  const lam = p.lam==="none" ? 0 : Math.max((LAM100[p.lam]||0.45)*area100*sheets, LAM_MIN);
+  const paper=(p.paperRate||0)*sheets;
+  const wt=o.total_wt, cartons=Math.max(1,Math.ceil(wt/15)), packing=cartons*35, freight=Math.max(wt*8,300);
+  const base=paper+printing+plates+lam+packing+freight, overhead=base*0.12, prod=base+overhead;
+  const margin=prod*p.margin/100, pretax=prod+margin, gst=pretax*p.gst/100, grand=pretax+gst;
+  return {band,paper,printing,plates,lam,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
+}
+function priceInputs(){
+  return {cf:Math.round(num("cf",4)), cb:Math.round(num("cb",4)), lam:$("lam").value,
+          paperRate:num("paperRate",0), margin:num("margin",28), gst:num("gst",18),
+          books:LASTINP?LASTINP.books:1};
+}
+function showPrice(){
+  if(!MODAL_OPT) return;
+  const p=priceInputs(), q=priceJob(MODAL_OPT,p);
+  const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const rows=[["Paper",q.paper],["Printing",q.printing],["Plates",q.plates],["Lamination",q.lam],["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]];
+  let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
+  rows.forEach(([k,v])=>{ h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`; });
+  h+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
+  h+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
+  h+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
+  h+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
+  h+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
+  h+=`<div style="font-size:11px;color:#6b7480;margin-top:6px">Printing band: ${q.band} (${q.band==='big'?'23×36+':'19×29'}) · rates from Naba Mudran agreement</div>`;
+  if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter <b>Paper rate (₹/sheet)</b> on the left for the full price — paper not included above.</div>';
+  $("m_price").innerHTML=h;
+}
 </script>
 </body>
 </html>
