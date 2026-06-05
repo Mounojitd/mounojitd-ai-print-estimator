@@ -203,13 +203,27 @@ function buildSheetSVG(o, numFn){
   const grip=`<rect x="0" y="${(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
 }
+let CUR=null, bookletMode=false;
+function numberFn(o, side){
+  const pages=Math.max(4, Math.round(f("pages")));
+  if(bookletMode && o.cols%2===0){
+    return (r,c)=>{
+      const inCol=c%2, sheet=r;
+      const n = side==="front" ? (inCol===0 ? pages-2*sheet : 1+2*sheet)
+                               : (inCol===0 ? 2+2*sheet     : pages-1-2*sheet);
+      return (n>=1 && n<=pages) ? n : "·";
+    };
+  }
+  return side==="front" ? (r,c)=> r*o.cols+c+1 : (r,c)=> r*o.cols+(o.cols-1-c)+1;
+}
 function drawDiagram(o){
   const box=$("diagram");
   if(!o||!o.ups){ box.innerHTML=""; return; }
+  CUR=o;
   const dbl=$("sided").value==="true";
-  const front=(r,c)=> r*o.cols+c+1;
-  const back =(r,c)=> r*o.cols+(o.cols-1-c)+1;     // sheet turned ↔
-  const head=`<div class="muted" style="margin-bottom:6px">Layout — <b>${o.sheet_w}×${o.sheet_h} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orientation}) · ${o.wastage_pct}% wasted &nbsp;<span style="color:#d99">▮</span>gripper ${f("gripper")}mm&nbsp;<span style="color:#d9b94b">▮</span>side-lay</div>`;
+  const front=numberFn(o,"front"), back=numberFn(o,"back");
+  const toggle=`<label style="font-size:12px;cursor:pointer;margin-left:8px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;drawDiagram(CUR)" style="width:auto"> 📖 saddle-stitch page order</label>`;
+  const head=`<div class="muted" style="margin-bottom:6px">Layout — <b>${o.sheet_w}×${o.sheet_h} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orientation}) · ${o.wastage_pct}% wasted &nbsp;<span style="color:#d99">▮</span>gripper ${f("gripper")}mm&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
   const svgs = dbl
     ? `<div style="display:flex;gap:14px;flex-wrap:wrap">
          <div style="flex:1;min-width:190px"><div class="muted" style="margin-bottom:3px">▶ FRONT</div>${buildSheetSVG(o,front)}</div>
