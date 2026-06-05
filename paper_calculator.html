@@ -66,9 +66,10 @@
     <!-- INPUTS -->
     <div class="card">
       <h2>Book specification</h2>
+      <div class="fld"><label>Product / job name</label><input id="product" type="text" placeholder="e.g. Diwali desk calendar" /></div>
       <div class="row">
-        <div class="fld"><label>Page width (in)</label><input id="pw" type="number" step="0.01" placeholder="e.g. 8.5" /></div>
-        <div class="fld"><label>Page height (in)</label><input id="ph" type="number" step="0.01" placeholder="e.g. 6" /></div>
+        <div class="fld"><label>Page width (in)</label><input id="pw" type="number" step="0.5" placeholder="e.g. 8.5" /></div>
+        <div class="fld"><label>Page height (in)</label><input id="ph" type="number" step="0.5" placeholder="e.g. 6" /></div>
       </div>
       <div class="row">
         <div class="fld"><label>Total pages</label><input id="pages" type="number" placeholder="e.g. 14" /></div>
@@ -130,7 +131,7 @@
   <div class="modal">
     <div class="top">
       <span class="x" onclick="closeModal()">×</span>
-      <div class="lbl">♻️ Lowest-wastage sheet</div>
+      <div class="lbl" id="m_lbl">♻️ Lowest-wastage sheet</div>
       <div class="big" id="m_size"></div>
       <div class="sub" id="m_sub"></div>
     </div>
@@ -193,6 +194,7 @@ function run(){
   if(!sizes.length){ $("err").textContent="Tick at least one sheet size."; return; }
 
   const inp={
+    product:$("product").value.trim(),
     pageW:num("pw"), pageH:num("ph"), pages:Math.round(num("pages")), books:Math.round(num("books")),
     sided:parseInt($("sided").value), gsm:num("gsm"),
     bleed:num("bleed",0.125), gutter:num("gutter",0), grain:$("grain").value,
@@ -271,6 +273,7 @@ function redrawAll(){
 /* ---------- popup ---------- */
 function openModal(o){
   MODAL_OPT=o;
+  $("m_lbl").textContent="♻️ Lowest-wastage sheet"+(LASTINP&&LASTINP.product?" · "+LASTINP.product:"");
   $("m_size").textContent=`${o.sw} × ${o.sh} in`;
   $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets · ${o.total_wt} kg`;
   $("m_diagram").innerHTML=diagramHTML(o);
@@ -280,7 +283,7 @@ function closeModal(){ $("overlay").classList.remove("show"); }
 function printFromModal(){
   const w=window.open("","_blank","width=940,height=720");
   w.document.write(`<html><head><title>Cut sheet</title><style>body{font-family:Arial,sans-serif;padding:22px}svg{max-width:440px}</style></head><body>`+
-    `<h2>Imposition cut sheet — ${MODAL_OPT.sw}×${MODAL_OPT.sh} in · ${MODAL_OPT.ups}-up</h2>${$("m_diagram").innerHTML}`+
+    `<h2>${LASTINP&&LASTINP.product?LASTINP.product+" — ":""}Imposition cut sheet · ${MODAL_OPT.sw}×${MODAL_OPT.sh} in · ${MODAL_OPT.ups}-up</h2>${$("m_diagram").innerHTML}`+
     `<p style="color:#666;font-size:12px">Numbers = page/leaf positions. Red = gripper · yellow = side-lay · dashed = finished page.</p></body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
 }
