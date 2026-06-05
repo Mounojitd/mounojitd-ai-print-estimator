@@ -5,47 +5,59 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Paper Calculator</title>
 <style>
-  :root{--ink:#1b2330;--muted:#6b7480;--line:#e4e7ec;--bg:#f4f6f9;--brand:#1f4e78;--brand2:#2c6fb3;--good:#1f7a4d}
+  :root{--ink:#1b2330;--muted:#6b7480;--line:#dfe3e8;--bg:#eef1f5;--brand:#1f4e78;--brand2:#2c6fb3;--good:#1f7a4d;--bad:#c0392b}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
-  header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:24px 22px}
+  header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:22px 22px}
   header h1{margin:0;font-size:21px}
-  header p{margin:4px 0 0;opacity:.88;font-size:13px}
-  .wrap{max-width:1060px;margin:0 auto;padding:22px}
-  .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
-  @media(max-width:860px){.grid{grid-template-columns:1fr}}
+  header p{margin:4px 0 0;opacity:.9;font-size:13px}
+  .wrap{max-width:1060px;margin:0 auto;padding:20px}
+  .grid{display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:start}
+  @media(max-width:880px){.grid{grid-template-columns:1fr}}
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}
-  .card h2{margin:0 0 12px;font-size:15px}
-  .card h2.sub{margin-top:18px}
-  label{display:block;font-size:12px;font-weight:600;color:#384150;margin:10px 0 4px}
-  input,select{width:100%;padding:8px 9px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit}
+  h2{font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--brand);margin:18px 0 8px}
+  h2:first-of-type{margin-top:2px}
+  label{display:block;font-size:12.5px;font-weight:600;color:#37404d;margin-bottom:4px}
+  .fld{margin-bottom:10px}
+  input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:#fff}
+  input:focus,select:focus{outline:2px solid #bcd4ec;border-color:var(--brand2)}
+  input.bad{border-color:var(--bad);background:#fdf2f2}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+  .hint{font-size:11px;color:var(--muted);margin-top:3px}
+  .chips{display:flex;flex-wrap:wrap;gap:7px}
   .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;padding:6px 11px;font-size:13px;cursor:pointer;user-select:none}
   .chip input{width:auto}
-  button{cursor:pointer;border:0;border-radius:9px;font-weight:700;font-size:14px;padding:12px 16px;color:#fff;background:var(--brand);width:100%;margin-top:16px}
-  .muted{color:var(--muted);font-size:12px}
-  .term{background:#f0f5fb;border:1px solid #dbe7f4;border-radius:8px;padding:8px 11px;font-size:12px;color:#33506e;margin-bottom:8px}
-  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px}
+  .go{cursor:pointer;border:0;border-radius:10px;font-weight:700;font-size:15px;padding:13px;color:#fff;background:var(--good);width:100%;margin-top:16px}
+  .go:active{transform:translateY(1px)}
+  .err{color:var(--bad);font-size:13px;margin-top:10px;min-height:1px}
+  .placeholder{color:var(--muted);font-size:13px;text-align:center;padding:40px 10px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
   th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
   th:first-child,td:first-child{text-align:left}
-  th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
-  tr.best{background:#e9f6ee}
-  tr.best td{font-weight:700}
-  .pill{display:inline-block;background:var(--good);color:#fff;border-radius:5px;padding:1px 6px;font-size:11px;margin-left:6px}
-  .bestbox{background:linear-gradient(135deg,#13361f,#1f7a4d);color:#fff;border-radius:12px;padding:16px 18px;margin-bottom:14px;display:none}
-  .bestbox .lbl{font-size:12px;color:#cfe8d8}
-  .bestbox .big{font-size:25px;font-weight:700;margin:2px 0}
-  .bestbox .sub{font-size:13px;opacity:.92}
-  .err{color:#a3242a;font-size:13px;margin-top:8px}
+  th{font-size:11px;color:var(--muted);text-transform:uppercase}
+  tr.best{background:#e9f6ee} tr.best td{font-weight:700}
+  tr[data-click]{cursor:pointer}
+  .pill{display:inline-block;color:#fff;border-radius:5px;padding:1px 6px;font-size:10px;margin-left:5px;background:#2c6fb3}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(15,25,40,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+  .overlay.show{display:flex}
+  .modal{background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .modal .top{background:linear-gradient(135deg,#0c3a5a,#2c6fb3);color:#fff;padding:18px 20px;border-radius:14px 14px 0 0;position:relative}
+  .modal .top .lbl{font-size:12px;opacity:.85}
+  .modal .top .big{font-size:28px;font-weight:800;margin:3px 0}
+  .modal .top .sub{font-size:13px;opacity:.95}
+  .modal .x{position:absolute;top:12px;right:14px;cursor:pointer;font-size:22px;color:#fff;opacity:.8;line-height:1}
+  .modal .body{padding:16px 20px}
+  .mbtn{cursor:pointer;border:0;border-radius:9px;font-weight:600;font-size:14px;padding:10px 14px;margin:4px 6px 0 0}
+  .mbtn.p{background:var(--brand);color:#fff} .mbtn.g{background:#666;color:#fff}
 </style>
 </head>
 <body>
 <header>
   <div class="wrap" style="padding:0">
     <h1>📄 Paper Calculator</h1>
-    <p>Find the press-sheet size that gives the <b>minimum paper usage</b> — ups, sheets, wastage &amp; weight. Runs entirely in your browser.</p>
+    <p>Enter your job, then click <b>Find Minimum Paper Usage</b>. The lowest-wastage sheet pops up.</p>
   </div>
 </header>
 
@@ -53,41 +65,40 @@
   <div class="grid">
     <!-- INPUTS -->
     <div class="card">
-      <div class="term"><b>PAGE</b> = one printed side &nbsp;·&nbsp; <b>LEAF</b> = one sheet (2 pages)</div>
-
       <h2>Book specification</h2>
-      <label>Finished page size (inches) — W × H</label>
-      <div class="row"><input id="pw" type="number" step="0.01" value="8.5" /><input id="ph" type="number" step="0.01" value="6" /></div>
       <div class="row">
-        <div><label>Total pages</label><input id="pages" type="number" value="14" /></div>
-        <div><label>Number of books</label><input id="books" type="number" value="1000" /></div>
+        <div class="fld"><label>Page width (in)</label><input id="pw" type="number" step="0.01" placeholder="e.g. 8.5" /></div>
+        <div class="fld"><label>Page height (in)</label><input id="ph" type="number" step="0.01" placeholder="e.g. 6" /></div>
       </div>
       <div class="row">
-        <div><label>Printing</label>
-          <select id="sided"><option value="2" selected>Double-sided</option><option value="1">Single-sided</option></select></div>
-        <div><label>Paper GSM</label><input id="gsm" type="number" value="300" /></div>
+        <div class="fld"><label>Total pages</label><input id="pages" type="number" placeholder="e.g. 14" /></div>
+        <div class="fld"><label>Number of books</label><input id="books" type="number" placeholder="e.g. 1000" /></div>
+      </div>
+      <div class="row">
+        <div class="fld"><label>Printing</label><select id="sided"><option value="2">Double-sided</option><option value="1">Single-sided</option></select></div>
+        <div class="fld"><label>Paper GSM</label><input id="gsm" type="number" placeholder="e.g. 300" /></div>
       </div>
 
-      <h2 class="sub">Margins &amp; layout</h2>
+      <h2>Margins &amp; layout</h2>
       <div class="row3">
-        <div><label>Bleed (in)</label><input id="bleed" type="number" step="0.01" value="0.125" /></div>
-        <div><label>Gutter (in)</label><input id="gutter" type="number" step="0.01" value="0" /></div>
-        <div><label>Grain</label><select id="grain"><option value="either" selected>Either</option><option value="long">Long (upright)</option><option value="short">Short (rotated)</option></select></div>
+        <div class="fld"><label>Bleed (in)</label><input id="bleed" type="number" step="0.01" placeholder="0.125" /></div>
+        <div class="fld"><label>Gutter (in)</label><input id="gutter" type="number" step="0.01" placeholder="0" /></div>
+        <div class="fld"><label>Grain</label><select id="grain"><option value="either">Either</option><option value="long">Long (upright)</option><option value="short">Short (rotated)</option></select></div>
       </div>
       <div class="row3">
-        <div><label>Gripper (mm)</label><input id="gripper" type="number" value="13" /></div>
-        <div><label>Side-lay (mm)</label><input id="sidelay" type="number" value="3" /></div>
-        <div style="display:flex;align-items:flex-end"><label class="chip" style="margin:0"><input type="checkbox" id="rotate" /> Rotate</label></div>
+        <div class="fld"><label>Gripper (mm)</label><input id="gripper" type="number" placeholder="13" /></div>
+        <div class="fld"><label>Side-lay (mm)</label><input id="sidelay" type="number" placeholder="3" /></div>
+        <div class="fld" style="display:flex;align-items:flex-end"><label class="chip" style="margin:0;font-weight:600"><input type="checkbox" id="rotate" /> Allow rotation</label></div>
       </div>
 
-      <h2 class="sub">Wastage</h2>
+      <h2>Wastage</h2>
       <div class="row">
-        <div><label>Make-ready sheets</label><input id="setup" type="number" value="100" /></div>
-        <div><label>Running waste (%)</label><input id="running" type="number" step="0.5" value="5" /></div>
+        <div class="fld"><label>Make-ready sheets</label><input id="setup" type="number" placeholder="100" /></div>
+        <div class="fld"><label>Running waste (%)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
       </div>
 
-      <h2 class="sub">Sheet sizes to consider (inches)</h2>
-      <div class="chips" id="sizes">
+      <h2>Sheet sizes to consider (in)</h2>
+      <div class="chips">
         <label class="chip"><input type="checkbox" class="ss" value="18,25" checked /> 18×25</label>
         <label class="chip"><input type="checkbox" class="ss" value="20,30" checked /> 20×30</label>
         <label class="chip"><input type="checkbox" class="ss" value="23,36" checked /> 23×36</label>
@@ -95,112 +106,130 @@
         <label class="chip"><input type="checkbox" class="ss" value="30,40" checked /> 30×40</label>
       </div>
 
-      <button onclick="calc()">Find minimum paper usage →</button>
+      <button class="go" onclick="run()">🔍 Find Minimum Paper Usage</button>
       <div id="err" class="err"></div>
     </div>
 
     <!-- RESULTS -->
     <div class="card">
-      <h2>Result</h2>
-      <p class="muted" id="meta">Enter the spec and calculate.</p>
-      <div class="bestbox" id="bestbox">
-        <div class="lbl">✅ Minimum paper usage</div>
-        <div class="big" id="bestLine"></div>
-        <div class="sub" id="bestSub"></div>
+      <div id="placeholder" class="placeholder">Fill in the job on the left and click <b>Find Minimum Paper Usage</b>.<br>The best (lowest-wastage) sheet will pop up, and the full comparison appears here.</div>
+      <div id="results" style="display:none">
+        <h2 style="margin-top:0">Comparison (click a row to see its layout)</h2>
+        <table>
+          <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets</th><th>Weight</th><th>Waste %</th></tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+        <div id="diagram" style="margin-top:14px"></div>
       </div>
-      <div id="diagram" style="margin:6px 0 12px"></div>
-      <table id="tbl" style="display:none">
-        <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets/book</th><th>Total sheets</th><th>Weight</th><th>Waste %</th></tr></thead>
-        <tbody id="tb"></tbody>
-      </table>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="top">
+      <span class="x" onclick="closeModal()">×</span>
+      <div class="lbl">♻️ Lowest-wastage sheet</div>
+      <div class="big" id="m_size"></div>
+      <div class="sub" id="m_sub"></div>
+    </div>
+    <div class="body">
+      <div id="m_diagram"></div>
+      <button class="mbtn p" onclick="printFromModal()">🖨 Print cut sheet</button>
+      <button class="mbtn g" onclick="closeModal()">Close</button>
     </div>
   </div>
 </div>
 
 <script>
-const MM = 25.4;
-const $ = id => document.getElementById(id);
-const f = id => parseFloat($(id).value);
+const $=id=>document.getElementById(id);
 
-function compute(){
-  const page_w=f("pw"), page_h=f("ph"), pages=Math.max(1,Math.round(f("pages"))), books=Math.max(1,Math.round(f("books")));
-  const sided=parseInt($("sided").value), gsm=f("gsm"), bleed=f("bleed");
-  const gripper=f("gripper")/MM, sidelay=f("sidelay")/MM, rotate=$("rotate").checked;
-  const gutter=f("gutter")||0, grain=$("grain").value;
-  const setup=Math.max(0,Math.round(f("setup"))), running=f("running");
-  const sizes=[...document.querySelectorAll(".ss:checked")].map(c=>c.value.split(",").map(Number));
-
-  const cell_w=page_w+2*bleed, cell_h=page_h+2*bleed;
-  const leaves = sided===2 ? Math.ceil(pages/2) : pages;
-  const orients = grain==="long" ? ["upright"] : grain==="short" ? ["rotated"]
-                : (rotate ? ["upright","rotated"] : ["upright"]);
-
+/* ---------- pure calculation (no DOM) ---------- */
+function computePaper(inp){
+  const MM=25.4;
+  const gripper=inp.gripperMm/MM, sidelay=inp.sidelayMm/MM, gutter=inp.gutter, bleed=inp.bleed;
+  const cell_w=inp.pageW+2*bleed, cell_h=inp.pageH+2*bleed;
+  const leaves=Math.max(1, inp.sided===2 ? Math.ceil(inp.pages/2) : inp.pages);
+  const orients = inp.grain==="long" ? ["upright"] : inp.grain==="short" ? ["rotated"]
+               : (inp.rotate ? ["upright","rotated"] : ["upright"]);
   const upsIn=(L,S)=>{
     let best=0,res=["—",0,0,0,0];
     for(const name of orients){
-      const [a,b] = name==="upright" ? [cell_w,cell_h] : [cell_h,cell_w];
+      const [a,b]= name==="upright"?[cell_w,cell_h]:[cell_h,cell_w];
+      if(a<=0||b<=0) continue;
       const cols=Math.floor((L+gutter)/(a+gutter)), rows=Math.floor((S+gutter)/(b+gutter));
       const n=cols*rows; if(n>best){best=n;res=[name,cols,rows,a,b];}
     }
     return [best,...res];
   };
-
-  const options=sizes.map(([sw,sh])=>{
+  const options=inp.sizes.map(([sw,sh])=>{
     const long=Math.max(sw,sh), short=Math.min(sw,sh);
     const [ups,orient,cols,rows,uw,uh]=upsIn(long-2*sidelay, short-gripper);
     if(ups<=0) return {sw,sh,ups:0};
-    const sheets_per_book=Math.ceil(leaves/ups);
-    const good=sheets_per_book*books;
-    const run=Math.ceil(good*running/100);
-    const total=good+setup+run;
-    const area_m2=(sw*0.0254)*(sh*0.0254);
-    const sheet_wt=area_m2*gsm/1000;
-    const eff=100*ups*cell_w*cell_h/(sw*sh);
+    const spb=Math.ceil(leaves/ups), good=spb*inp.books, run=Math.ceil(good*inp.running/100), total=good+inp.setup+run;
+    const area=(sw*0.0254)*(sh*0.0254), wt=area*inp.gsm/1000, eff=100*ups*cell_w*cell_h/(sw*sh);
     return {sw,sh,ups,orient,cols,rows,cell_used_w:uw,cell_used_h:uh,bleed,gripper,sidelay,gutter,
-      sheets_per_book,good,run,total,
-      total_wt:+(sheet_wt*total).toFixed(2),
-      eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1)};
+      sheets_per_book:spb,good,run,total,total_wt:+(wt*total).toFixed(2),
+      eff:+eff.toFixed(1),waste:+(100-eff).toFixed(1)};
   });
   const usable=options.filter(o=>o.ups>0);
-  usable.sort((a,b)=> a.total-b.total || (a.sw*a.sh*a.total)-(b.sw*b.sh*b.total));
-  const best_waste = usable.length ? [...usable].sort((a,b)=>a.waste-b.waste)[0] : null;
-  return {options, best:usable[0]||null, best_waste, cell_w:+cell_w.toFixed(3), cell_h:+cell_h.toFixed(3), leaves, sided, pages, books, setup};
+  const best=usable.slice().sort((a,b)=>a.total-b.total||(a.sw*a.sh*a.total)-(b.sw*b.sh*b.total))[0]||null;
+  const bestWaste=usable.slice().sort((a,b)=>a.waste-b.waste)[0]||null;
+  return {options,best,bestWaste,leaves,sided:inp.sided,pages:inp.pages,books:inp.books,
+          cell_w:+cell_w.toFixed(3),cell_h:+cell_h.toFixed(3)};
 }
 
-function calc(){
+/* ---------- read + validate the form ---------- */
+function num(id, def){ const v=$(id).value.trim(); if(v==="") return def; const n=parseFloat(v); return isFinite(n)?n:def; }
+function run(){
   $("err").textContent="";
-  const sizes=document.querySelectorAll(".ss:checked");
-  if(!sizes.length){ $("err").textContent="Pick at least one sheet size."; return; }
-  if(!(f("pw")>0&&f("ph")>0)){ $("err").textContent="Enter a valid page size."; return; }
-  const r=compute();
-  $("meta").textContent=`${f("pw")}×${f("ph")} in · ${r.pages} pages (${r.sided===2?"double":"single"}-sided → ${r.leaves} leaves/book) · cell ${r.cell_w}×${r.cell_h} in (page + bleed)`;
-  const b=r.best;
-  if(b){
-    $("bestbox").style.display="block";
-    $("bestLine").textContent=`${b.sw}×${b.sh} in · ${b.ups}-up · ${b.total.toLocaleString("en-IN")} sheets`;
-    $("bestSub").textContent=`${b.sheets_per_book} sheet/book × ${r.books.toLocaleString("en-IN")} books + ${r.setup} make-ready + ${b.run} waste · ${b.total_wt} kg · ${b.waste}% wasted (${b.orient})`;
-  } else { $("bestbox").style.display="none"; }
-  const bw=r.best_waste;
-  if(bw){ $("meta").textContent += `  ·  ♻️ lowest wastage: ${bw.sw}×${bw.sh} in (${bw.waste}% wasted)`; }
-  $("tbl").style.display="table";
-  LASTOPTS=r.options;
-  drawDiagram(b||bw||r.options.find(o=>o.ups));
-  $("tb").innerHTML=r.options.map((o,idx)=>{
-    const isB=b&&o.sw===b.sw&&o.sh===b.sh;
-    const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh;
-    const ups=o.ups>0?`${o.ups} (${o.orient})`:"won't fit";
-    const click=o.ups?`onclick="drawIdx(${idx})" style="cursor:pointer"`:"";
-    return `<tr ${click} class="${isB||isW?'best':''}"><td>${o.sw}×${o.sh}${isB?'<span class="pill">BEST</span>':''}${isW?'<span class="pill" style="background:#2c6fb3">WASTE</span>':''}</td>`+
-      `<td>${ups}</td><td>${o.ups>0?o.sheets_per_book:'—'}</td><td>${o.ups>0?o.total.toLocaleString("en-IN"):'—'}</td>`+
-      `<td>${o.ups>0?o.total_wt+' kg':'—'}</td><td>${o.ups>0?o.waste+'%':'—'}</td></tr>`;
-  }).join("");
+  document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
+  const required=[["pw","page width"],["ph","page height"],["pages","total pages"],["books","number of books"],["gsm","paper GSM"]];
+  const missing=[];
+  for(const [id,name] of required){ const v=$(id).value.trim(); if(v===""||!(parseFloat(v)>0)){ $(id).classList.add("bad"); missing.push(name); } }
+  const sizes=[...document.querySelectorAll(".ss:checked")].map(c=>c.value.split(",").map(Number));
+  if(missing.length){ $("err").textContent="Please enter: "+missing.join(", ")+"."; return; }
+  if(!sizes.length){ $("err").textContent="Tick at least one sheet size."; return; }
+
+  const inp={
+    pageW:num("pw"), pageH:num("ph"), pages:Math.round(num("pages")), books:Math.round(num("books")),
+    sided:parseInt($("sided").value), gsm:num("gsm"),
+    bleed:num("bleed",0.125), gutter:num("gutter",0), grain:$("grain").value,
+    gripperMm:num("gripper",13), sidelayMm:num("sidelay",3), rotate:$("rotate").checked,
+    setup:Math.round(num("setup",100)), running:num("running",5), sizes
+  };
+  const r=computePaper(inp);
+  LASTINP=inp;
+  render(r);
+  if(r.bestWaste) openModal(r.bestWaste);
+  else $("err").textContent="None of the chosen sheets can hold this page — try a bigger sheet or enable rotation.";
 }
 
-// ---- live imposition diagram (numbered cells + work-and-turn front/back) ----
-let LASTOPTS=[];
-function buildSheetSVG(o, numFn){
+/* ---------- render table + diagram ---------- */
+let RESULT=null, LASTINP=null;
+function render(r){
+  RESULT=r;
+  $("placeholder").style.display="none";
+  $("results").style.display="block";
+  const bp=r.best, bw=r.bestWaste;
+  $("tb").innerHTML=r.options.map((o,idx)=>{
+    if(!o.ups) return `<tr><td>${o.sw}×${o.sh}</td><td colspan="4" style="text-align:left;color:#c0392b">won't fit</td></tr>`;
+    const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh, isP=bp&&o.sw===bp.sw&&o.sh===bp.sh;
+    return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}">`+
+      `<td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}</td>`+
+      `<td>${o.ups} (${o.orient})</td><td>${o.total.toLocaleString("en-IN")}</td>`+
+      `<td>${o.total_wt} kg</td><td>${o.waste}%</td></tr>`;
+  }).join("");
+  drawInto("diagram", bw||bp||r.options.find(o=>o.ups));
+}
+function drawIdx(i){ if(RESULT&&RESULT.options[i]&&RESULT.options[i].ups) drawInto("diagram", RESULT.options[i]); }
+
+/* ---------- imposition diagram ---------- */
+let bookletMode=false, MODAL_OPT=null;
+function buildSVG(o, numFn){
   const long=Math.max(o.sw,o.sh), short=Math.min(o.sw,o.sh);
-  const W=380, sc=W/long, H=Math.round(short*sc);
+  const W=360, sc=W/long, H=Math.round(short*sc);
   const g=o.gripper*sc, sl=o.sidelay*sc, gut=o.gutter*sc, bl=o.bleed*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
   const fs=Math.max(7,Math.min(13,cw/2.6));
   let cells="";
@@ -215,57 +244,47 @@ function buildSheetSVG(o, numFn){
   const grip=`<rect x="0" y="${(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
 }
-let CUR=null, bookletMode=false;
-function numberFn(o, side){
-  const pages=Math.max(4, Math.round(f("pages")));
-  if(bookletMode && o.cols%2===0){          // saddle-stitch reader pairs (2-up per booklet)
-    return (r,c)=>{
-      const inCol=c%2, sheet=r;
-      const n = side==="front" ? (inCol===0 ? pages-2*sheet : 1+2*sheet)
-                               : (inCol===0 ? 2+2*sheet     : pages-1-2*sheet);
-      return (n>=1 && n<=pages) ? n : "·";
-    };
+function numFn(o, side){
+  const pages=LASTINP?LASTINP.pages:0;
+  if(bookletMode && o.cols%2===0 && pages>=4){
+    return (r,c)=>{ const inCol=c%2, sheet=r;
+      const n = side==="front" ? (inCol===0?pages-2*sheet:1+2*sheet) : (inCol===0?2+2*sheet:pages-1-2*sheet);
+      return (n>=1&&n<=pages)?n:"·"; };
   }
-  return side==="front" ? (r,c)=> r*o.cols+c+1 : (r,c)=> r*o.cols+(o.cols-1-c)+1;
+  return side==="front" ? (r,c)=>r*o.cols+c+1 : (r,c)=>r*o.cols+(o.cols-1-c)+1;
 }
-function drawDiagram(o){
-  const box=$("diagram");
-  if(!o||!o.ups){ box.innerHTML=""; return; }
-  CUR=o;
-  const dbl=$("sided").value==="2";
-  const front=numberFn(o,"front"), back=numberFn(o,"back");
-  const toggle=`<label style="font-size:12px;cursor:pointer;margin-left:8px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;drawDiagram(CUR)" style="width:auto"> 📖 saddle-stitch page order</label>`;
-  const head=`<div class="muted" style="margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
+function diagramHTML(o){
+  const dbl=LASTINP&&LASTINP.sided===2;
+  const toggle=`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;redrawAll()" style="width:auto"> 📖 saddle-stitch page order</label>`;
+  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
   const svgs = dbl
-    ? `<div style="display:flex;gap:14px;flex-wrap:wrap">
-         <div style="flex:1;min-width:190px"><div class="muted" style="margin-bottom:3px">▶ FRONT</div>${buildSheetSVG(o,front)}</div>
-         <div style="flex:1;min-width:190px"><div class="muted" style="margin-bottom:3px">◀ BACK (work-and-turn, sheet flipped ↔)</div>${buildSheetSVG(o,back)}</div>
-       </div>`
-    : buildSheetSVG(o,front);
-  box.innerHTML=head+svgs+`<button onclick="printSheet()" style="width:auto;padding:7px 13px;margin-top:8px;background:#444">🖨 Print cut sheet</button>`;
-  box.dataset.title=`${o.sw}×${o.sh} in · ${o.ups}-up · ${dbl?"double":"single"}-sided`;
+    ? `<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"))}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (work-and-turn)</div>${buildSVG(o,numFn(o,"back"))}</div></div>`
+    : buildSVG(o,numFn(o,"front"));
+  return head+svgs;
 }
-function printSheet(){
-  const box=$("diagram");
-  const body=box.innerHTML.replace(/<button[\s\S]*?<\/button>/,"");
-  const w=window.open("","_blank","width=940,height=720");
-  w.document.write(`<html><head><title>Cut sheet — ${box.dataset.title||""}</title>`+
-    `<style>body{font-family:Arial,Helvetica,sans-serif;padding:22px;color:#222}h2{margin:0 0 8px}`+
-    `.muted{color:#666;font-size:12px}svg{max-width:420px}</style></head><body>`+
-    `<h2>Imposition cut sheet</h2><div class="muted" style="margin-bottom:10px">${box.dataset.title||""}</div>`+
-    body+`<p class="muted" style="margin-top:14px">Numbers = leaf/page positions on the sheet. `+
-    `Red = gripper · yellow = side-lay · dashed = finished page (trim after bleed).</p></body></html>`);
-  w.document.close(); w.focus(); setTimeout(()=>{ try{w.print();}catch(e){} }, 350);
+function drawInto(boxId, o){ const box=$(boxId); if(!o||!o.ups){box.innerHTML="";return;} box.dataset.idx=RESULT?RESULT.options.indexOf(o):-1; box.innerHTML=diagramHTML(o); }
+function redrawAll(){
+  if(RESULT){ const i=+($("diagram").dataset.idx); drawInto("diagram", (i>=0?RESULT.options[i]:RESULT.bestWaste)||RESULT.best); }
+  if(MODAL_OPT) $("m_diagram").innerHTML=diagramHTML(MODAL_OPT);
 }
-function drawIdx(i){ if(LASTOPTS[i]) drawDiagram(LASTOPTS[i]); }
 
-// redraw live as the size/inputs change
-let _t; function liveCalc(){ clearTimeout(_t); _t=setTimeout(calc,250); }
-["pw","ph","pages","books","sided","gsm","bleed","gutter","grain","gripper","sidelay","setup","running"]
-  .forEach(id=>{const e=$(id); if(e) e.addEventListener("input",liveCalc);});
-$("rotate").addEventListener("change",liveCalc);
-document.querySelectorAll(".ss").forEach(c=>c.addEventListener("change",liveCalc));
-window.addEventListener("DOMContentLoaded", calc);  // show a result immediately
+/* ---------- popup ---------- */
+function openModal(o){
+  MODAL_OPT=o;
+  $("m_size").textContent=`${o.sw} × ${o.sh} in`;
+  $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets · ${o.total_wt} kg`;
+  $("m_diagram").innerHTML=diagramHTML(o);
+  $("overlay").classList.add("show");
+}
+function closeModal(){ $("overlay").classList.remove("show"); }
+function printFromModal(){
+  const w=window.open("","_blank","width=940,height=720");
+  w.document.write(`<html><head><title>Cut sheet</title><style>body{font-family:Arial,sans-serif;padding:22px}svg{max-width:440px}</style></head><body>`+
+    `<h2>Imposition cut sheet — ${MODAL_OPT.sw}×${MODAL_OPT.sh} in · ${MODAL_OPT.ups}-up</h2>${$("m_diagram").innerHTML}`+
+    `<p style="color:#666;font-size:12px">Numbers = page/leaf positions. Red = gripper · yellow = side-lay · dashed = finished page.</p></body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
+}
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
 </script>
 </body>
 </html>
