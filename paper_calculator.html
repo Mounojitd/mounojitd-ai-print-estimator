@@ -5,69 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Paper Calculator</title>
 <style>
-  :root{--ink:#1b2330;--muted:#6b7480;--line:#dfe3e8;--bg:#eef1f5;--brand:#1f4e78;--brand2:#2c6fb3;--good:#1f7a4d;--bad:#c0392b}
+  :root{--ink:#1b2330;--muted:#6b7480;--line:#dfe3e8;--bg:#eef1f5;--brand:#1f4e78;--brand2:#2c6fb3;--good:#1f7a4d;--bad:#c0392b;--warn:#b9770a}
   *{box-sizing:border-box}
   body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
-  header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:22px 22px}
-  header h1{margin:0;font-size:21px}
-  header p{margin:4px 0 0;opacity:.9;font-size:13px}
-  .wrap{max-width:1060px;margin:0 auto;padding:20px}
+  header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:20px 22px}
+  header h1{margin:0;font-size:20px} header p{margin:4px 0 0;opacity:.9;font-size:13px}
+  .wrap{max-width:1080px;margin:0 auto;padding:18px}
   .grid{display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:start}
   @media(max-width:880px){.grid{grid-template-columns:1fr}}
   .card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px}
-  h2{font-size:13px;text-transform:uppercase;letter-spacing:.4px;color:var(--brand);margin:18px 0 8px}
+  h2{font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--brand);margin:16px 0 8px}
   h2:first-of-type{margin-top:2px}
-  label{display:block;font-size:12.5px;font-weight:600;color:#37404d;margin-bottom:4px}
+  label{display:block;font-size:12px;font-weight:600;color:#37404d;margin-bottom:4px}
   .fld{margin-bottom:10px}
-  input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:#fff}
+  input,select{width:100%;padding:9px;border:1px solid var(--line);border-radius:8px;font-size:14px;font-family:inherit;background:#fff}
   input:focus,select:focus{outline:2px solid #bcd4ec;border-color:var(--brand2)}
   input.bad{border-color:var(--bad);background:#fdf2f2}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
   .hint{font-size:11px;color:var(--muted);margin-top:3px}
   .chips{display:flex;flex-wrap:wrap;gap:7px}
   .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:18px;padding:6px 11px;font-size:13px;cursor:pointer;user-select:none}
   .chip input{width:auto}
   .go{cursor:pointer;border:0;border-radius:10px;font-weight:700;font-size:15px;padding:13px;color:#fff;background:var(--good);width:100%;margin-top:16px}
-  .go:active{transform:translateY(1px)}
   .err{color:var(--bad);font-size:13px;margin-top:10px;min-height:1px}
   .placeholder{color:var(--muted);font-size:13px;text-align:center;padding:40px 10px}
-  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
-  th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right}
+  .opensize{background:#eef6ff;border:1px solid #cfe2f7;border-radius:8px;padding:9px 12px;font-size:13px;color:#1c4a78;margin-bottom:10px}
+  .resulthead{border-radius:12px;padding:14px 16px;color:#fff;background:linear-gradient(135deg,#13361f,#1f7a4d)}
+  .rh-lbl{font-size:12px;opacity:.9} .rh-big{font-size:24px;font-weight:800;margin:2px 0} .rh-sub{font-size:13px;opacity:.95}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right}
   th:first-child,td:first-child{text-align:left}
   th{font-size:11px;color:var(--muted);text-transform:uppercase}
-  tr.best{background:#e9f6ee} tr.best td{font-weight:700}
-  tr[data-click]{cursor:pointer}
+  tr.best{background:#e9f6ee} tr.best td{font-weight:700} tr[data-click]{cursor:pointer}
+  tr.nofit td{color:var(--warn)}
   .pill{display:inline-block;color:#fff;border-radius:5px;padding:1px 6px;font-size:10px;margin-left:5px;background:#2c6fb3}
-  /* modal */
-  .overlay{position:fixed;inset:0;background:rgba(15,25,40,.55);display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
-  .overlay.show{display:flex}
-  .modal{background:#fff;border-radius:14px;max-width:560px;width:100%;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-  .modal .top{background:linear-gradient(135deg,#0c3a5a,#2c6fb3);color:#fff;padding:18px 20px;border-radius:14px 14px 0 0;position:relative}
-  .modal .top .lbl{font-size:12px;opacity:.85}
-  .modal .top .big{font-size:28px;font-weight:800;margin:3px 0}
-  .modal .top .sub{font-size:13px;opacity:.95}
-  .modal .x{position:absolute;top:12px;right:14px;cursor:pointer;font-size:22px;color:#fff;opacity:.8;line-height:1}
-  .modal .body{padding:16px 20px}
-  .mbtn{cursor:pointer;border:0;border-radius:9px;font-weight:600;font-size:14px;padding:10px 14px;margin:4px 6px 0 0}
-  .mbtn.p{background:var(--brand);color:#fff} .mbtn.g{background:#666;color:#fff}
-  .pbox{background:#f6f8fa;border:1px solid #e4e7ec;border-radius:8px;padding:10px;margin-top:10px}
+  .pbox{background:#f6f8fa;border:1px solid #e4e7ec;border-radius:8px;padding:10px;margin-top:12px}
   .ptitle{font-size:12px;font-weight:700;color:#1f4e78;margin-bottom:6px}
-  .prow{display:flex;gap:8px;margin-bottom:6px}
-  .prow span{flex:1}
-  .prow label{font-size:11px;margin-bottom:2px;display:block;font-weight:600}
-  .prow input,.prow select{width:100%;padding:7px;font-size:13px;border:1px solid var(--line);border-radius:7px}
-  .resulthead{background:linear-gradient(135deg,#0c3a5a,#2c6fb3);color:#fff;border-radius:12px;padding:14px 16px}
-  .rh-lbl{font-size:12px;opacity:.85}
-  .rh-big{font-size:24px;font-weight:800;margin:2px 0}
-  .rh-sub{font-size:13px;opacity:.95}
+  .prow{display:flex;gap:8px;margin-bottom:6px} .prow span{flex:1}
+  .prow label{font-size:11px;margin-bottom:2px} .prow input,.prow select{padding:7px;font-size:13px}
+  .mbtn{cursor:pointer;border:0;border-radius:9px;font-weight:600;font-size:14px;padding:10px 14px;margin:4px 6px 0 0}
+  .mbtn.p{background:var(--brand);color:#fff}
+  .suggest{background:#fff7e6;border:1px solid #f3dca0;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#7a5500;margin-top:10px}
 </style>
 </head>
 <body>
 <header>
   <div class="wrap" style="padding:0">
     <h1>📄 Paper Calculator</h1>
-    <p>Enter your job, then click <b>Find Minimum Paper Usage</b>. The lowest-wastage sheet pops up.</p>
+    <p>Booklets use the <b>open (spread)</b> size automatically. All margins in mm. Click <b>Find Minimum Paper Usage</b>.</p>
   </div>
 </header>
 
@@ -75,31 +61,46 @@
   <div class="grid">
     <!-- INPUTS -->
     <div class="card">
-      <h2>Book specification</h2>
-      <div class="fld"><label>Product / job name</label><input id="product" type="text" placeholder="e.g. Diwali desk calendar" /></div>
+      <h2>Job</h2>
+      <div class="fld"><label>Product / job name</label><input id="product_name" type="text" placeholder="e.g. Annual brochure" /></div>
       <div class="row">
-        <div class="fld"><label>Page width (in)</label><input id="pw" type="number" step="0.5" placeholder="e.g. 8.5" /></div>
-        <div class="fld"><label>Page height (in)</label><input id="ph" type="number" step="0.5" placeholder="e.g. 6" /></div>
+        <div class="fld"><label>Product type</label>
+          <select id="product" onchange="onProductChange()">
+            <option value="flat">Flat (flyer / leaflet / poster / card)</option>
+            <option value="booklet" selected>Booklet / magazine / catalogue</option>
+          </select></div>
+        <div class="fld"><label>Orientation</label>
+          <select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
       </div>
-      <div class="row">
-        <div class="fld"><label>Total pages</label><input id="pages" type="number" placeholder="e.g. 14" /></div>
-        <div class="fld"><label>Number of products</label><input id="books" type="number" placeholder="e.g. 1000" /></div>
+      <div class="row3">
+        <div class="fld"><label>Width</label><input id="W" type="number" step="0.5" placeholder="e.g. 7" /></div>
+        <div class="fld"><label>Height</label><input id="H" type="number" step="0.5" placeholder="e.g. 9.5" /></div>
+        <div class="fld"><label>Unit</label><select id="unit"><option value="in" selected>inch</option><option value="mm">mm</option><option value="cm">cm</option></select></div>
       </div>
-      <div class="row">
-        <div class="fld"><label>Printing</label><select id="sided"><option value="2">Double-sided</option><option value="1">Single-sided</option></select></div>
-        <div class="fld"><label>Paper GSM</label><input id="gsm" type="number" placeholder="e.g. 300" /></div>
-      </div>
+      <div class="hint" id="closedHint">Booklet: enter the <b>closed</b> page size — open spread is auto-calculated.</div>
 
-      <h2>Margins &amp; layout</h2>
+      <div id="bookletFields">
+        <div class="row3">
+          <div class="fld"><label>Total pages</label><input id="pages" type="number" placeholder="e.g. 80" /></div>
+          <div class="fld"><label>Signature</label><select id="sigPages"><option>4</option><option>8</option><option selected>16</option><option>32</option></select></div>
+          <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" /></div>
+        </div>
+      </div>
+      <div id="flatFields" style="display:none">
+        <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" /></div>
+      </div>
+      <div class="fld"><label>Paper GSM</label><input id="gsm" type="number" placeholder="e.g. 130" /></div>
+
+      <h2>Margins (mm)</h2>
       <div class="row3">
-        <div class="fld"><label>Bleed (in)</label><input id="bleed" type="number" step="0.01" placeholder="0.125" /></div>
-        <div class="fld"><label>Gutter (in)</label><input id="gutter" type="number" step="0.01" placeholder="0" /></div>
-        <div class="fld"><label>Grain</label><select id="grain"><option value="either">Either</option><option value="long">Long (upright)</option><option value="short">Short (rotated)</option></select></div>
+        <div class="fld"><label>Bleed</label><input id="bleed" type="number" placeholder="3" /></div>
+        <div class="fld"><label>Gripper</label><input id="gripper" type="number" placeholder="10" /></div>
+        <div class="fld"><label>Side-lay</label><input id="sidelay" type="number" placeholder="3" /></div>
       </div>
       <div class="row3">
-        <div class="fld"><label>Gripper (mm)</label><input id="gripper" type="number" placeholder="13" /></div>
-        <div class="fld"><label>Side-lay (mm)</label><input id="sidelay" type="number" placeholder="3" /></div>
-        <div class="fld" style="display:flex;align-items:flex-end"><label class="chip" style="margin:0;font-weight:600"><input type="checkbox" id="rotate" /> Allow rotation</label></div>
+        <div class="fld"><label>Backside</label><input id="backside" type="number" placeholder="3" /></div>
+        <div class="fld"><label>Paper trim</label><input id="paperTrim" type="number" placeholder="3" /></div>
+        <div class="fld" style="display:flex;align-items:flex-end"><label class="chip" style="margin:0;font-weight:600"><input type="checkbox" id="rotate" /> Rotate</label></div>
       </div>
 
       <h2>Wastage</h2>
@@ -108,12 +109,12 @@
         <div class="fld"><label>Running waste (%)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
       </div>
 
-      <h2>Sheet sizes to consider (in)</h2>
+      <h2>Sheet sizes (in) — incl. cut-downs</h2>
       <div class="chips">
-        <label class="chip"><input type="checkbox" class="ss" value="18,25" checked /> 18×25</label>
         <label class="chip"><input type="checkbox" class="ss" value="20,30" checked /> 20×30</label>
         <label class="chip"><input type="checkbox" class="ss" value="23,36" checked /> 23×36</label>
         <label class="chip"><input type="checkbox" class="ss" value="25,36" checked /> 25×36</label>
+        <label class="chip"><input type="checkbox" class="ss" value="28,40" checked /> 28×40</label>
         <label class="chip"><input type="checkbox" class="ss" value="30,40" checked /> 30×40</label>
       </div>
 
@@ -121,10 +122,11 @@
       <div id="err" class="err"></div>
     </div>
 
-    <!-- RESULTS (inline) -->
+    <!-- RESULTS -->
     <div class="card">
-      <div id="placeholder" class="placeholder">Fill in the job on the left and click <b>Find Minimum Paper Usage</b> — the lowest-wastage sheet, its layout and the price appear right here.</div>
+      <div id="placeholder" class="placeholder">Fill the job and click <b>Find Minimum Paper Usage</b> — the open size, the lowest-wastage sheet, its layout and the price appear here.</div>
       <div id="results" style="display:none">
+        <div class="opensize" id="opensize"></div>
         <div class="resulthead">
           <div class="rh-lbl" id="m_lbl">♻️ Lowest-wastage sheet</div>
           <div class="rh-big" id="m_size"></div>
@@ -139,13 +141,14 @@
             <span><label>Lamination</label><select id="lam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt</option><option value="gloss">Gloss</option><option value="bopp">BOPP</option></select></span>
           </div>
           <div class="prow">
-            <span><label>Paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="e.g. 13.86" oninput="showPrice()" /></span>
+            <span><label>Paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="e.g. 11.93" oninput="showPrice()" /></span>
             <span><label>Margin %</label><input id="margin" type="number" value="28" oninput="showPrice()" /></span>
             <span><label>GST %</label><input id="gst" type="number" value="18" oninput="showPrice()" /></span>
           </div>
         </div>
         <div id="m_price" style="margin-top:10px"></div>
         <div style="margin-top:10px"><button class="mbtn p" onclick="printSheet()">🖨 Print cut sheet</button></div>
+        <div id="suggest"></div>
         <h2 style="margin-top:18px;margin-bottom:4px">All sheet sizes <span style="text-transform:none;font-weight:400;color:#6b7480">(click a row to switch)</span></h2>
         <table>
           <thead><tr><th>Sheet</th><th>Ups</th><th>Sheets</th><th>Weight</th><th>Waste %</th></tr></thead>
@@ -158,107 +161,127 @@
 
 <script>
 const $=id=>document.getElementById(id);
+const MM=25.4;
+function num(id,def){ const e=$(id); if(!e) return def; const v=e.value.trim(); if(v==="")return def; const n=parseFloat(v); return isFinite(n)?n:def; }
+function toIn(v,unit){ return unit==="mm"?v/MM : unit==="cm"?v/2.54 : v; }
 
-/* ---------- pure calculation (no DOM) ---------- */
+function onProductChange(){
+  const b=$("product").value==="booklet";
+  $("bookletFields").style.display=b?"block":"none";
+  $("flatFields").style.display=b?"none":"block";
+  $("closedHint").style.display=b?"block":"none";
+}
+
+/* ---------- PURE CALCULATION (NKK sir corrected logic) ---------- */
+function openSize(p){ // p.W,p.H in inches; returns spread in inches
+  let W=p.W, H=p.H;
+  if(p.product==="booklet"){ if(p.orientation==="portrait") W=2*W; else H=2*H; }
+  return {w:W,h:H};
+}
 function computePaper(inp){
-  const MM=25.4;
-  const gripper=inp.gripperMm/MM, sidelay=inp.sidelayMm/MM, gutter=inp.gutter, bleed=inp.bleed;
-  const cell_w=inp.pageW+2*bleed, cell_h=inp.pageH+2*bleed;
-  const leaves=Math.max(1, inp.sided===2 ? Math.ceil(inp.pages/2) : inp.pages);
-  const orients = inp.grain==="long" ? ["upright"] : inp.grain==="short" ? ["rotated"]
-               : (inp.rotate ? ["upright","rotated"] : ["upright"]);
-  const upsIn=(L,S)=>{
-    let best=0,res=["—",0,0,0,0];
-    for(const name of orients){
-      const [a,b]= name==="upright"?[cell_w,cell_h]:[cell_h,cell_w];
-      if(a<=0||b<=0) continue;
-      const cols=Math.floor((L+gutter)/(a+gutter)), rows=Math.floor((S+gutter)/(b+gutter));
-      const n=cols*rows; if(n>best){best=n;res=[name,cols,rows,a,b];}
-    }
-    return [best,...res];
-  };
-  const options=inp.sizes.map(([sw,sh])=>{
-    const long=Math.max(sw,sh), short=Math.min(sw,sh);
-    const [ups,orient,cols,rows,uw,uh]=upsIn(long-2*sidelay, short-gripper);
-    if(ups<=0) return {sw,sh,ups:0};
-    const spb=Math.ceil(leaves/ups), good=spb*inp.books, run=Math.ceil(good*inp.running/100), total=good+inp.setup+run;
-    const area=(sw*0.0254)*(sh*0.0254), wt=area*inp.gsm/1000, eff=100*ups*cell_w*cell_h/(sw*sh);
-    return {sw,sh,ups,orient,cols,rows,cell_used_w:uw,cell_used_h:uh,bleed,gripper,sidelay,gutter,
-      sheets_per_book:spb,good,run,total,total_wt:+(wt*total).toFixed(2),
-      eff:+eff.toFixed(1),waste:+(100-eff).toFixed(1)};
+  const m=inp.margins;                       // mm
+  const o=openSize(inp);                      // inches (open spread)
+  const cellW=o.w*MM+2*m.bleed, cellH=o.h*MM+2*m.bleed;   // mm imaged size
+  const orients=inp.rotate?["upright","rotated"]:["upright"];
+  const signatures = inp.product==="booklet" ? Math.max(1,Math.ceil(inp.pages/inp.sigPages)) : 1;
+  const options=inp.sizes.map(([wi,hi])=>{
+    const w=wi*MM,h=hi*MM, long=Math.max(w,h), short=Math.min(w,h);
+    const usableLong=long-2*m.sidelay-2*m.paperTrim;        // side-lay both sides + stock trim
+    const usableShort=short-m.gripper-m.backside-2*m.paperTrim; // gripper + backside + stock trim
+    let ups=0,orient="—",cols=0,rows=0,ua=0,ub=0;
+    for(const nm of orients){ const [a,b]=nm==="upright"?[cellW,cellH]:[cellH,cellW];
+      const cc=Math.floor(usableLong/a), rr=Math.floor(usableShort/b);
+      if(cc*rr>ups){ups=cc*rr;orient=nm;cols=cc;rows=rr;ua=a;ub=b;} }
+    const opt={sw:wi,sh:hi,ups,orient,cols,rows};
+    if(ups<=0){ opt.shortfall=+Math.max(cellW-usableLong, cellH-usableShort).toFixed(1); return opt; }
+    const good = inp.product==="booklet" ? signatures*inp.copies : Math.ceil(inp.copies/ups);
+    const spc  = inp.product==="booklet" ? signatures : 1/ups;
+    const run=Math.ceil(good*inp.running/100), total=good+inp.setup+run;
+    const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000, eff=100*ups*cellW*cellH/(w*h);
+    Object.assign(opt,{signatures,sheets_per_copy:spc,good,setup:inp.setup,run,total,
+      total_wt:+(wt*total).toFixed(2), eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1),
+      cell_used_w:ua/MM, cell_used_h:ub/MM,
+      gripper:m.gripper/MM, sidelay:(m.sidelay+m.paperTrim)/MM, bleed:m.bleed/MM, gutter:0});
+    return opt;
   });
   const usable=options.filter(o=>o.ups>0);
   const best=usable.slice().sort((a,b)=>a.total-b.total||(a.sw*a.sh*a.total)-(b.sw*b.sh*b.total))[0]||null;
   const bestWaste=usable.slice().sort((a,b)=>a.waste-b.waste)[0]||null;
-  return {options,best,bestWaste,leaves,sided:inp.sided,pages:inp.pages,books:inp.books,
-          cell_w:+cell_w.toFixed(3),cell_h:+cell_h.toFixed(3)};
+  return {options,best,bestWaste,openW:o.w,openH:o.h,signatures,cellW:+cellW.toFixed(1),cellH:+cellH.toFixed(1)};
 }
 
-/* ---------- read + validate the form ---------- */
-function num(id, def){ const v=$(id).value.trim(); if(v==="") return def; const n=parseFloat(v); return isFinite(n)?n:def; }
+/* ---------- read + validate ---------- */
 function run(){
-  $("err").textContent="";
-  document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
-  const required=[["pw","page width"],["ph","page height"],["pages","total pages"],["books","number of products"],["gsm","paper GSM"]];
+  $("err").textContent=""; document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
+  const booklet=$("product").value==="booklet";
+  const req=[["W","width"],["H","height"],["gsm","GSM"]];
+  req.push(booklet?["pages","total pages"]:[null,null], booklet?["copies","quantity"]:["copies2","quantity"]);
   const missing=[];
-  for(const [id,name] of required){ const v=$(id).value.trim(); if(v===""||!(parseFloat(v)>0)){ $(id).classList.add("bad"); missing.push(name); } }
+  for(const [id,name] of req){ if(!id)continue; const v=$(id).value.trim(); if(v===""||!(parseFloat(v)>0)){ $(id).classList.add("bad"); missing.push(name); } }
   const sizes=[...document.querySelectorAll(".ss:checked")].map(c=>c.value.split(",").map(Number));
   if(missing.length){ $("err").textContent="Please enter: "+missing.join(", ")+"."; return; }
   if(!sizes.length){ $("err").textContent="Tick at least one sheet size."; return; }
-
+  const unit=$("unit").value;
   const inp={
-    product:$("product").value.trim(),
-    pageW:num("pw"), pageH:num("ph"), pages:Math.round(num("pages")), books:Math.round(num("books")),
-    sided:parseInt($("sided").value), gsm:num("gsm"),
-    bleed:num("bleed",0.125), gutter:num("gutter",0), grain:$("grain").value,
-    gripperMm:num("gripper",13), sidelayMm:num("sidelay",3), rotate:$("rotate").checked,
-    setup:Math.round(num("setup",100)), running:num("running",5), sizes
+    product_name:$("product_name").value.trim(), product:$("product").value, orientation:$("orientation").value,
+    W:toIn(num("W"),unit), H:toIn(num("H"),unit),
+    pages:Math.round(num("pages",2)), sigPages:parseInt($("sigPages").value),
+    copies:Math.round(booklet?num("copies",1):num("copies2",1)),
+    gsm:num("gsm"), rotate:$("rotate").checked,
+    margins:{bleed:num("bleed",3),gripper:num("gripper",10),sidelay:num("sidelay",3),backside:num("backside",3),paperTrim:num("paperTrim",3)},
+    setup:Math.round(num("setup",100)), running:num("running",5), sizes, unit
   };
-  const r=computePaper(inp);
   LASTINP=inp;
-  if(!r.options.some(o=>o.ups)){ $("err").textContent="None of the chosen sheets can hold this page — try a bigger sheet or enable rotation."; return; }
+  const r=computePaper(inp);
+  if(!r.options.some(o=>o.ups>0)){
+    render(r);
+    const least=r.options.slice().sort((a,b)=>a.shortfall-b.shortfall)[0];
+    $("err").textContent=`No sheet fits the ${r.openW}×${r.openH}" spread. Closest: ${least.sw}×${least.sh} — reduce design by ~${Math.ceil(least.shortfall)}mm or pick a larger sheet.`;
+    return;
+  }
   render(r);
 }
 
-/* ---------- render table + diagram ---------- */
-let RESULT=null, LASTINP=null;
+/* ---------- render ---------- */
+let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=false;
 function render(r){
-  RESULT=r;
-  $("placeholder").style.display="none";
-  $("results").style.display="block";
+  RESULT=r; $("placeholder").style.display="none"; $("results").style.display="block";
+  const opensize = LASTINP.product==="booklet"
+    ? `Open spread size: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${r.signatures} signatures (${LASTINP.pages}pp ÷ ${LASTINP.sigPages})`
+    : `Finished size: <b>${r.openW} × ${r.openH} in</b>`;
+  $("opensize").innerHTML=opensize;
   const bp=r.best, bw=r.bestWaste;
   $("tb").innerHTML=r.options.map((o,idx)=>{
-    if(!o.ups) return `<tr><td>${o.sw}×${o.sh}</td><td colspan="4" style="text-align:left;color:#c0392b">won't fit</td></tr>`;
+    if(!o.ups) return `<tr class="nofit"><td>${o.sw}×${o.sh}</td><td colspan="4" style="text-align:left">won't fit · reduce ~${Math.ceil(o.shortfall)}mm</td></tr>`;
     const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh, isP=bp&&o.sw===bp.sw&&o.sh===bp.sh;
-    return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}">`+
-      `<td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}</td>`+
-      `<td>${o.ups} (${o.orient})</td><td>${o.total.toLocaleString("en-IN")}</td>`+
-      `<td>${o.total_wt} kg</td><td>${o.waste}%</td></tr>`;
+    return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}"><td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}</td>`+
+      `<td>${o.ups} (${o.orient})</td><td>${o.total.toLocaleString("en-IN")}</td><td>${o.total_wt} kg</td><td>${o.waste}%</td></tr>`;
   }).join("");
-  showSheet(bw||bp||r.options.find(o=>o.ups));   // headline + diagram + price, inline
+  // suggestions for non-fitting sheets
+  const nofit=r.options.filter(o=>!o.ups);
+  $("suggest").innerHTML = nofit.length
+    ? `<div class="suggest">💡 ${nofit.map(o=>`${o.sw}×${o.sh} needs ~${Math.ceil(o.shortfall)}mm less`).join(" · ")}. Reduce the design slightly, rotate, or use a larger sheet.</div>` : "";
+  showSheet(bw||bp||r.options.find(o=>o.ups));
 }
 function showSheet(o){
-  if(!o||!o.ups) return;
-  CHOSEN=o;
+  if(!o||!o.ups)return; CHOSEN=o;
   const isBW=RESULT&&RESULT.bestWaste&&o.sw===RESULT.bestWaste.sw&&o.sh===RESULT.bestWaste.sh;
-  $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":"Selected sheet")+(LASTINP&&LASTINP.product?" · "+LASTINP.product:"");
+  $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
   $("m_size").textContent=`${o.sw} × ${o.sh} in`;
-  $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets · ${o.total_wt} kg`;
-  drawInto("diagram", o);
-  showPrice();
+  $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets · ${o.total_wt} kg`+
+    (LASTINP.product==="booklet"?` · ${o.signatures} sig/book`:"");
+  drawInto("diagram",o); showPrice();
 }
 function drawIdx(i){ if(RESULT&&RESULT.options[i]&&RESULT.options[i].ups) showSheet(RESULT.options[i]); }
 
-/* ---------- imposition diagram ---------- */
-let bookletMode=false, CHOSEN=null;
-function buildSVG(o, numFn){
+/* ---------- diagram ---------- */
+function buildSVG(o,numFn){
   const long=Math.max(o.sw,o.sh), short=Math.min(o.sw,o.sh);
   const W=360, sc=W/long, H=Math.round(short*sc);
-  const g=o.gripper*sc, sl=o.sidelay*sc, gut=o.gutter*sc, bl=o.bleed*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
-  const fs=Math.max(7,Math.min(13,cw/2.6));
-  let cells="";
+  const g=o.gripper*sc, sl=o.sidelay*sc, bl=o.bleed*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
+  const fs=Math.max(7,Math.min(13,cw/2.6)); let cells="";
   for(let r=0;r<o.rows;r++) for(let c=0;c<o.cols;c++){
-    const x=sl+c*(cw+gut), y=r*(ch+gut);
+    const x=sl+c*cw, y=r*ch;
     cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3" stroke-width="0.7"/>`;
     if(bl>1) cells+=`<rect x="${(x+bl).toFixed(1)}" y="${(y+bl).toFixed(1)}" width="${(cw-2*bl).toFixed(1)}" height="${(ch-2*bl).toFixed(1)}" fill="none" stroke="#9bbbe0" stroke-dasharray="2 2" stroke-width="0.5"/>`;
     cells+=`<text x="${(x+cw/2).toFixed(1)}" y="${(y+ch/2+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold">${numFn(r,c)}</text>`;
@@ -268,78 +291,66 @@ function buildSVG(o, numFn){
   const grip=`<rect x="0" y="${(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
 }
-function numFn(o, side){
+function numFn(o,side){
   const pages=LASTINP?LASTINP.pages:0;
-  if(bookletMode && o.cols%2===0 && pages>=4){
-    return (r,c)=>{ const inCol=c%2, sheet=r;
-      const n = side==="front" ? (inCol===0?pages-2*sheet:1+2*sheet) : (inCol===0?2+2*sheet:pages-1-2*sheet);
-      return (n>=1&&n<=pages)?n:"·"; };
-  }
-  return side==="front" ? (r,c)=>r*o.cols+c+1 : (r,c)=>r*o.cols+(o.cols-1-c)+1;
+  if(bookletMode && o.cols%2===0 && pages>=4) return (r,c)=>{const inCol=c%2,sheet=r;
+    const n=side==="front"?(inCol===0?pages-2*sheet:1+2*sheet):(inCol===0?2+2*sheet:pages-1-2*sheet); return (n>=1&&n<=pages)?n:"·";};
+  return side==="front"?(r,c)=>r*o.cols+c+1:(r,c)=>r*o.cols+(o.cols-1-c)+1;
 }
 function diagramHTML(o){
-  const dbl=LASTINP&&LASTINP.sided===2;
-  const toggle=`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;redrawAll()" style="width:auto"> 📖 saddle-stitch page order</label>`;
+  const dbl=LASTINP&&LASTINP.product==="booklet";
+  const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 page order</label>`:"";
   const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
-  const svgs = dbl
-    ? `<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"))}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (work-and-turn)</div>${buildSVG(o,numFn(o,"back"))}</div></div>`
-    : buildSVG(o,numFn(o,"front"));
+  const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"))}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (work-and-turn)</div>${buildSVG(o,numFn(o,"back"))}</div></div>`:buildSVG(o,numFn(o,"front"));
   return head+svgs;
 }
-function drawInto(boxId, o){ const box=$(boxId); if(!o||!o.ups){box.innerHTML="";return;} box.dataset.idx=RESULT?RESULT.options.indexOf(o):-1; box.innerHTML=diagramHTML(o); }
-function redrawAll(){ if(CHOSEN) drawInto("diagram", CHOSEN); }
-
+function drawInto(boxId,o){ const box=$(boxId); if(!o||!o.ups){box.innerHTML="";return;} box.innerHTML=diagramHTML(o); }
 function printSheet(){
-  if(!CHOSEN) return;
-  const w=window.open("","_blank","width=940,height=720");
+  if(!CHOSEN)return; const w=window.open("","_blank","width=940,height=720");
   w.document.write(`<html><head><title>Cut sheet</title><style>body{font-family:Arial,sans-serif;padding:22px}svg{max-width:440px}</style></head><body>`+
-    `<h2>${LASTINP&&LASTINP.product?LASTINP.product+" — ":""}Imposition cut sheet · ${CHOSEN.sw}×${CHOSEN.sh} in · ${CHOSEN.ups}-up</h2>${$("diagram").innerHTML}`+
+    `<h2>${LASTINP.product_name?LASTINP.product_name+" — ":""}Cut sheet · ${CHOSEN.sw}×${CHOSEN.sh} in · ${CHOSEN.ups}-up</h2>${$("diagram").innerHTML}`+
     `<p style="color:#666;font-size:12px">Numbers = page/leaf positions. Red = gripper · yellow = side-lay · dashed = finished page.</p></body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
 }
 
-/* ---------- PRICE (rates baked in: Naba Mudran / Anderson agreement) ---------- */
-const PRINT={
-  small:{4:{lot:1500,steps:[[1e12,125]]},2:{lot:1000,steps:[[1e12,125]]},1:{lot:600,steps:[[1e12,125]]},plate:475},
-  big:{4:{lot:2325,steps:[[10000,195],[1e12,175]]},2:{lot:1225,steps:[[10000,205],[1e12,185]]},1:{lot:625,steps:[[10000,208],[1e12,195]]},plate:575}
-};
+/* ---------- PRICE (Naba Mudran / Anderson rates) ---------- */
+const PRINT={small:{4:{lot:1500},2:{lot:1000},1:{lot:600},plate:475,per1000:125},
+             big:{4:{lot:2325,a:195,b:175},2:{lot:1225,a:205,b:185},1:{lot:625,a:208,b:195},plate:575}};
 const LAM100={gloss:0.35,bopp:0.40,matt:0.45}, LAM_MIN=1000;
 function sizeBand(w,h){const lo=Math.max(w,h),sh=Math.min(w,h);return (lo>=34&&sh>=22)?"big":"small";}
-function sideCost(band,cols,sheets){ if(cols<=0) return 0; const t=PRINT[band], s=t[cols]||t[4];
-  if(sheets<=3000) return s.lot; const rate=s.steps.find(([mx])=>sheets<=mx)[1]; return cols*(sheets/1000)*rate; }
-function priceJob(o, p){
-  const sw=o.sw, sh=o.sh, sheets=o.total, band=sizeBand(sw,sh);
+function sideCost(band,cols,sheets){ if(cols<=0)return 0; const t=PRINT[band];
+  if(sheets<=3000) return (t[cols]||t[4]).lot;
+  if(band==="small") return cols*(sheets/1000)*t.per1000;
+  const s=t[cols]||t[4]; return cols*(sheets/1000)*(sheets<=10000?s.a:s.b); }
+function priceJob(o,p){
+  const band=sizeBand(o.sw,o.sh), sheets=o.total;
   const printing=sideCost(band,p.cf,sheets)+sideCost(band,p.cb,sheets);
   const plates=(Math.max(0,p.cf)+Math.max(0,p.cb))*PRINT[band].plate;
-  const area100=sw*sh/100;
-  const lam = p.lam==="none" ? 0 : Math.max((LAM100[p.lam]||0.45)*area100*sheets, LAM_MIN);
-  const paper=(p.paperRate||0)*sheets;
-  const wt=o.total_wt, cartons=Math.max(1,Math.ceil(wt/15)), packing=cartons*35, freight=Math.max(wt*8,300);
+  const lam=p.lam==="none"?0:Math.max((LAM100[p.lam]||0.45)*(o.sw*o.sh/100)*sheets,LAM_MIN);
+  const paper=(p.paperRate||0)*sheets, wt=o.total_wt;
+  const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+packing+freight, overhead=base*0.12, prod=base+overhead;
   const margin=prod*p.margin/100, pretax=prod+margin, gst=pretax*p.gst/100, grand=pretax+gst;
   return {band,paper,printing,plates,lam,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
 }
-function priceInputs(){
-  return {cf:Math.round(num("cf",4)), cb:Math.round(num("cb",4)), lam:$("lam").value,
-          paperRate:num("paperRate",0), margin:num("margin",28), gst:num("gst",18),
-          books:LASTINP?LASTINP.books:1};
-}
 function showPrice(){
-  if(!CHOSEN) return;
-  const p=priceInputs(), q=priceJob(CHOSEN,p);
-  const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  if(!CHOSEN)return;
+  const p={cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,paperRate:num("paperRate",0),
+           margin:num("margin",28),gst:num("gst",18),books:LASTINP?LASTINP.copies:1};
+  const q=priceJob(CHOSEN,p), inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   const rows=[["Paper",q.paper],["Printing",q.printing],["Plates",q.plates],["Lamination",q.lam],["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]];
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
-  rows.forEach(([k,v])=>{ h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`; });
+  rows.forEach(([k,v])=>h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
   h+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
   h+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
   h+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
   h+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
   h+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
-  h+=`<div style="font-size:11px;color:#6b7480;margin-top:6px">Printing band: ${q.band} (${q.band==='big'?'23×36+':'19×29'}) · rates from Naba Mudran agreement</div>`;
-  if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter <b>Paper rate (₹/sheet)</b> above for the full price — paper not included yet.</div>';
+  h+=`<div style="font-size:11px;color:#6b7480;margin-top:6px">Printing band: ${q.band} · rates from Naba Mudran agreement</div>`;
+  if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter <b>Paper ₹/sheet</b> for the full price.</div>';
   $("m_price").innerHTML=h;
 }
+onProductChange();
 </script>
 </body>
 </html>
