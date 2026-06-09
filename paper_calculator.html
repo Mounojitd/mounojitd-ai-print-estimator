@@ -144,6 +144,7 @@
           </div>
           <div class="prow">
             <span><label>Coating</label><select id="lam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></span>
+            <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="cover" selected>Cover only</option><option value="all">All sheets</option></select></span>
             <span><label>Paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="e.g. 11.93" oninput="showPrice()" /></span>
           </div>
           <div class="prow">
@@ -415,22 +416,24 @@ function priceJob(o,p){
   const plates=plateCount*PRINT[band].plate;
   const sides=(p.cf>0?1:0)+(p.cb>0?1:0), impressions=sheets*sides;
   const c=COAT[p.lam]||COAT.none;
-  const lam=p.lam==="none"?0:Math.max(c.r*(o.sw*o.sh/100)*sheets, c.min);
+  const coatSheets = (p.coatArea==="cover") ? Math.round(sheets/sigs) : sheets;   // cover = one signature's sheets
+  const lam=p.lam==="none"?0:Math.max(c.r*(o.sw*o.sh/100)*coatSheets, c.min);
   const paper=(p.paperRate||0)*sheets, wt=o.total_wt;
   const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+packing+freight, overhead=base*0.12, prod=base+overhead;
   const margin=prod*p.margin/100, pretax=prod+margin, gst=pretax*p.gst/100, grand=pretax+gst;
-  return {band,paper,printing,plates,plateCount,impressions,sigs,lam,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
+  return {band,paper,printing,plates,plateCount,impressions,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
 }
 function currentPriceParams(){
-  return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,paperRate:num("paperRate",0),
+  return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
+          coatArea:($("coatArea")?$("coatArea").value:"cover"),paperRate:num("paperRate",0),
           margin:num("margin",28),gst:num("gst",18),books:LASTINP?LASTINP.copies:1};
 }
 function showPrice(){
   if(!CHOSEN)return;
   const p=currentPriceParams();
   const q=priceJob(CHOSEN,p), inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
-  const rows=[["Paper",q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount})`,q.plates],["Coating",q.lam],["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]];
+  const rows=[["Paper",q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount})`,q.plates],[`Coating (${p.coatArea==="cover"?q.coatSheets.toLocaleString("en-IN")+" cover sh":"all sheets"})`,q.lam],["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]];
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
   rows.forEach(([k,v])=>h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
   h+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
