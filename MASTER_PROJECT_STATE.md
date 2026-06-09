@@ -127,6 +127,20 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 
 ## 8. Known Bugs / Issues
 
+- **🔴 Imposition/waste inconsistency (CONFIRMED 2026-06-09, NKK sir flagged "weight wrong").**
+  Booklet imposes the **open spread as one atomic block**; sheet packing reports `ups`
+  spreads/side, but the chosen signature may use **fewer** spreads than `ups`. Example —
+  Shyam Metalics 11.5×11.5 landscape, 180pp, 160gsm, 250 copies: engine picks 25×36, packs
+  `ups=3` spreads/side → caps signature to **8pp**, but an 8pp section only uses 2 spreads/side,
+  so ~⅓ of each sheet is unused. **Waste% is computed on `ups=3`** → reports **9.1%** when real
+  unused area is ~40%. Result: **signature ↔ sheets-per-book ↔ waste% are out of sync**, and
+  since `weight = sheets × sheet-weight`, the **weight inherits the error**. Sanity check: 8×
+  (11.5×11.5+bleed) ≈ 1,060 sq.in > 25×36 sheet (900 sq.in) → a true 8pp can't sit 2×2 on that
+  sheet; spread-as-one-block over-claims capacity for square/coffee-table sizes.
+  **Weight formula itself is correct** (`kg = areaM2 × gsm/1000 × sheets`); error is upstream
+  (sheet/signature/sheet-count), NOT the weight math. **Blocked on NKK sir's correct figures:**
+  his actual sheet size, signature, total sheets (250 & 500), and paper weight in kg — then
+  back-calc which step diverges and fix only that step.
 - **Coating unit** (per-100-sq.in) is an assumption — confirm real basis with NKK sir.
 - **Work-and-turn** not yet an option (currently work-and-back: plates = colours × sigs).
 - **Make-ready** is a single flat input, not strictly per-forme / per-plate-change.
@@ -183,5 +197,6 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 | 2026-06-08 | Open/spread size for booklets, margins in mm (gripper 10, +backside, +paper-trim) | NKK sir review of live app | 7×9.5 closed → 14×9.5 open; fixed unit-mixing bug |
 | 2026-06-09 | Coating = cover only by default | Lamination is on the cover, not all inner pages | Book lam ~1 signature's sheets; per-book ₹197→₹173 |
 | 2026-06-09 | Anderson agreement rates baked in (printing/plate/coating) | Real contracted rates supplied by user | Price is real, not placeholder (except paper ₹/sheet = manual input) |
+| 2026-06-09 | Validation vs real quote (Shyam Metalics Coffee Table Book, Anderson 15.05.26) | NKK sir said "weight is wrong" | Found imposition/waste inconsistency (see Bug #1): spread-as-atomic over-claims sheet capacity for square sizes → signature/sheets/waste/weight out of sync. Awaiting NKK sir's correct sheet/sig/sheets/weight to fix the right step. Also exposed missing components for premium hardcase jobs: binding/sewing/case-making, back-to-back pasting, separate cover stock, multi cover finishes, all-pages inside coating. |
 
 > Do not re-argue approved decisions unless the user asks.
