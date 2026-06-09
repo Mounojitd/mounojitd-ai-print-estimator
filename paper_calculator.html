@@ -183,7 +183,8 @@ function computePaper(inp){
   const o=openSize(inp);                      // inches (open spread)
   const cellW=o.w*MM+2*m.bleed, cellH=o.h*MM+2*m.bleed;   // mm imaged size
   const orients=inp.rotate?["upright","rotated"]:["upright"];
-  const STD=[4,8,16,32];                       // standard fold sizes (NKK sir: 4/8/16/32, max 32)
+  // NKK sir: you CHOOSE the signature → signatures = pages ÷ chosen signature → that many sheets/book
+  const signatures = inp.product==="booklet" ? Math.max(1,Math.ceil(inp.pages/inp.sigPages)) : 1;
   const options=inp.sizes.map(([wi,hi])=>{
     const w=wi*MM,h=hi*MM, long=Math.max(w,h), short=Math.min(w,h);
     const usableLong=long-2*m.sidelay-2*m.paperTrim;        // side-lay both sides + stock trim
@@ -194,14 +195,10 @@ function computePaper(inp){
       if(cc*rr>ups){ups=cc*rr;orient=nm;cols=cc;rows=rr;ua=a;ub=b;} }
     const opt={sw:wi,sh:hi,ups,orient,cols,rows};
     if(ups<=0){ opt.shortfall=+Math.max(cellW-usableLong, cellH-usableShort).toFixed(1); return opt; }
-    let sig=4, signatures=1, good, spc;
-    if(inp.product==="booklet"){
-      // pages this sheet holds = 4 × spreads/side → use largest STANDARD fold that fits
-      const cap=Math.min(inp.sigPages, 4*ups);
-      for(const x of STD){ if(x<=cap) sig=x; }
-      signatures=Math.max(1,Math.ceil(inp.pages/sig));
-      good=signatures*inp.copies; spc=signatures;
-    } else { good=Math.ceil(inp.copies/ups); spc=1/ups; }
+    const sig=inp.sigPages;
+    let good, spc;
+    if(inp.product==="booklet"){ good=signatures*inp.copies; spc=signatures; }
+    else { good=Math.ceil(inp.copies/ups); spc=1/ups; }
     const run=Math.ceil(good*inp.running/100), total=good+inp.setup+run;
     const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000, eff=100*ups*cellW*cellH/(w*h);
     Object.assign(opt,{sig,signatures,sheets_per_copy:spc,good,setup:inp.setup,run,total,
@@ -213,7 +210,7 @@ function computePaper(inp){
   const usable=options.filter(o=>o.ups>0);
   const best=usable.slice().sort((a,b)=>a.total-b.total||(a.sw*a.sh*a.total)-(b.sw*b.sh*b.total))[0]||null;
   const bestWaste=usable.slice().sort((a,b)=>a.waste-b.waste)[0]||null;
-  return {options,best,bestWaste,openW:o.w,openH:o.h,maxSig:inp.sigPages,cellW:+cellW.toFixed(1),cellH:+cellH.toFixed(1)};
+  return {options,best,bestWaste,openW:o.w,openH:o.h,signatures,cellW:+cellW.toFixed(1),cellH:+cellH.toFixed(1)};
 }
 
 /* ---------- read + validate ---------- */
@@ -253,7 +250,7 @@ let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=false;
 function render(r){
   RESULT=r; $("placeholder").style.display="none"; $("results").style.display="block";
   const opensize = LASTINP.product==="booklet"
-    ? `Open spread size: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${LASTINP.pages}pp · signature auto-fit per sheet (max ${r.maxSig}pp)`
+    ? `Open spread size: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${r.signatures} signatures (${LASTINP.pages}pp ÷ ${LASTINP.sigPages})`
     : `Finished size: <b>${r.openW} × ${r.openH} in</b>`;
   $("opensize").innerHTML=opensize;
   const bp=r.best, bw=r.bestWaste;
