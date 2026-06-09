@@ -135,16 +135,20 @@
         <div id="diagram" style="margin-top:12px"></div>
         <div id="machine"></div>
         <div class="pbox">
-          <div class="ptitle">💰 Printing &amp; price</div>
+          <div class="ptitle">💰 Colour · plate · impression · price</div>
           <div class="prow">
-            <span><label>Colours front</label><input id="cf" type="number" value="4" oninput="showPrice()" /></span>
-            <span><label>Colours back</label><input id="cb" type="number" value="4" oninput="showPrice()" /></span>
-            <span><label>Lamination</label><select id="lam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt</option><option value="gloss">Gloss</option><option value="bopp">BOPP</option></select></span>
+            <span><label>Colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
+            <span><label>Front</label><input id="cf" type="number" value="4" oninput="document.getElementById('colpreset').value='';showPrice()" /></span>
+            <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';showPrice()" /></span>
           </div>
           <div class="prow">
+            <span><label>Coating</label><select id="lam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></span>
             <span><label>Paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="e.g. 11.93" oninput="showPrice()" /></span>
+          </div>
+          <div class="prow">
             <span><label>Margin %</label><input id="margin" type="number" value="28" oninput="showPrice()" /></span>
             <span><label>GST %</label><input id="gst" type="number" value="18" oninput="showPrice()" /></span>
+            <span></span>
           </div>
         </div>
         <div id="m_price" style="margin-top:10px"></div>
@@ -376,7 +380,10 @@ function renderMachine(o){
 /* ---------- PRICE (Naba Mudran / Anderson rates) ---------- */
 const PRINT={small:{4:{lot:1500},2:{lot:1000},1:{lot:600},plate:475,per1000:125},
              big:{4:{lot:2325,a:195,b:175},2:{lot:1225,a:205,b:185},1:{lot:625,a:208,b:195},plate:575}};
-const LAM100={gloss:0.35,bopp:0.40,matt:0.45}, LAM_MIN=1000;
+// coatings (per 100 sq.in + job minimum) — rates from the agreement
+const COAT={none:{r:0,min:0},matt:{r:0.40,min:1000},gloss:{r:0.28,min:800},bopp:{r:0.45,min:1000},
+            uv:{r:0.30,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},drip:{r:0.55,min:3500}};
+function setColours(v){ if(!v)return; const p=v.split("+").map(Number); $("cf").value=p[0]; $("cb").value=p[1]; showPrice(); }
 function sizeBand(w,h){const lo=Math.max(w,h),sh=Math.min(w,h);return (lo>=34&&sh>=22)?"big":"small";}
 function sideCost(band,cols,sheets){ if(cols<=0)return 0; const t=PRINT[band];
   if(sheets<=3000) return (t[cols]||t[4]).lot;
@@ -385,20 +392,24 @@ function sideCost(band,cols,sheets){ if(cols<=0)return 0; const t=PRINT[band];
 function priceJob(o,p){
   const band=SELECTED_MACHINE?machineBand(SELECTED_MACHINE):sizeBand(o.sw,o.sh), sheets=o.total;
   const printing=sideCost(band,p.cf,sheets)+sideCost(band,p.cb,sheets);
-  const plates=(Math.max(0,p.cf)+Math.max(0,p.cb))*PRINT[band].plate;
-  const lam=p.lam==="none"?0:Math.max((LAM100[p.lam]||0.45)*(o.sw*o.sh/100)*sheets,LAM_MIN);
+  const sigs=o.signatures||1;
+  const plateCount=(Math.max(0,p.cf)+Math.max(0,p.cb))*sigs;     // plates per signature × signatures
+  const plates=plateCount*PRINT[band].plate;
+  const sides=(p.cf>0?1:0)+(p.cb>0?1:0), impressions=sheets*sides;
+  const c=COAT[p.lam]||COAT.none;
+  const lam=p.lam==="none"?0:Math.max(c.r*(o.sw*o.sh/100)*sheets, c.min);
   const paper=(p.paperRate||0)*sheets, wt=o.total_wt;
   const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+packing+freight, overhead=base*0.12, prod=base+overhead;
   const margin=prod*p.margin/100, pretax=prod+margin, gst=pretax*p.gst/100, grand=pretax+gst;
-  return {band,paper,printing,plates,lam,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
+  return {band,paper,printing,plates,plateCount,impressions,sigs,lam,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
 }
 function showPrice(){
   if(!CHOSEN)return;
   const p={cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,paperRate:num("paperRate",0),
            margin:num("margin",28),gst:num("gst",18),books:LASTINP?LASTINP.copies:1};
   const q=priceJob(CHOSEN,p), inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
-  const rows=[["Paper",q.paper],["Printing",q.printing],["Plates",q.plates],["Lamination",q.lam],["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]];
+  const rows=[["Paper",q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount})`,q.plates],["Coating",q.lam],["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]];
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
   rows.forEach(([k,v])=>h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
   h+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
