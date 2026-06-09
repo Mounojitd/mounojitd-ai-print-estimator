@@ -133,6 +133,7 @@
           <div class="rh-sub" id="m_sub"></div>
         </div>
         <div id="diagram" style="margin-top:12px"></div>
+        <div id="machine"></div>
         <div class="pbox">
           <div class="ptitle">💰 Printing &amp; price</div>
           <div class="prow">
@@ -258,18 +259,21 @@ function render(r){
     : `Finished size: <b>${r.openW} × ${r.openH} in</b>`;
   $("opensize").innerHTML=opensize;
   const bp=r.best, bw=r.bestWaste;
+  const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
   $("tb").innerHTML=r.options.map((o,idx)=>{
     if(!o.ups) return `<tr class="nofit"><td>${o.sw}×${o.sh}</td><td colspan="4" style="text-align:left">won't fit · reduce ~${Math.ceil(o.shortfall)}mm</td></tr>`;
     const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh, isP=bp&&o.sw===bp.sw&&o.sh===bp.sh;
+    const noPress = !machinesFor(o.sw,o.sh,need).length;
     const sigCell = LASTINP.product==="booklet"
       ? `${o.sig}pp (${o.ups}up)${o.sigDropped?' <span class="pill" style="background:#b9770a">↓</span>':''}` : `${o.ups} (${o.orient})`;
-    return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}"><td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}</td>`+
+    return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}"><td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}${noPress?'<span class="pill" style="background:#c0392b">no press</span>':''}</td>`+
       `<td>${sigCell}</td><td>${o.total.toLocaleString("en-IN")}</td><td>${o.total_wt} kg</td><td>${o.waste}%</td></tr>`;
   }).join("");
   // suggestions for non-fitting sheets
   const nofit=r.options.filter(o=>!o.ups);
   $("suggest").innerHTML = nofit.length
     ? `<div class="suggest">💡 ${nofit.map(o=>`${o.sw}×${o.sh} needs ~${Math.ceil(o.shortfall)}mm less`).join(" · ")}. Reduce the design slightly, rotate, or use a larger sheet.</div>` : "";
+  SELECTED_MACHINE=null;                         // re-recommend a press for this job
   showSheet(bw||bp||r.options.find(o=>o.ups));
 }
 function showSheet(o){
@@ -283,7 +287,7 @@ function showSheet(o){
   } else {
     $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets · ${o.total_wt} kg`;
   }
-  drawInto("diagram",o); showPrice();
+  drawInto("diagram",o); renderMachine(o); showPrice();
 }
 function drawIdx(i){ if(RESULT&&RESULT.options[i]&&RESULT.options[i].ups) showSheet(RESULT.options[i]); }
 
@@ -326,6 +330,49 @@ function printSheet(){
   w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
 }
 
+/* ---------- MACHINE engine (your real presses) ---------- */
+const MACHINES=[
+  {name:"Heidelberg SM102", max:[28,40], min:[14,20], col:4, speed:9000},
+  {name:"Planeta Variant",  max:[28,40], min:[14,20], col:4, speed:7000},
+  {name:"Man Roland Parva", max:[25,36], min:[13,18], col:2, speed:7000},
+  {name:"Man Roland R-200", max:[20,30], min:[10,14], col:5, speed:8000},
+  {name:"Komori L-40",      max:[20,30], min:[10,14], col:4, speed:15000},
+  {name:"Komori L-32",      max:[19,25], min:[10,14], col:4, speed:13000},
+  {name:"Komori Florence",  max:[18,25], min:[10,14], col:4, speed:13000},
+];
+let SELECTED_MACHINE=null;
+function machineBand(m){ const lo=Math.max(...m.max), sh=Math.min(...m.max); return (lo>=34&&sh>=22)?"big":"small"; }
+function machineFit(m,sw,sh){
+  const lo=Math.max(...m.max), sh2=Math.min(...m.max), sl=Math.max(sw,sh), ss=Math.min(sw,sh);
+  if(sl>lo||ss>sh2) return "too_big";
+  const nlo=Math.max(...m.min), nsh=Math.min(...m.min);
+  if(sl<nlo||ss<nsh) return "too_small";
+  return "fits";
+}
+function machinesFor(sw,sh,need){ return MACHINES.filter(m=>machineFit(m,sw,sh)==="fits" && m.col>=need).sort((a,b)=>b.speed-a.speed); }
+function selectMachine(name){ SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE; showPrice(); }
+function renderMachine(o){
+  const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
+  const ok=machinesFor(o.sw,o.sh,need), box=$("machine");
+  if(!ok.length){
+    SELECTED_MACHINE=null;
+    const biggest=MACHINES.slice().sort((a,b)=>Math.max(...b.max)-Math.max(...a.max))[0];
+    box.innerHTML=`<div class="pbox" style="border-color:#f3c0a0;background:#fff5ef"><div class="ptitle" style="color:#b9770a">🖨 Machine</div>`+
+      `⚠ A <b>${o.sw}×${o.sh}</b> sheet needs ${need} colours and won't run on any press (largest is ${biggest.name} ${biggest.max[0]}×${biggest.max[1]}). `+
+      `<b>Cut the sheet down</b> to ≤ ${biggest.max[0]}×${biggest.max[1]}, drop colours, or add a larger press.</div>`;
+    return;
+  }
+  if(!SELECTED_MACHINE || !ok.includes(SELECTED_MACHINE)) SELECTED_MACHINE=ok[0];
+  const m=SELECTED_MACHINE, hrs=o.total/m.speed;
+  const opts=ok.map(x=>`<option ${x===m?'selected':''}>${x.name}</option>`).join("");
+  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine</div>`+
+    `<div class="prow"><span><label>Press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
+    `<span><label>Speed</label><input value="${m.speed.toLocaleString('en-IN')}/hr" disabled></span>`+
+    `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr" disabled></span></div>`+
+    `<div style="font-size:11.5px;color:#6b7480">Best fit: <b>${ok[0].name}</b> (${ok[0].max[0]}×${ok[0].max[1]}, ${ok[0].col}-col, fastest)`+
+    `${ok.length>1?` · ${ok.length-1} alternative(s)`:""} · pricing band: <b>${machineBand(m)}</b></div></div>`;
+}
+
 /* ---------- PRICE (Naba Mudran / Anderson rates) ---------- */
 const PRINT={small:{4:{lot:1500},2:{lot:1000},1:{lot:600},plate:475,per1000:125},
              big:{4:{lot:2325,a:195,b:175},2:{lot:1225,a:205,b:185},1:{lot:625,a:208,b:195},plate:575}};
@@ -336,7 +383,7 @@ function sideCost(band,cols,sheets){ if(cols<=0)return 0; const t=PRINT[band];
   if(band==="small") return cols*(sheets/1000)*t.per1000;
   const s=t[cols]||t[4]; return cols*(sheets/1000)*(sheets<=10000?s.a:s.b); }
 function priceJob(o,p){
-  const band=sizeBand(o.sw,o.sh), sheets=o.total;
+  const band=SELECTED_MACHINE?machineBand(SELECTED_MACHINE):sizeBand(o.sw,o.sh), sheets=o.total;
   const printing=sideCost(band,p.cf,sheets)+sideCost(band,p.cb,sheets);
   const plates=(Math.max(0,p.cf)+Math.max(0,p.cb))*PRINT[band].plate;
   const lam=p.lam==="none"?0:Math.max((LAM100[p.lam]||0.45)*(o.sw*o.sh/100)*sheets,LAM_MIN);
