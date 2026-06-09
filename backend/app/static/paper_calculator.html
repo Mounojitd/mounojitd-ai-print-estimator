@@ -46,6 +46,7 @@
   .prow label{font-size:11px;margin-bottom:2px} .prow input,.prow select{padding:7px;font-size:13px}
   .mbtn{cursor:pointer;border:0;border-radius:9px;font-weight:600;font-size:14px;padding:10px 14px;margin:4px 6px 0 0}
   .mbtn.p{background:var(--brand);color:#fff}
+  .mbtn.s{background:#eef3f8;color:var(--brand);border:1px solid #cbd8e5}
   .suggest{background:#fff7e6;border:1px solid #f3dca0;border-radius:8px;padding:10px 12px;font-size:12.5px;color:#7a5500;margin-top:10px}
 </style>
 </head>
@@ -138,8 +139,8 @@
           <div class="ptitle">💰 Colour · plate · impression · price</div>
           <div class="prow">
             <span><label>Colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
-            <span><label>Front</label><input id="cf" type="number" value="4" oninput="document.getElementById('colpreset').value='';showPrice()" /></span>
-            <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';showPrice()" /></span>
+            <span><label>Front</label><input id="cf" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
+            <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
           </div>
           <div class="prow">
             <span><label>Coating</label><select id="lam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></span>
@@ -151,7 +152,20 @@
             <span></span>
           </div>
         </div>
+        <div class="pbox">
+          <div class="ptitle">Quotation details</div>
+          <div class="prow">
+            <span><label>Customer / company</label><input id="customer" type="text" placeholder="Customer name" /></span>
+            <span><label>Quotation no.</label><input id="quoteNo" type="text" placeholder="Auto-generated" /></span>
+            <span><label>Valid for (days)</label><input id="validDays" type="number" value="15" /></span>
+          </div>
+          <div class="prow"><span><label>Notes / terms</label><input id="quoteNotes" type="text" placeholder="Delivery, payment or exclusions" /></span></div>
+        </div>
         <div id="m_price" style="margin-top:10px"></div>
+        <div style="margin-top:10px">
+          <button class="mbtn p" onclick="printQuotation()">Print quotation</button>
+          <button class="mbtn s" onclick="printJobSheet()">Print internal job sheet</button>
+        </div>
         <div style="margin-top:10px"><button class="mbtn p" onclick="printSheet()">🖨 Print cut sheet</button></div>
         <div id="suggest"></div>
         <h2 style="margin-top:18px;margin-bottom:4px">All sheet sizes <span style="text-transform:none;font-weight:400;color:#6b7480">(click a row to switch)</span></h2>
@@ -278,12 +292,15 @@ function render(r){
   $("suggest").innerHTML = nofit.length
     ? `<div class="suggest">💡 ${nofit.map(o=>`${o.sw}×${o.sh} needs ~${Math.ceil(o.shortfall)}mm less`).join(" · ")}. Reduce the design slightly, rotate, or use a larger sheet.</div>` : "";
   SELECTED_MACHINE=null;                         // re-recommend a press for this job
-  showSheet(bw||bp||r.options.find(o=>o.ups));
+  const runnable=r.options.filter(o=>o.ups&&machinesFor(o.sw,o.sh,need).length).sort((a,b)=>a.waste-b.waste||a.total-b.total)[0];
+  r.bestRunnable=runnable||null;
+  showSheet(runnable||bw||bp||r.options.find(o=>o.ups));
 }
 function showSheet(o){
   if(!o||!o.ups)return; CHOSEN=o;
   const isBW=RESULT&&RESULT.bestWaste&&o.sw===RESULT.bestWaste.sw&&o.sh===RESULT.bestWaste.sh;
-  $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
+  const isBR=RESULT&&RESULT.bestRunnable&&o.sw===RESULT.bestRunnable.sw&&o.sh===RESULT.bestRunnable.sh;
+  $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":isBR?"Lowest-wastage runnable sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
   $("m_size").textContent=`${o.sw} × ${o.sh} in`;
   if(LASTINP.product==="booklet"){
     $("m_sub").innerHTML=`${o.sig}pp signature → ${o.signatures}/book · ${o.total.toLocaleString("en-IN")} sheets · ${o.waste}% wasted · ${o.total_wt} kg`+
@@ -383,7 +400,8 @@ const PRINT={small:{4:{lot:1500},2:{lot:1000},1:{lot:600},plate:475,per1000:125}
 // coatings (per 100 sq.in + job minimum) — rates from the agreement
 const COAT={none:{r:0,min:0},matt:{r:0.40,min:1000},gloss:{r:0.28,min:800},bopp:{r:0.45,min:1000},
             uv:{r:0.30,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},drip:{r:0.55,min:3500}};
-function setColours(v){ if(!v)return; const p=v.split("+").map(Number); $("cf").value=p[0]; $("cb").value=p[1]; showPrice(); }
+function refreshMachineAndPrice(){ if(CHOSEN)renderMachine(CHOSEN); showPrice(); }
+function setColours(v){ if(!v)return; const p=v.split("+").map(Number); $("cf").value=p[0]; $("cb").value=p[1]; refreshMachineAndPrice(); }
 function sizeBand(w,h){const lo=Math.max(w,h),sh=Math.min(w,h);return (lo>=34&&sh>=22)?"big":"small";}
 function sideCost(band,cols,sheets){ if(cols<=0)return 0; const t=PRINT[band];
   if(sheets<=3000) return (t[cols]||t[4]).lot;
@@ -404,10 +422,13 @@ function priceJob(o,p){
   const margin=prod*p.margin/100, pretax=prod+margin, gst=pretax*p.gst/100, grand=pretax+gst;
   return {band,paper,printing,plates,plateCount,impressions,sigs,lam,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
 }
+function currentPriceParams(){
+  return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,paperRate:num("paperRate",0),
+          margin:num("margin",28),gst:num("gst",18),books:LASTINP?LASTINP.copies:1};
+}
 function showPrice(){
   if(!CHOSEN)return;
-  const p={cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,paperRate:num("paperRate",0),
-           margin:num("margin",28),gst:num("gst",18),books:LASTINP?LASTINP.copies:1};
+  const p=currentPriceParams();
   const q=priceJob(CHOSEN,p), inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   const rows=[["Paper",q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount})`,q.plates],["Coating",q.lam],["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]];
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
@@ -420,6 +441,84 @@ function showPrice(){
   h+=`<div style="font-size:11px;color:#6b7480;margin-top:6px">Printing band: ${q.band} · rates from Naba Mudran agreement</div>`;
   if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter <b>Paper ₹/sheet</b> for the full price.</div>';
   $("m_price").innerHTML=h;
+}
+/* ---------- PHASE 4: quotation + internal job sheet ---------- */
+function esc(v){ return String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function money(n){ return "Rs. "+Math.round(n).toLocaleString("en-IN"); }
+function coatingName(v){ const e=$("lam"); return [...e.options].find(o=>o.value===v)?.text||v; }
+function quoteMeta(){
+  const now=new Date(), valid=new Date(now); valid.setDate(valid.getDate()+Math.max(0,Math.round(num("validDays",15))));
+  const stamp=now.getFullYear()+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0");
+  return {customer:$("customer").value.trim()||"Valued customer", no:$("quoteNo").value.trim()||("Q-"+stamp),
+    date:now.toLocaleDateString("en-IN"), valid:valid.toLocaleDateString("en-IN"), notes:$("quoteNotes").value.trim()};
+}
+function docCSS(){
+  return `<style>
+    *{box-sizing:border-box} body{font-family:Arial,sans-serif;color:#18212b;margin:0;padding:26px;font-size:12px}
+    h1{font-size:22px;margin:0;color:#1f4e78} h2{font-size:13px;margin:22px 0 6px;color:#1f4e78;text-transform:uppercase}
+    .top{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #1f4e78;padding-bottom:12px}
+    .muted{color:#65717d}.right{text-align:right}.box{border:1px solid #d9e0e7;border-radius:7px;padding:10px;margin-top:12px}
+    table{width:100%;border-collapse:collapse} th,td{padding:6px;border-bottom:1px solid #e3e7eb;text-align:left;vertical-align:top}
+    th{color:#65717d;font-size:10px;text-transform:uppercase}.num{text-align:right}.total{font-size:16px;font-weight:bold;border-top:2px solid #1f7a4d}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}.sign{margin-top:48px;display:flex;justify-content:space-between}
+    svg{max-width:320px}@media print{body{padding:12mm}}
+  </style>`;
+}
+function docHeader(title,meta){
+  return `<div class="top"><div><h1>${title}</h1><div class="muted">Print production estimate</div></div>
+    <div class="right"><b>${esc(meta.no)}</b><br>Date: ${meta.date}<br>Valid until: ${meta.valid}</div></div>`;
+}
+function specsTable(p,q,internal){
+  const product=LASTINP.product_name||($("product").selectedOptions[0]?.text||LASTINP.product);
+  const size=LASTINP.product==="booklet"
+    ? `${RESULT.openW} x ${RESULT.openH} in open (${LASTINP.W} x ${LASTINP.H} in closed)`
+    : `${RESULT.openW} x ${RESULT.openH} in finished`;
+  const sig=LASTINP.product==="booklet"?`${CHOSEN.sig}pp x ${CHOSEN.signatures} signatures`:`${CHOSEN.ups}-up`;
+  const rows=[["Job",product],["Quantity",LASTINP.copies.toLocaleString("en-IN")],["Size",size],
+    ["Paper",`${LASTINP.gsm} GSM; ${CHOSEN.sw} x ${CHOSEN.sh} in`],["Colours",`${p.cf}+${p.cb}`],
+    ["Coating",coatingName(p.lam)],["Signature / layout",sig]];
+  if(internal) rows.push(["Machine",SELECTED_MACHINE?SELECTED_MACHINE.name:"No compatible press"],["Sheets",CHOSEN.total.toLocaleString("en-IN")],
+    ["Good + make-ready + running waste",`${CHOSEN.good.toLocaleString("en-IN")} + ${CHOSEN.setup.toLocaleString("en-IN")} + ${CHOSEN.run.toLocaleString("en-IN")}`],
+    ["Plates / impressions",`${q.plateCount} / ${q.impressions.toLocaleString("en-IN")}`],["Paper weight / layout waste",`${CHOSEN.total_wt} kg / ${CHOSEN.waste}%`]);
+  return `<table>${rows.map(x=>`<tr><th>${esc(x[0])}</th><td>${esc(x[1])}</td></tr>`).join("")}</table>`;
+}
+function openPrintDocument(title,body){
+  const w=window.open("","_blank","width=980,height=760");
+  if(!w){ alert("Allow pop-ups to print this document."); return; }
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>${docCSS()}</head><body>${body}</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
+}
+function printablePlanReady(){
+  if(SELECTED_MACHINE)return true;
+  alert("This sheet has no compatible press. Select a runnable sheet before printing production documents.");
+  return false;
+}
+function printQuotation(){
+  if(!CHOSEN||!LASTINP||!printablePlanReady())return;
+  const p=currentPriceParams(),q=priceJob(CHOSEN,p),m=quoteMeta();
+  const body=docHeader("QUOTATION",m)+`<div class="box"><b>Prepared for</b><br>${esc(m.customer)}</div>
+    <h2>Job specification</h2>${specsTable(p,q,false)}
+    <h2>Commercial summary</h2><table>
+      <tr><td>Production estimate</td><td class="num">${money(q.pretax)}</td></tr>
+      <tr><td>GST (${p.gst}%)</td><td class="num">${money(q.gst)}</td></tr>
+      <tr class="total"><td>Grand total</td><td class="num">${money(q.grand)}</td></tr>
+      <tr><td>Price per piece</td><td class="num">Rs. ${q.unit.toFixed(2)}</td></tr></table>
+    ${m.notes?`<h2>Notes / terms</h2><div class="box">${esc(m.notes)}</div>`:""}
+    <div class="sign"><span>Customer acceptance</span><span>Authorised signatory</span></div>`;
+  openPrintDocument(m.no+" quotation",body);
+}
+function printJobSheet(){
+  if(!CHOSEN||!LASTINP||!printablePlanReady())return;
+  const p=currentPriceParams(),q=priceJob(CHOSEN,p),m=quoteMeta();
+  const costs=[["Paper",q.paper],["Printing",q.printing],["Plates",q.plates],["Coating",q.lam],["Packing",q.packing],["Freight",q.freight],
+    ["Overhead (12%)",q.overhead],["Production",q.prod],["Margin ("+p.margin+"%)",q.margin],["Pre-tax",q.pretax],["GST ("+p.gst+"%)",q.gst],["Grand total",q.grand]];
+  const body=docHeader("INTERNAL JOB SHEET",m)+`<div class="box"><b>Customer:</b> ${esc(m.customer)} &nbsp; <b>Job:</b> ${esc(LASTINP.product_name||"Untitled job")}</div>
+    <div class="cols"><div><h2>Production specification</h2>${specsTable(p,q,true)}</div>
+    <div><h2>Internal costing</h2><table>${costs.map((x,i)=>`<tr class="${i===costs.length-1?"total":""}"><td>${esc(x[0])}</td><td class="num">${money(x[1])}</td></tr>`).join("")}</table></div></div>
+    <h2>Layout / cut sheet</h2>${diagramHTML(CHOSEN)}
+    ${m.notes?`<h2>Instructions</h2><div class="box">${esc(m.notes)}</div>`:""}
+    <div class="sign"><span>Pre-press checked</span><span>Production approved</span><span>Dispatch checked</span></div>`;
+  openPrintDocument(m.no+" job sheet",body);
 }
 onProductChange();
 </script>
