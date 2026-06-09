@@ -24,15 +24,15 @@ A FastAPI backend + imported Excel masters also exist (see Architecture) but are
 
 ## 2. Current Phase
 
-**Phases 1–4 implemented** (Phase 4 = quotation/job-sheet printouts, started by the user,
-wired to the same pricing engine).
+**Phases 1–5 implemented** (Phase 5 = separate cover/text components + binding).
 
 | Phase | Scope | Status |
 |---|---|---|
 | 1 | Paper calculation engine | ✅ done |
 | 2 | Machine selection engine | ✅ done |
 | 3 | Colour / plate / impression engine | ✅ done |
-| 4 | Estimate / quotation / job sheet | 🟡 in progress (user-built, functional) |
+| 4 | Estimate / quotation / job sheet | ✅ done |
+| 5 | Separate cover / text components + binding | ✅ done |
 | — | AI recommendation layer | ⬜ not started |
 
 ---
@@ -54,6 +54,8 @@ wired to the same pricing engine).
   Overhead 12% + Margin (28%) + GST 18% (CGST/SGST or IGST). Tied to selected machine band.
 - **Phase 4 (user):** quotation + internal job-sheet generators (`printJobSheet`, quote
   builder, `quoteMeta`, `docHeader`, `specsTable`, `openPrintDocument`).
+- **Phase 5:** optional separate 4pp cover, independently optimized cover
+  stock/sheet/press/colours/coating, configurable binding, and combined costing.
 
 ---
 
@@ -116,7 +118,9 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 - `signatures = ceil(pages ÷ chosen signature)`, **capped by fold-fit** per sheet
   (sheet holds up to 4 × spreads-that-fit; largest standard fold {4,8,16,32} ≤ that).
 - `sheets = signatures × products + make-ready + running-waste%`.
-- Coating cover sheets = `round(total sheets ÷ signatures)` (one signature = the cover).
+- With separate cover enabled: `text pages = total pages - 4`; cover is a separate 4pp
+  run with its own stock, sheet, press, colours, plates, and coating.
+- Packing, freight, overhead, margin, and GST are charged once on the combined job.
 - Pages/leaf: 1 leaf = 2 pages; booklet imposes the **open spread**.
 
 ---
@@ -126,8 +130,7 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 - **Coating unit** (per-100-sq.in) is an assumption — confirm real basis with NKK sir.
 - **Work-and-turn** not yet an option (currently work-and-back: plates = colours × sigs).
 - **Make-ready** is a single flat input, not strictly per-forme / per-plate-change.
-- **Cover** assumed = 1 signature on the same stock (covers are often heavier/different
-  stock + printed separately — not yet modeled as a distinct component).
+- Default binding rates/minimums are editable assumptions and need vendor validation.
 
 ---
 
