@@ -98,7 +98,7 @@
       <div id="bookletFields">
         <div class="row3">
           <div class="fld"><label>Total pages</label><input id="pages" type="number" placeholder="e.g. 80" /></div>
-          <div class="fld"><label>Signature</label><select id="sigPages"><option>4</option><option>8</option><option selected>16</option><option>32</option></select></div>
+          <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>16</option><option>32</option></select></div>
           <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" /></div>
         </div>
         <label class="chip" style="margin-bottom:10px;font-weight:600"><input type="checkbox" id="separateCover" checked onchange="onCoverChange()" /> Separate 4pp cover from text</label>
@@ -268,7 +268,7 @@ function computePaper(inp){
     if(inp.isSig){
       const cap=Math.min(target, 4*ups);        // largest signature that can FOLD from this sheet (4 × spreads/side)
       for(const x of STD){ if(x<=cap) sig=x; }
-      sigDropped = sig<target;                   // had to drop below your chosen signature
+      sigDropped = !inp.sigAuto && sig<target;   // only a "drop" if user manually picked a bigger signature
       signatures=Math.max(1,Math.ceil(inp.pages/sig));
       good=signatures*inp.copies; spc=signatures;
     } else { good=Math.ceil(inp.copies/ups); spc=1/ups; }
@@ -304,7 +304,8 @@ function run(){
   const inp={
     product_name:$("product_name").value.trim(), product:$("product").value, isSig:booklet, orientation:$("orientation").value,
     W:toIn(num("W"),unit), H:toIn(num("H"),unit),
-    pages:Math.round(num("pages",2)), totalPages:Math.round(num("pages",2)), sigPages:parseInt($("sigPages").value),
+    pages:Math.round(num("pages",2)), totalPages:Math.round(num("pages",2)),
+    sigAuto:$("sigPages").value==="auto", sigPages:$("sigPages").value==="auto"?32:parseInt($("sigPages").value),
     copies:Math.round(booklet?num("copies",1):num("copies2",1)),
     gsm:num("gsm"), rotate:$("rotate").checked,
     margins:{bleed:num("bleed",3),gripper:num("gripper",10),sidelay:num("sidelay",3),backside:num("backside",3),paperTrim:num("paperTrim",3)},
@@ -331,7 +332,7 @@ let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=false;
 function render(r){
   RESULT=r; $("placeholder").style.display="none"; $("results").style.display="block";
   const opensize = LASTINP.isSig
-    ? `Open spread: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${LASTINP.totalPages}pp${LASTINP.separateCover?` = ${LASTINP.pages}pp text + 4pp cover`:""} · target signature <b>${r.maxSig}pp</b> (drops per sheet if it won't fold)`
+    ? `Open spread: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${LASTINP.totalPages}pp${LASTINP.separateCover?` = ${LASTINP.pages}pp text + 4pp cover`:""} · signature <b>${LASTINP.sigAuto?"Auto (best fit per sheet)":r.maxSig+"pp"}</b>${LASTINP.sigAuto?"":" (drops per sheet if it won't fold)"}`
     : `Finished size: <b>${r.openW} × ${r.openH} in</b>`;
   $("opensize").innerHTML=opensize;
   const bp=r.best, bw=r.bestWaste;
