@@ -150,11 +150,17 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 
 ## 9. Open Questions
 
-- **🟠 Printing-rate discrepancy (found 2026-06-10).** App has big-machine 4c = ₹2325 lot then
-  **₹195/1000**. Real vendor DB (Nabamudran HEIDELBERG-102) = ₹2200 lot (≤3000) then
-  **₹720/1000** (3001–10k) / ₹640/1000 (10k+); plate ₹550/colour. The baked-in "Anderson"
-  per-1000 rates are ~3–4× lower than the real DB. Reconcile before trusting any quoted price.
-  (Komori L-40 ₹2700 lot then 460/1000; L-32 ₹2400 then 360/1000; plate ₹400 small.)
+- **🟢 RESOLVED — "printing-rate discrepancy" was multi-vendor, not a bug (2026-06-10).**
+  The Anderson/Naba Mudran agreement w.e.f. 01.06.2026 (`db/files/vendor_db/ANDERSON_AGREEMENT_26-27.txt`)
+  **confirms the app's baked-in printing rates EXACTLY**: 23×36+ 4c ₹2325/₹195/₹175; 19×29 4c
+  ₹1500/₹125; 2c ₹1225/205/185; 1c ₹625/208/195; plates ₹475(19×29)/₹575(23×36); +₹575 one-time
+  for black-plate change. Wastage clause also confirms app default (<5k actual, >5k = 5%).
+  The higher numbers in `PRINTING_RATES.csv` (Nabamudran Heidelberg ₹720/1000) and the photo cards
+  (Balaji Press: 19×25 ₹2400/360, 20×30 ₹2700/460) are **other vendors' rates** → the estimator
+  needs **vendor selection**, not a rate fix. App currently = Anderson/Naba Mudran only.
+- **🟠 Coating rates are vendor-mixed.** App coating (gloss-lam 0.28/800, matt 0.40/1000…) matches
+  the photo card, NOT the Anderson agreement (gloss-lam 0.35, BOPP 0.40, matt 0.45 per 100sq.in;
+  aqueous gloss 0.18/min600, matt 0.30/min1000). Decide per-vendor finishing source.
 - Confirm the coating charge unit/basis with NKK sir.
 - Add work-and-turn vs work-and-back as a selectable method?
 - Validate signature ganging & sheet counts against a **real NKK-sir-quoted job**.
