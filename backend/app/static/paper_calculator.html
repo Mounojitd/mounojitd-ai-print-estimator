@@ -67,8 +67,23 @@
       <div class="row">
         <div class="fld"><label>Product type</label>
           <select id="product" onchange="onProductChange()">
-            <option value="flat">Flat (flyer / leaflet / poster / card)</option>
-            <option value="booklet" selected>Booklet / magazine / catalogue</option>
+            <optgroup label="Signature-based (extent → signature → forms)">
+              <option value="booklet" selected>Book / Booklet</option>
+              <option value="catalogue">Catalogue</option>
+              <option value="magazine">Magazine</option>
+              <option value="manual">Manual</option>
+              <option value="annual">Annual report</option>
+              <option value="brochure_multi">Brochure (multi-page)</option>
+            </optgroup>
+            <optgroup label="Non-signature (size → ups → qty)">
+              <option value="leaflet">Leaflet / Flyer</option>
+              <option value="poster">Poster</option>
+              <option value="card">Visiting / Greeting card</option>
+              <option value="calendar_sheet">Single-sheet calendar</option>
+              <option value="calendar_table">Table calendar</option>
+              <option value="dangler">Dangler / Tent card</option>
+              <option value="insert">Loose insert / single sheet</option>
+            </optgroup>
           </select></div>
         <div class="fld"><label>Orientation</label>
           <select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
@@ -190,7 +205,7 @@
         <div id="suggest"></div>
         <h2 style="margin-top:18px;margin-bottom:4px">All sheet sizes <span style="text-transform:none;font-weight:400;color:#6b7480">(click a row to switch)</span></h2>
         <table>
-          <thead><tr><th>Sheet</th><th>Signature</th><th>Sheets</th><th>Weight</th><th>Waste %</th></tr></thead>
+          <thead><tr><th>Sheet</th><th>Signature</th><th>Sheets</th><th>Reams</th><th>Weight</th><th>Waste %</th></tr></thead>
           <tbody id="tb"></tbody>
         </table>
       </div>
@@ -201,11 +216,16 @@
 <script>
 const $=id=>document.getElementById(id);
 const MM=25.4;
+/* ---- PRODUCT CLASSIFICATION (NKK sir rule: identify product type BEFORE any calc) ----
+   Signature-based → extent → signature → forms → imposition → paper.
+   Non-signature   → size → ups → quantity → wastage → paper (NO signature, NO extent). */
+const SIGNATURE_PRODUCTS=new Set(["booklet","catalogue","magazine","manual","annual","brochure_multi"]);
+const isSig=p=>SIGNATURE_PRODUCTS.has(p);
 function num(id,def){ const e=$(id); if(!e) return def; const v=e.value.trim(); if(v==="")return def; const n=parseFloat(v); return isFinite(n)?n:def; }
 function toIn(v,unit){ return unit==="mm"?v/MM : unit==="cm"?v/2.54 : v; }
 
 function onProductChange(){
-  const b=$("product").value==="booklet";
+  const b=isSig($("product").value);
   $("bookletFields").style.display=b?"block":"none";
   $("flatFields").style.display=b?"none":"block";
   $("closedHint").style.display=b?"block":"none";
@@ -215,7 +235,7 @@ function onProductChange(){
   onCoverChange();
 }
 function onCoverChange(){
-  const b=$("product").value==="booklet"&&$("separateCover").checked;
+  const b=isSig($("product").value)&&$("separateCover").checked;
   $("coverFields").style.display=b?"block":"none";
   $("lam").disabled=b; $("coatArea").disabled=b;
   if(RESULT)run();
@@ -224,7 +244,7 @@ function onCoverChange(){
 /* ---------- PURE CALCULATION (NKK sir corrected logic) ---------- */
 function openSize(p){ // p.W,p.H in inches; returns spread in inches
   let W=p.W, H=p.H;
-  if(p.product==="booklet"){ if(p.orientation==="portrait") W=2*W; else H=2*H; }
+  if(isSig(p.product)){ if(p.orientation==="portrait") W=2*W; else H=2*H; }
   return {w:W,h:H};
 }
 function computePaper(inp){
@@ -245,17 +265,19 @@ function computePaper(inp){
     const opt={sw:wi,sh:hi,ups,orient,cols,rows};
     if(ups<=0){ opt.shortfall=+Math.max(cellW-usableLong, cellH-usableShort).toFixed(1); return opt; }
     let sig=4, signatures=1, good, spc, sigDropped=false;
-    if(inp.product==="booklet"){
+    if(inp.isSig){
       const cap=Math.min(target, 4*ups);        // largest signature that can FOLD from this sheet (4 × spreads/side)
       for(const x of STD){ if(x<=cap) sig=x; }
       sigDropped = sig<target;                   // had to drop below your chosen signature
       signatures=Math.max(1,Math.ceil(inp.pages/sig));
       good=signatures*inp.copies; spc=signatures;
     } else { good=Math.ceil(inp.copies/ups); spc=1/ups; }
-    const run=Math.ceil(good*inp.running/100), total=good+inp.setup+run;
+    // NKK sir wastage spec: Production = Required × (1 + running%);  Total = Production + Setup
+    const production=good*(1+inp.running/100), total=Math.round(production+inp.setup), run=Math.round(production-good);
+    const reams=+(total/500).toFixed(1);
     const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000, eff=100*ups*cellW*cellH/(w*h);
-    Object.assign(opt,{sig,signatures,sigDropped,sheets_per_copy:spc,good,setup:inp.setup,run,total,
-      total_wt:+(wt*total).toFixed(2), eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1),
+    Object.assign(opt,{sig,signatures,sigDropped,sheets_per_copy:spc,good,setup:inp.setup,run,total,reams,
+      total_wt:+(wt*total).toFixed(2), wt_sheet:+wt.toFixed(4), eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1),
       cell_used_w:ua/MM, cell_used_h:ub/MM,
       gripper:m.gripper/MM, sidelay:(m.sidelay+m.paperTrim)/MM, bleed:m.bleed/MM, gutter:0});
     return opt;
@@ -269,7 +291,7 @@ function computePaper(inp){
 /* ---------- read + validate ---------- */
 function run(){
   $("err").textContent=""; document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
-  const booklet=$("product").value==="booklet";
+  const booklet=isSig($("product").value);
   const req=[["W","width"],["H","height"],["gsm","GSM"]];
   req.push(booklet?["pages","total pages"]:[null,null], booklet?["copies","quantity"]:["copies2","quantity"]);
   const missing=[];
@@ -280,7 +302,7 @@ function run(){
   const unit=$("unit").value;
   if(booklet&&Math.round(num("pages",0))%4!==0){ $("pages").classList.add("bad"); $("err").textContent="Booklet total pages must be a multiple of 4."; return; }
   const inp={
-    product_name:$("product_name").value.trim(), product:$("product").value, orientation:$("orientation").value,
+    product_name:$("product_name").value.trim(), product:$("product").value, isSig:booklet, orientation:$("orientation").value,
     W:toIn(num("W"),unit), H:toIn(num("H"),unit),
     pages:Math.round(num("pages",2)), totalPages:Math.round(num("pages",2)), sigPages:parseInt($("sigPages").value),
     copies:Math.round(booklet?num("copies",1):num("copies2",1)),
@@ -308,20 +330,20 @@ function run(){
 let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=false;
 function render(r){
   RESULT=r; $("placeholder").style.display="none"; $("results").style.display="block";
-  const opensize = LASTINP.product==="booklet"
+  const opensize = LASTINP.isSig
     ? `Open spread: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${LASTINP.totalPages}pp${LASTINP.separateCover?` = ${LASTINP.pages}pp text + 4pp cover`:""} · target signature <b>${r.maxSig}pp</b> (drops per sheet if it won't fold)`
     : `Finished size: <b>${r.openW} × ${r.openH} in</b>`;
   $("opensize").innerHTML=opensize;
   const bp=r.best, bw=r.bestWaste;
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
   $("tb").innerHTML=r.options.map((o,idx)=>{
-    if(!o.ups) return `<tr class="nofit"><td>${o.sw}×${o.sh}</td><td colspan="4" style="text-align:left">won't fit · reduce ~${Math.ceil(o.shortfall)}mm</td></tr>`;
+    if(!o.ups) return `<tr class="nofit"><td>${o.sw}×${o.sh}</td><td colspan="5" style="text-align:left">won't fit · reduce ~${Math.ceil(o.shortfall)}mm</td></tr>`;
     const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh, isP=bp&&o.sw===bp.sw&&o.sh===bp.sh;
     const noPress = !machinesFor(o.sw,o.sh,need).length;
-    const sigCell = LASTINP.product==="booklet"
+    const sigCell = LASTINP.isSig
       ? `${o.sig}pp (${o.ups}up)${o.sigDropped?' <span class="pill" style="background:#b9770a">↓</span>':''}` : `${o.ups} (${o.orient})`;
     return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}"><td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}${noPress?'<span class="pill" style="background:#c0392b">no press</span>':''}</td>`+
-      `<td>${sigCell}</td><td>${o.total.toLocaleString("en-IN")}</td><td>${o.total_wt} kg</td><td>${o.waste}%</td></tr>`;
+      `<td>${sigCell}</td><td>${o.total.toLocaleString("en-IN")}</td><td>${o.reams}</td><td>${o.total_wt} kg</td><td>${o.waste}%</td></tr>`;
   }).join("");
   // suggestions for non-fitting sheets
   const nofit=r.options.filter(o=>!o.ups);
@@ -338,11 +360,11 @@ function showSheet(o){
   const isBR=RESULT&&RESULT.bestRunnable&&o.sw===RESULT.bestRunnable.sw&&o.sh===RESULT.bestRunnable.sh;
   $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":isBR?"Lowest-wastage runnable sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
   $("m_size").textContent=`${o.sw} × ${o.sh} in`;
-  if(LASTINP.product==="booklet"){
-    $("m_sub").innerHTML=`${o.sig}pp signature → ${o.signatures}/book · ${o.total.toLocaleString("en-IN")} sheets · ${o.waste}% wasted · ${o.total_wt} kg`+
+  if(LASTINP.isSig){
+    $("m_sub").innerHTML=`${o.sig}pp signature → ${o.signatures}/book · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
       (o.sigDropped?`<div style="margin-top:5px;color:#ffd9a8">⚠ Your ${RESULT.maxSig}pp signature won't fold from this sheet — using ${o.sig}pp (= ${o.signatures} signatures, more sheets).</div>`:"");
   } else {
-    $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets · ${o.total_wt} kg`;
+    $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.total_wt} kg`;
   }
   drawInto("diagram",o); renderMachine(o); showPrice();
 }
@@ -372,7 +394,7 @@ function numFn(o,side){
   return side==="front"?(r,c)=>r*o.cols+c+1:(r,c)=>r*o.cols+(o.cols-1-c)+1;
 }
 function diagramHTML(o){
-  const dbl=LASTINP&&LASTINP.product==="booklet";
+  const dbl=LASTINP&&LASTINP.isSig;
   const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 page order</label>`:"";
   const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
   const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"))}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (work-and-turn)</div>${buildSVG(o,numFn(o,"back"))}</div></div>`:buildSVG(o,numFn(o,"front"));
@@ -466,7 +488,7 @@ function currentPriceParams(){
   return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
           coatArea:($("coatArea")?$("coatArea").value:"cover"),paperRate:num("paperRate",0),
           margin:num("margin",28),gst:num("gst",18),books:LASTINP?LASTINP.copies:1,
-          binding:LASTINP&&LASTINP.product==="booklet"?$("binding").value:"none",bindingRate:num("bindingRate",0),bindingMin:num("bindingMin",0)};
+          binding:LASTINP&&LASTINP.isSig?$("binding").value:"none",bindingRate:num("bindingRate",0),bindingMin:num("bindingMin",0)};
 }
 function coverPlan(){
   if(!LASTINP||!LASTINP.separateCover)return null;
@@ -545,11 +567,11 @@ function docHeader(title,meta){
 }
 function specsTable(p,q,internal){
   const product=LASTINP.product_name||($("product").selectedOptions[0]?.text||LASTINP.product);
-  const size=LASTINP.product==="booklet"
+  const size=LASTINP.isSig
     ? `${RESULT.openW} x ${RESULT.openH} in open (${LASTINP.W} x ${LASTINP.H} in closed)`
     : `${RESULT.openW} x ${RESULT.openH} in finished`;
-  const sig=LASTINP.product==="booklet"?`${CHOSEN.sig}pp x ${CHOSEN.signatures} signatures`:`${CHOSEN.ups}-up`;
-  const rows=[["Job",product],["Quantity",LASTINP.copies.toLocaleString("en-IN")],["Pages",LASTINP.product==="booklet"?LASTINP.totalPages+"pp":"—"],["Size",size],
+  const sig=LASTINP.isSig?`${CHOSEN.sig}pp x ${CHOSEN.signatures} signatures`:`${CHOSEN.ups}-up`;
+  const rows=[["Job",product],["Quantity",LASTINP.copies.toLocaleString("en-IN")],["Pages",LASTINP.isSig?LASTINP.totalPages+"pp":"—"],["Size",size],
     ["Paper",`${LASTINP.gsm} GSM; ${CHOSEN.sw} x ${CHOSEN.sh} in`],["Colours",`${p.cf}+${p.cb}`],
     ["Coating",LASTINP.separateCover?"Separate cover component":coatingName(p.lam)],["Signature / layout",sig]];
   if(internal) rows.push(["Machine",SELECTED_MACHINE?SELECTED_MACHINE.name:"No compatible press"],["Sheets",CHOSEN.total.toLocaleString("en-IN")],
@@ -588,7 +610,7 @@ function printQuotation(){
   const x=combinedPrice(),p=x.p,q=x.q,m=quoteMeta();
   const body=docHeader("QUOTATION",m)+`<div class="box"><b>Prepared for</b><br>${esc(m.customer)}</div>
     <h2>Job specification</h2>${specsTable(p,q,false)}
-    ${LASTINP.product==="booklet"?`<div class="box"><b>Binding:</b> ${esc($("binding").selectedOptions[0].text)}${LASTINP.separateCover?" · Separate 4pp cover and text production":""}</div>`:""}
+    ${LASTINP.isSig?`<div class="box"><b>Binding:</b> ${esc($("binding").selectedOptions[0].text)}${LASTINP.separateCover?" · Separate 4pp cover and text production":""}</div>`:""}
     <h2>Commercial summary</h2><table>
       <tr><td>Production estimate</td><td class="num">${money(q.pretax)}</td></tr>
       <tr><td>GST (${p.gst}%)</td><td class="num">${money(q.gst)}</td></tr>
