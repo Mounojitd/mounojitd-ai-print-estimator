@@ -738,19 +738,40 @@ function quoteMeta(){
 }
 function docCSS(){
   return `<style>
-    *{box-sizing:border-box} body{font-family:Arial,sans-serif;color:#18212b;margin:0;padding:26px;font-size:12px}
-    h1{font-size:22px;margin:0;color:#1f4e78} h2{font-size:13px;margin:22px 0 6px;color:#1f4e78;text-transform:uppercase}
-    .top{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #1f4e78;padding-bottom:12px}
-    .muted{color:#65717d}.right{text-align:right}.box{border:1px solid #d9e0e7;border-radius:7px;padding:10px;margin-top:12px}
-    table{width:100%;border-collapse:collapse} th,td{padding:6px;border-bottom:1px solid #e3e7eb;text-align:left;vertical-align:top}
-    th{color:#65717d;font-size:10px;text-transform:uppercase}.num{text-align:right}.total{font-size:16px;font-weight:bold;border-top:2px solid #1f7a4d}
-    .cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}.sign{margin-top:48px;display:flex;justify-content:space-between}
-    svg{max-width:320px}@media print{body{padding:12mm}}
+    *{box-sizing:border-box}
+    body{font-family:"Helvetica Neue",Arial,sans-serif;color:#1a232e;margin:0;padding:34px 38px;font-size:12px;line-height:1.5;-webkit-font-smoothing:antialiased}
+    .letterhead{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:14px;border-bottom:2.5px solid #13314f;position:relative}
+    .letterhead::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:2px;background:#b8862f}
+    .firm{font-size:21px;font-weight:800;letter-spacing:.3px;color:#13314f;margin:0}
+    .firm .accent{color:#b8862f}
+    .firmsub{color:#6a7686;font-size:11px;margin-top:3px;letter-spacing:.3px}
+    .doctype{text-align:right}
+    .doctype .dt{font-size:15px;font-weight:800;letter-spacing:2px;color:#13314f;text-transform:uppercase}
+    .doctype .meta{color:#5b6675;font-size:11px;margin-top:5px;line-height:1.6}
+    h1{font-size:21px;margin:0;color:#13314f}
+    h2{font-size:11px;margin:22px 0 7px;color:#1f5286;text-transform:uppercase;letter-spacing:1px;font-weight:700;
+       padding-bottom:5px;border-bottom:1px solid #e7ebf1}
+    .muted{color:#6a7686}.right{text-align:right}
+    .box{border:1px solid #dde3ea;border-left:3px solid #b8862f;border-radius:8px;padding:11px 13px;margin-top:14px;background:#fbfcfd}
+    table{width:100%;border-collapse:collapse;margin-top:4px}
+    th,td{padding:7px 8px;border-bottom:1px solid #e7ebf1;text-align:left;vertical-align:top}
+    tbody tr:nth-child(even){background:#fafbfd}
+    th{color:#6a7686;font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+    .num{text-align:right;font-variant-numeric:tabular-nums}
+    .total{font-size:16px;font-weight:800;border-top:2px solid #1c7a52;color:#13314f}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .sign{margin-top:52px;display:flex;justify-content:space-between}
+    .foot{margin-top:30px;padding-top:12px;border-top:1px solid #e7ebf1;color:#8b95a2;font-size:10px;text-align:center;letter-spacing:.3px}
+    svg{max-width:320px}@media print{body{padding:14mm}}
   </style>`;
 }
 function docHeader(title,meta){
-  return `<div class="top"><div><h1>${title}</h1><div class="muted">Print production estimate</div></div>
-    <div class="right"><b>${esc(meta.no)}</b><br>Date: ${meta.date}<br>Valid until: ${meta.valid}</div></div>`;
+  return `<div class="letterhead">
+    <div><div class="firm">Naba Mudran <span class="accent">·</span> Anderson Technology</div>
+      <div class="firmsub">Commercial Offset Printing &amp; Fabrication · Kolkata</div></div>
+    <div class="doctype"><div class="dt">${esc(title)}</div>
+      <div class="meta"><b>${esc(meta.no)}</b><br>Date: ${meta.date}<br>Valid until: ${meta.valid}</div></div>
+  </div>`;
 }
 function specsTable(p,q,internal){
   const product=LASTINP.product_name||($("product").selectedOptions[0]?.text||LASTINP.product);
@@ -783,7 +804,8 @@ function componentTables(x){
 function openPrintDocument(title,body){
   const w=window.open("","_blank","width=980,height=760");
   if(!w){ alert("Allow pop-ups to print this document."); return; }
-  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>${docCSS()}</head><body>${body}</body></html>`);
+  const foot=`<div class="foot">Computer-generated estimate · Naba Mudran / Anderson Technology · Rates per current agreement · Taxes extra as applicable</div>`;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>${docCSS()}</head><body>${body}${foot}</body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
 }
 function printablePlanReady(){
