@@ -150,6 +150,11 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 
 ## 9. Open Questions
 
+- **🟠 Printing-rate discrepancy (found 2026-06-10).** App has big-machine 4c = ₹2325 lot then
+  **₹195/1000**. Real vendor DB (Nabamudran HEIDELBERG-102) = ₹2200 lot (≤3000) then
+  **₹720/1000** (3001–10k) / ₹640/1000 (10k+); plate ₹550/colour. The baked-in "Anderson"
+  per-1000 rates are ~3–4× lower than the real DB. Reconcile before trusting any quoted price.
+  (Komori L-40 ₹2700 lot then 460/1000; L-32 ₹2400 then 360/1000; plate ₹400 small.)
 - Confirm the coating charge unit/basis with NKK sir.
 - Add work-and-turn vs work-and-back as a selectable method?
 - Validate signature ganging & sheet counts against a **real NKK-sir-quoted job**.
@@ -198,5 +203,6 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 | 2026-06-09 | Coating = cover only by default | Lamination is on the cover, not all inner pages | Book lam ~1 signature's sheets; per-book ₹197→₹173 |
 | 2026-06-09 | Anderson agreement rates baked in (printing/plate/coating) | Real contracted rates supplied by user | Price is real, not placeholder (except paper ₹/sheet = manual input) |
 | 2026-06-09 | Validation vs real quote (Shyam Metalics Coffee Table Book, Anderson 15.05.26) | NKK sir said "weight is wrong" | Found imposition/waste inconsistency (see Bug #1): spread-as-atomic over-claims sheet capacity for square sizes → signature/sheets/waste/weight out of sync. Awaiting NKK sir's correct sheet/sig/sheets/weight to fix the right step. Also exposed missing components for premium hardcase jobs: binding/sewing/case-making, back-to-back pasting, separate cover stock, multi cover finishes, all-pages inside coating. |
+| 2026-06-10 | Real vendor database imported → `db/files/vendor_db/*.csv` | User supplied `Complete_Vendor_Database_With_Samples.xlsx` (clean source, 7 sheets) | Now have REAL: PAPER_PRICING (478 rows, ₹/sheet by grade/GSM/size — `Price_Per_Sheet` reliable, `Price_Per_Kg` unreliable for special papers; "SQ.METER" col is actually sq-inches), PRINTING_RATES (per-press impression tiers + plate), POST_PRESS_RATES (binding ₹/pc: Hardcase 95, Perfect 9–28, Centre-stitch 3.5, Section-sewing 4.32/section; lamination/UV/varnish/foil/emboss/aqua per-sq-in & lot rates), MATERIAL & TRANSPORT. Fills the missing hardcase/finishing components AND surfaces printing-rate discrepancy (Open Q). Wire-in pending after weight validation. |
 
 > Do not re-argue approved decisions unless the user asks.

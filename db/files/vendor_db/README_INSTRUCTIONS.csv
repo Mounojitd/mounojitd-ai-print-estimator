@@ -1,0 +1,21 @@
+VENDOR DATABASE STRUCTURE,
+Overview:,This workbook contains the complete vendor database structure for printing estimation.
+Database Structure:,1 Main Table (VENDOR_MASTER) + 5 Child Tables
+Sheets in this workbook:,
+1. VENDOR_MASTER,Main vendor information
+2. PAPER_PRICING,Paper/substrate pricing by vendor (linked via Vendor_ID)
+3. PRINTING_RATES,Printing machine rates by vendor (linked via Vendor_ID)
+4. POST_PRESS_RATES,Post-press operation rates by vendor (linked via Vendor_ID)
+5. MATERIAL_RATES,Bought-out materials & packing materials (linked via Vendor_ID)
+6. TRANSPORT_RATES,Transportation & logistics rates (linked via Vendor_ID)
+7. SAMPLE_DATA,Example entries showing how to fill data
+How to use:,
+Step 1:,Start by entering vendors in VENDOR_MASTER sheet
+Step 2:,"For each vendor, add their specific rates in the relevant child table(s)"
+Step 3:,Use Vendor_ID to link child records to parent vendor
+Important Notes:,
+- Vendor_ID must be unique in VENDOR_MASTER,
+- Same Vendor_ID can appear multiple times in child tables,
+"- One paper vendor can have 100+ entries in PAPER_PRICING (different sizes, GSM, etc.)",
+- One printing vendor can have multiple machine configurations in PRINTING_RATES,
+AI Integration:,These tables are designed to be queried by an AI system for automated estimation.
