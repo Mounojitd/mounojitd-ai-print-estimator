@@ -105,9 +105,14 @@
         <div id="coverFields" class="pbox" style="margin:0 0 10px">
           <div class="ptitle">Cover component</div>
           <div class="row3">
-            <div class="fld"><label>Cover GSM</label><input id="coverGsm" type="number" value="300" oninput="showPrice()" /></div>
-            <div class="fld"><label>Cover paper ₹/sheet</label><input id="coverPaperRate" type="number" step="0.01" placeholder="e.g. 22" oninput="showPrice()" /></div>
+            <div class="fld"><label>Cover paper (price list)</label><select id="coverGrade" onchange="onCoverPick()"><option value="">✏️ Manual</option></select></div>
+            <div class="fld"><label>Cover GSM</label><select id="coverGsmSel" onchange="onCoverPick()"><option value="">—</option></select></div>
             <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="100" oninput="showPrice()" /></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Cover GSM (used)</label><input id="coverGsm" type="number" value="300" oninput="showPrice()" /></div>
+            <div class="fld"><label>Cover paper ₹/sheet</label><input id="coverPaperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onCoverRateEdit()" /></div>
+            <div class="fld" style="align-self:end;font-size:11px;color:#6b7480" id="coverRateNote">Manual rate.</div>
           </div>
           <div class="row3">
             <div class="fld"><label>Cover colours front</label><input id="coverCf" type="number" value="4" oninput="showPrice()" /></div>
@@ -181,10 +186,23 @@
             <span><label id="paperRateLabel">Text paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onPaperRateEdit()" /></span>
           </div>
           <div id="paperRateNote" class="hint" style="margin:-4px 0 8px"></div>
+          <div class="prow">
+            <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="showPrice()">
+              <option value="anderson" selected>Anderson / Naba Mudran (agreement)</option>
+              <option value="nabamudran">Nabamudran Heidelberg-102</option>
+              <option value="komori_l40">Komori L-40</option>
+              <option value="komori_l32">Komori L-32</option>
+              <option value="balaji_2030">Balaji Press 20×30</option>
+              <option value="balaji_1925">Balaji Press 19×25</option>
+            </select></span>
+            <span><label>Coating rate source</label><select id="coatSrc" onchange="showPrice()">
+              <option value="card" selected>Standard card</option><option value="anderson">Anderson agreement</option>
+            </select></span>
+          </div>
           <div class="prow" id="bindingFields">
             <span><label>Binding</label><select id="binding" onchange="setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="perfect">Perfect binding</option><option value="sewn">Section sewn</option><option value="case">Hard case</option></select></span>
-            <span><label>Binding ₹/book</label><input id="bindingRate" type="number" step="0.01" value="2.5" oninput="showPrice()" /></span>
-            <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="1000" oninput="showPrice()" /></span>
+            <span><label>Binding ₹/book</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="showPrice()" /></span>
+            <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
           </div>
           <div class="prow">
             <span><label>Margin %</label><input id="margin" type="number" value="28" oninput="showPrice()" /></span>
@@ -289,6 +307,37 @@ function autoPaperRate(){
   const hit=lookupPaperRate(key,gsm,CHOSEN.sw,CHOSEN.sh);
   if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${key} ${gsm}gsm @ ${CHOSEN.sw}×${CHOSEN.sh} = ₹${hit.rate}/sheet (${hit.via}).`; }
   else $("paperRateNote").textContent=`No list price for ${key} ${gsm}gsm at ${CHOSEN.sw}×${CHOSEN.sh} — enter manually.`;
+}
+/* ---- COVER paper auto-pickup (same DB) ---- */
+let COVER_AUTO=false;
+function buildCoverPickers(){
+  const sel=$("coverGrade"); if(!sel)return;
+  const keys=[...new Set(PAPER_DB.map(paperKey))].sort();
+  for(const k of keys){ const op=document.createElement("option"); op.value=k; op.textContent=k; sel.appendChild(op); }
+}
+function fillCoverGsm(){
+  const key=$("coverGrade").value, gs=$("coverGsmSel"); gs.innerHTML="";
+  if(!key){ gs.innerHTML='<option value="">—</option>'; return; }
+  const gsms=[...new Set(PAPER_DB.filter(o=>paperKey(o)===key).map(o=>o.gsm))].sort((a,b)=>a-b);
+  for(const g of gsms){ const op=document.createElement("option"); op.value=g; op.textContent=g+" gsm"; gs.appendChild(op); }
+}
+function onCoverPick(){
+  const key=$("coverGrade").value;
+  if(key!==onCoverPick._lastKey){ fillCoverGsm(); onCoverPick._lastKey=key; }
+  if(!key){ COVER_AUTO=false; $("coverRateNote").textContent="Manual rate."; showPrice(); return; }
+  const gsm=parseFloat($("coverGsmSel").value);
+  COVER_AUTO=true; if(isFinite(gsm)) $("coverGsm").value=gsm;   // drives cover weight
+  showPrice();
+}
+function onCoverRateEdit(){ COVER_AUTO=false; $("coverGrade").value=""; $("coverRateNote").textContent="Manual rate."; showPrice(); }
+// returns the cover ₹/sheet for a given cover sheet size (auto from DB, else manual input)
+function coverRateFor(w,h){
+  if(COVER_AUTO){ const key=$("coverGrade").value, gsm=parseFloat($("coverGsmSel").value);
+    const hit=(key&&isFinite(gsm))?lookupPaperRate(key,gsm,w,h):null;
+    if(hit){ $("coverPaperRate").value=hit.rate; $("coverRateNote").textContent=`Auto ₹${hit.rate}/sheet @ ${w}×${h} (${hit.via}).`; return hit.rate; }
+    $("coverRateNote").textContent=`No list price @ ${w}×${h} — manual.`;
+  }
+  return num("coverPaperRate",0);
 }
 
 /* ---------- PURE CALCULATION (NKK sir corrected logic) ---------- */
@@ -503,30 +552,53 @@ function renderMachine(o){
     `${ok.length>1?` · ${ok.length-1} alternative(s)`:""} · pricing band: <b>${machineBand(m)}</b></div></div>`;
 }
 
-/* ---------- PRICE (Naba Mudran / Anderson rates) ---------- */
+/* ---------- PRICE (Naba Mudran / Anderson default + vendor sources) ---------- */
 const PRINT={small:{4:{lot:1500},2:{lot:1000},1:{lot:600},plate:475,per1000:125},
              big:{4:{lot:2325,a:195,b:175},2:{lot:1225,a:205,b:185},1:{lot:625,a:208,b:195},plate:575}};
-// coatings (per 100 sq.in + job minimum) — rates from the agreement
-const COAT={none:{r:0,min:0},matt:{r:0.40,min:1000},gloss:{r:0.28,min:800},bopp:{r:0.45,min:1000},
-            uv:{r:0.30,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},drip:{r:0.55,min:3500}};
-const BINDING={none:[0,0],saddle:[2.5,1000],perfect:[8,2500],sewn:[15,5000],case:[80,15000]};
+// Vendor printing rate sources. 'band' = Anderson agreement (size→small/big). 'flat' = single-press quote
+// (rates are 4-col/side; other colour counts scaled ×cols/4). Anderson is the default.
+const PRINT_SOURCES={
+  anderson:{label:"Anderson / Naba Mudran (agreement)",mode:"band"},
+  nabamudran:{label:"Nabamudran Heidelberg-102",mode:"flat",lotQty:3000,lot4:2200,tiers:[{upTo:10000,r:720},{upTo:Infinity,r:640}],plate:550},
+  komori_l40:{label:"Komori L-40",mode:"flat",lotQty:2000,lot4:2700,tiers:[{upTo:Infinity,r:460}],plate:400},
+  komori_l32:{label:"Komori L-32",mode:"flat",lotQty:2000,lot4:2400,tiers:[{upTo:Infinity,r:360}],plate:400},
+  balaji_2030:{label:"Balaji Press 20×30",mode:"flat",lotQty:2000,lot4:2700,tiers:[{upTo:Infinity,r:460}],plate:400},
+  balaji_1925:{label:"Balaji Press 19×25",mode:"flat",lotQty:2000,lot4:2400,tiers:[{upTo:Infinity,r:360}],plate:400}
+};
+function activePrint(){ return PRINT_SOURCES[($("printSrc")&&$("printSrc").value)||"anderson"]||PRINT_SOURCES.anderson; }
+function plateRate(src,band){ return src.mode==="band" ? PRINT[band].plate : src.plate; }
+// coating rate sources (per 100 sq.in + job minimum)
+const COAT_SOURCES={
+  card:{label:"Standard card (current)",r:{none:{r:0,min:0},matt:{r:0.40,min:1000},gloss:{r:0.28,min:800},bopp:{r:0.45,min:1000},uv:{r:0.30,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},drip:{r:0.55,min:3500}}},
+  anderson:{label:"Anderson agreement",r:{none:{r:0,min:0},matt:{r:0.45,min:0},gloss:{r:0.35,min:0},bopp:{r:0.40,min:0},uv:{r:0.30,min:1000},gaqua:{r:0.18,min:600},maqua:{r:0.30,min:1000},drip:{r:0.55,min:3500}}}
+};
+function activeCoat(){ return (COAT_SOURCES[($("coatSrc")&&$("coatSrc").value)||"card"]||COAT_SOURCES.card).r; }
+// binding ₹/book + job minimum — real POST_PRESS rates (hardcase 95, perfect 9, section-sew+perfect 6.75, centre-stitch 3.5)
+const BINDING={none:[0,0],saddle:[3.5,500],perfect:[9,1000],sewn:[6.75,3000],case:[95,5000]};
 function setBinding(v){ const x=BINDING[v]||BINDING.none; $("bindingRate").value=x[0]; $("bindingMin").value=x[1]; showPrice(); }
 function refreshMachineAndPrice(){ if(CHOSEN)renderMachine(CHOSEN); showPrice(); }
 function setColours(v){ if(!v)return; const p=v.split("+").map(Number); $("cf").value=p[0]; $("cb").value=p[1]; refreshMachineAndPrice(); }
 function sizeBand(w,h){const lo=Math.max(w,h),sh=Math.min(w,h);return (lo>=34&&sh>=22)?"big":"small";}
-function sideCost(band,cols,sheets){ if(cols<=0)return 0; const t=PRINT[band];
-  if(sheets<=3000) return (t[cols]||t[4]).lot;
-  if(band==="small") return cols*(sheets/1000)*t.per1000;
-  const s=t[cols]||t[4]; return cols*(sheets/1000)*(sheets<=10000?s.a:s.b); }
+function sideCost(src,band,cols,sheets){ if(cols<=0)return 0;
+  if(src.mode==="band"){ const t=PRINT[band];
+    if(sheets<=3000) return (t[cols]||t[4]).lot;
+    if(band==="small") return cols*(sheets/1000)*t.per1000;
+    const s=t[cols]||t[4]; return cols*(sheets/1000)*(sheets<=10000?s.a:s.b); }
+  // flat single-press source: 4-col rates scaled by cols/4
+  const scale=cols/4;
+  if(sheets<=src.lotQty) return src.lot4*scale;
+  const tier=src.tiers.find(t=>sheets<=t.upTo)||src.tiers[src.tiers.length-1];
+  return scale*tier.r*(sheets/1000); }
 function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
   const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
-  const printing=sideCost(band,p.cf,sheets)+sideCost(band,p.cb,sheets);
+  const src=activePrint();
+  const printing=sideCost(src,band,p.cf,sheets)+sideCost(src,band,p.cb,sheets);
   const sigs=o.signatures||1;
   const plateCount=(Math.max(0,p.cf)+Math.max(0,p.cb))*sigs;     // plates per signature × signatures
-  const plates=plateCount*PRINT[band].plate;
+  const plates=plateCount*plateRate(src,band);
   const sides=(p.cf>0?1:0)+(p.cb>0?1:0), impressions=sheets*sides;
-  const c=COAT[p.lam]||COAT.none;
+  const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
   const coatSheets = (p.coatArea==="cover") ? Math.round(sheets/sigs) : sheets;   // cover = one signature's sheets
   const lam=p.lam==="none"?0:Math.max(c.r*(o.sw*o.sh/100)*coatSheets, c.min);
   const paper=(p.paperRate||0)*sheets, wt=o.total_wt;
@@ -561,7 +633,7 @@ function combinedPrice(){
     return {p,q:Object.assign({},tq,{overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding};
   }
   const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
-    paperRate:num("coverPaperRate",0),margin:p.margin,gst:p.gst,books:p.books};
+    paperRate:coverRateFor(cp.option.sw,cp.option.sh),margin:p.margin,gst:p.gst,books:p.books};
   const cq=priceJob(cp.option,coverP,cp.machine);
   const paper=tq.paper+cq.paper,printing=tq.printing+cq.printing,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
   const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=CHOSEN.total_wt+cp.option.total_wt;
@@ -688,6 +760,7 @@ function printJobSheet(){
   openPrintDocument(m.no+" job sheet",body);
 }
 buildPaperPickers();
+buildCoverPickers();
 onProductChange();
 </script>
 </body>
