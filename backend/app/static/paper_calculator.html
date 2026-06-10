@@ -251,7 +251,7 @@
           <div id="paperRateNote" class="hint" style="margin:-4px 0 8px"></div>
           <div class="prow">
             <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="showPrice()">
-              <option value="anderson" selected>Anderson (agreement)</option>
+              <option value="anderson" selected>Naba Mudran (agreement)</option>
               <option value="nabamudran">Nabamudran Heidelberg-102</option>
               <option value="komori_l40">Komori L-40</option>
               <option value="komori_l32">Komori L-32</option>
@@ -621,7 +621,7 @@ const PRINT={small:{4:{lot:1500},2:{lot:1000},1:{lot:600},plate:475,per1000:125}
 // Vendor printing rate sources. 'band' = Anderson agreement (size→small/big). 'flat' = single-press quote
 // (rates are 4-col/side; other colour counts scaled ×cols/4). Anderson is the default.
 const PRINT_SOURCES={
-  anderson:{label:"Anderson (agreement)",mode:"band"},
+  anderson:{label:"Naba Mudran (agreement)",mode:"band"},
   nabamudran:{label:"Nabamudran Heidelberg-102",mode:"flat",lotQty:3000,lot4:2200,tiers:[{upTo:10000,r:720},{upTo:Infinity,r:640}],plate:550},
   komori_l40:{label:"Komori L-40",mode:"flat",lotQty:2000,lot4:2700,tiers:[{upTo:Infinity,r:460}],plate:400},
   komori_l32:{label:"Komori L-32",mode:"flat",lotQty:2000,lot4:2400,tiers:[{upTo:Infinity,r:360}],plate:400},
@@ -721,7 +721,7 @@ function showPrice(){
   h+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
   h+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
   h+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
-  h+=`<div style="font-size:11px;color:#6b7480;margin-top:6px">Printing band: ${q.band} · rates from Anderson agreement</div>`;
+  h+=`<div style="font-size:11px;color:#6b7480;margin-top:6px">Printing band: ${q.band} · rates from Naba Mudran agreement</div>`;
   if(x.coverPlan&&x.coverPlan.option) h+=`<div class="suggest"><b>Separate cover:</b> ${x.coverPlan.option.sw}×${x.coverPlan.option.sh} in · ${x.coverPlan.option.total.toLocaleString("en-IN")} sheets · ${x.coverPlan.machine.name} · ${num("coverGsm",300)} GSM · ${Math.round(num("coverCf",4))}+${Math.round(num("coverCb",4))}</div>`;
   if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter paper ₹/sheet rates for the full price.</div>';
   $("m_price").innerHTML=h;
