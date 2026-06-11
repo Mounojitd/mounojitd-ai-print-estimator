@@ -134,8 +134,8 @@ extent (pages; 1 leaf = 2 pages), binding type, **trim or no-trim**. → ✅ (�
 - **Trim / no-trim toggle** (Step 0). → ✅ (checkbox; no-trim zeroes bleed + paper-trim)
 
 **STEP 2 — MACHINE:** check availability across presses; know each machine's gripper / max print /
-max paper / min paper; find which can run the sheet; recommend best fit + compare prices. → 🟡
-(fit by max/min/colours/speed ✅; per-press gripper & full price compare ⬜)
+max paper / min paper; find which can run the sheet; recommend best fit + compare prices. → ✅
+(per-press gripper + max-print area + min; cross-press price-comparison table, cheapest highlighted, click to switch)
 
 **STEP 3 — COLOUR:** default 4+4, allow any combo + 5th/6th spot; check machine colour capacity. → ✅
 
@@ -145,8 +145,9 @@ max paper / min paper; find which can run the sheet; recommend best fit + compar
 **STEP 5 — THE REST** (*"very easy after the above"*): weight → packing/cartons → freight →
 overhead 12% → margin → GST → quotation + job sheet + signature plan. → ✅
 
-**Outstanding vs his method:** ⬜ per-press gripper + full machine price comparison · 🔴 book imposition
-(Bug #1, 8-vs-12-up — awaiting his pages-per-sheet number). *(per-kg, work-and-turn/tumble, trim toggle DONE 2026-06-10.)*
+**Outstanding vs his method:** 🔴 book imposition (Bug #1, 8-vs-12-up — awaiting his pages-per-sheet
+number) is the ONLY remaining item. *(per-kg, work-and-turn/tumble, trim toggle, per-press gripper +
+machine price comparison all DONE 2026-06-10.)*
 
 ---
 
