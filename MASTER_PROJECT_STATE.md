@@ -113,6 +113,42 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 
 ---
 
+## 6b. NKK SIR'S CANONICAL METHOD (★ source-of-truth algorithm — build & test against this)
+
+> His guidance: *"Make the algorithm, then test it manually 2–10 times until perfect.
+> Set the logic right, and AI can do the rest."* Status: ✅ done · 🟡 partial · ⬜ open.
+
+**STEP 0 — Inputs to collect:** finished/folded size (H×W), open/spread size, GSM, paper type,
+extent (pages; 1 leaf = 2 pages), binding type, **trim or no-trim**. → ✅ (🟡 explicit trim/no-trim toggle is open)
+
+**STEP 1 — PAPER CALCULATION** (his most important: *"once this is set, the rest is easy"*):
+- Orientation → auto open/spread size (7×9.5 portrait → 14×9.5). → ✅
+- Signature: choose 4/8/16/32 (max) **or Auto**; pages ÷ signature = signatures = sheets/book. → ✅
+- Margins (mm): trim 3, bleed 3, backside 3, gripper 10, side-lay 3 each, paper-trim 3 all four sides. → ✅
+- Fit/ups: test normal + rotated, pick least waste. → ✅
+- If it doesn't fit → suggest reduce 1–5 mm / bigger sheet / another machine. → ✅
+- Cut bigger stock down (30×40 → 20×30…) to what's available. → ✅
+- Wastage: setup/make-ready (fixed sheets) + running waste (%). → ✅
+- Paper cost **per-sheet AND per-kg**; weight = GSM × area. → 🟡 (per-sheet ✅ + weight ✅; per-kg display ⬜)
+- **Work-and-turn vs work-and-tumble.** → ⬜ (still work-and-back only — Known Bug)
+
+**STEP 2 — MACHINE:** check availability across presses; know each machine's gripper / max print /
+max paper / min paper; find which can run the sheet; recommend best fit + compare prices. → 🟡
+(fit by max/min/colours/speed ✅; per-press gripper & full price compare ⬜)
+
+**STEP 3 — COLOUR:** default 4+4, allow any combo + 5th/6th spot; check machine colour capacity. → ✅
+
+**STEP 4 — PLATE + IMPRESSION (separate):** plates = colour × forme; impression has a minimum
+(0–2000/3000 same rate), then recurring rate after. → ✅
+
+**STEP 5 — THE REST** (*"very easy after the above"*): weight → packing/cartons → freight →
+overhead 12% → margin → GST → quotation + job sheet + signature plan. → ✅
+
+**Outstanding vs his method:** ⬜ work-and-turn/tumble · ⬜ per-kg paper cost shown · ⬜ trim/no-trim
+toggle · ⬜ per-press gripper + full machine price comparison · 🔴 book imposition (Bug #1, 8-vs-12-up).
+
+---
+
 ## 7. Production Rules
 
 - `signatures = ceil(pages ÷ chosen signature)`, **capped by fold-fit** per sheet
