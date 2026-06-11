@@ -606,25 +606,29 @@ function printSheet(){
 }
 
 /* ---------- MACHINE engine (your real presses) ---------- */
+// max = max PAPER (feed) size; grip = gripper (mm); max PRINT area = max paper minus gripper on the lead edge
 const MACHINES=[
-  {name:"Heidelberg SM102", max:[28,40], min:[14,20], col:4, speed:9000},
-  {name:"Planeta Variant",  max:[28,40], min:[14,20], col:4, speed:7000},
-  {name:"Man Roland Parva", max:[25,36], min:[13,18], col:2, speed:7000},
-  {name:"Man Roland R-200", max:[20,30], min:[10,14], col:5, speed:8000},
-  {name:"Komori L-40",      max:[20,30], min:[10,14], col:4, speed:15000},
-  {name:"Komori L-32",      max:[19,25], min:[10,14], col:4, speed:13000},
-  {name:"Komori Florence",  max:[18,25], min:[10,14], col:4, speed:13000},
+  {name:"Heidelberg SM102", max:[28,40], min:[14,20], col:4, speed:9000,  grip:12},
+  {name:"Planeta Variant",  max:[28,40], min:[14,20], col:4, speed:7000,  grip:12},
+  {name:"Man Roland Parva", max:[25,36], min:[13,18], col:2, speed:7000,  grip:11},
+  {name:"Man Roland R-200", max:[20,30], min:[10,14], col:5, speed:8000,  grip:10},
+  {name:"Komori L-40",      max:[20,30], min:[10,14], col:4, speed:15000, grip:10},
+  {name:"Komori L-32",      max:[19,25], min:[10,14], col:4, speed:13000, grip:10},
+  {name:"Komori Florence",  max:[18,25], min:[10,14], col:4, speed:13000, grip:10},
 ];
 let SELECTED_MACHINE=null;
 function machineBand(m){ const lo=Math.max(...m.max), sh=Math.min(...m.max); return (lo>=34&&sh>=22)?"big":"small"; }
+function maxPrint(m){ const lo=Math.max(...m.max), sh=Math.min(...m.max); return [lo, +(sh-(m.grip||0)/25.4).toFixed(1)]; } // image area
 function machineFit(m,sw,sh){
   const lo=Math.max(...m.max), sh2=Math.min(...m.max), sl=Math.max(sw,sh), ss=Math.min(sw,sh);
-  if(sl>lo||ss>sh2) return "too_big";
+  if(sl>lo||ss>sh2) return "too_big";          // sheet can't be fed
   const nlo=Math.max(...m.min), nsh=Math.min(...m.min);
-  if(sl<nlo||ss<nsh) return "too_small";
+  if(sl<nlo||ss<nsh) return "too_small";        // below minimum feed
   return "fits";
 }
 function machinesFor(sw,sh,need){ return MACHINES.filter(m=>machineFit(m,sw,sh)==="fits" && m.col>=need).sort((a,b)=>b.speed-a.speed); }
+// press-dependent cost (printing + plates) for the current job on a given press — for comparison
+function pressPrintCost(machine){ try{ const q=priceJob(CHOSEN,currentPriceParams(),machine); return q.printing+q.plates; }catch(e){ return Infinity; } }
 function selectMachine(name){ SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE; showPrice(); }
 function renderMachine(o){
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
@@ -638,14 +642,28 @@ function renderMachine(o){
     return;
   }
   if(!SELECTED_MACHINE || !ok.includes(SELECTED_MACHINE)) SELECTED_MACHINE=ok[0];
-  const m=SELECTED_MACHINE, hrs=o.total/m.speed;
+  const m=SELECTED_MACHINE, hrs=o.total/m.speed, mp=maxPrint(m);
+  const img=Math.max(o.sw,o.sh), imgS=Math.min(o.sw,o.sh);
+  const tightPrint = img>mp[0]||imgS>mp[1];     // sheet fits feed but exceeds printable area (gripper)
   const opts=ok.map(x=>`<option ${x===m?'selected':''}>${x.name}</option>`).join("");
-  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine</div>`+
-    `<div class="prow"><span><label>Press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
+  // price comparison across all compatible presses (printing + plates is the press-dependent cost)
+  const costs=ok.map(x=>({m:x,c:pressPrintCost(x),hr:o.total/x.speed}));
+  const cheapest=costs.slice().sort((a,b)=>a.c-b.c)[0];
+  const rowsHtml=costs.map(({m:x,c,hr})=>{
+    const sel=x===m, best=x===cheapest.m;
+    return `<tr data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" class="${sel?'best':''}" style="${sel?'':'cursor:pointer'}">`+
+      `<td>${x.name}${best?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${sel?'<span class="pill">SELECTED</span>':''}</td>`+
+      `<td>${x.max[0]}×${x.max[1]}</td><td>${x.col}c</td><td>${x.grip}mm</td><td>~${hr.toFixed(1)}h</td>`+
+      `<td>${machineBand(x)}</td><td>₹${Math.round(c).toLocaleString('en-IN')}</td></tr>`;
+  }).join("");
+  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine — fit &amp; price comparison</div>`+
+    `<div class="prow"><span><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
     `<span><label>Speed</label><input value="${m.speed.toLocaleString('en-IN')}/hr" disabled></span>`+
     `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr" disabled></span></div>`+
-    `<div style="font-size:11.5px;color:#6b7480">Best fit: <b>${ok[0].name}</b> (${ok[0].max[0]}×${ok[0].max[1]}, ${ok[0].col}-col, fastest)`+
-    `${ok.length>1?` · ${ok.length-1} alternative(s)`:""} · pricing band: <b>${machineBand(m)}</b></div></div>`;
+    `<div style="font-size:11.5px;color:#6b7480;margin:2px 0 8px">Max paper <b>${m.max[0]}×${m.max[1]}</b> · max print <b>${mp[0]}×${mp[1]}</b> (gripper ${m.grip}mm) · min <b>${m.min[0]}×${m.min[1]}</b> · ${m.col}-col`+
+    `${tightPrint?` · <span style="color:#a9761a">⚠ sheet ${o.sw}×${o.sh} exceeds printable area — image must clear the ${m.grip}mm gripper</span>`:""}</div>`+
+    `<table style="font-size:12px"><thead><tr><th>Press</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Band</th><th>Print+plates</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
+    `<div style="font-size:11px;color:#6b7480;margin-top:6px">Cheapest print+plates: <b>${cheapest.m.name}</b> (₹${Math.round(cheapest.c).toLocaleString('en-IN')}) · click a row to switch press.</div></div>`;
 }
 
 /* ---------- PRICE (Naba Mudran / Anderson default + vendor sources) ---------- */
