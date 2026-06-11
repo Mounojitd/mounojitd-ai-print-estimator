@@ -113,6 +113,14 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 
 ---
 
+## 6d. Imposition drawing fixes (2026-06-10, sir: "drawing not correct")
+
+- **Back-side flip now follows Work style:** work&turn = L⇄R mirror, work&tumble = T⇅B mirror (gripper
+  moves to opposite edge), work&back = 180° sheetwise. Was hardcoded "work-and-turn" H-mirror always.
+- **Page imposition is per-signature, not whole book.** One sheet = one signature, so the diagram imposes
+  `o.sig` pages (collation verified 4→1-4, 8→1-8, 16→1-16), labeled "1 of N signatures". Previously tiled
+  total book pages → mislabeled multi-signature books. Page-order now ON by default for signature products.
+
 ## 6c. Process-master spec (2026-06-10) — implemented gaps
 
 Real **machine master** from `Process master data.pdf` baked into `MACHINES` (8 presses, mm→in):
