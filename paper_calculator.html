@@ -164,7 +164,13 @@
           <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>16</option><option>32</option></select></div>
           <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" /></div>
         </div>
-        <label class="chip" style="margin-bottom:10px;font-weight:600"><input type="checkbox" id="separateCover" checked onchange="onCoverChange()" /> Separate 4pp cover from text</label>
+        <div class="fld"><label>Cover type</label>
+          <select id="coverType" onchange="onCoverChange()">
+            <option value="none">No cover</option>
+            <option value="self">Self cover (same stock as text)</option>
+            <option value="separate" selected>Separate cover (own stock)</option>
+          </select></div>
+        <input type="checkbox" id="separateCover" checked style="display:none" />
         <div id="coverFields" class="pbox" style="margin:0 0 10px">
           <div class="ptitle">Cover component</div>
           <div class="row3">
@@ -185,7 +191,11 @@
         </div>
       </div>
       <div id="flatFields" style="display:none">
-        <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" /></div>
+        <div class="row">
+          <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" /></div>
+          <div class="fld"><label>Extent (sheets/versions per product)</label><input id="extentFlat" type="number" value="1" placeholder="1" />
+            <div class="hint">Multiplies paper (e.g. table calendar = 12 leaves). Default 1.</div></div>
+        </div>
       </div>
       <div class="fld"><label id="gsmLabel">Text paper GSM</label><input id="gsm" type="number" placeholder="e.g. 130" /></div>
 
@@ -328,7 +338,9 @@ function onProductChange(){
   onCoverChange();
 }
 function onCoverChange(){
-  const b=isSig($("product").value)&&$("separateCover").checked;
+  const sep=$("coverType")?$("coverType").value==="separate":$("separateCover").checked;
+  if($("separateCover")) $("separateCover").checked=sep;        // keep legacy flag in sync
+  const b=isSig($("product").value)&&sep;
   $("coverFields").style.display=b?"block":"none";
   $("lam").disabled=b; $("coatArea").disabled=b;
   if(RESULT)run();
@@ -463,7 +475,7 @@ function computePaper(inp){
       sigDropped = !inp.sigAuto && sig<target;   // only a "drop" if user manually picked a bigger signature
       signatures=Math.max(1,Math.ceil(inp.pages/sig));
       good=signatures*inp.copies; spc=signatures;
-    } else { good=Math.ceil(inp.copies/ups); spc=1/ups; }
+    } else { const ext=Math.max(1,inp.extent||1); good=Math.ceil(inp.copies/ups)*ext; spc=ext/ups; }   // extent multiplies paper (no signatures)
     // NKK sir wastage spec: Production = Required × (1 + running%);  Total = Production + Setup
     const production=good*(1+inp.running/100), total=Math.round(production+inp.setup), run=Math.round(production-good);
     const reams=+(total/500).toFixed(1);
@@ -495,13 +507,23 @@ function run(){
   if(missing.length){ $("err").textContent="Please enter: "+missing.join(", ")+"."; return; }
   if(!sizes.length){ $("err").textContent="Tick at least one sheet size."; return; }
   const unit=$("unit").value;
-  if(booklet&&Math.round(num("pages",0))%4!==0){ $("pages").classList.add("bad"); $("err").textContent="Booklet total pages must be a multiple of 4."; return; }
+  // Binding-dependent page validation: saddle = multiple of 4; perfect/sewn/case = multiple of 2 (leaves)
+  if(booklet){
+    const bind=$("binding")?$("binding").value:"saddle";
+    const mult=(bind==="saddle"||bind==="none")?4:2;
+    const pg=Math.round(num("pages",0));
+    if(pg%mult!==0){ $("pages").classList.add("bad");
+      const up=Math.ceil(pg/mult)*mult, dn=Math.floor(pg/mult)*mult;
+      $("err").textContent=`For ${bind==="none"?"saddle":bind} binding, pages must be a multiple of ${mult}. Nearest valid: ${dn} or ${up}.`;
+      return; }
+  }
   const inp={
     product_name:$("product_name").value.trim(), product:$("product").value, isSig:booklet, orientation:$("orientation").value,
     W:toIn(num("W"),unit), H:toIn(num("H"),unit),
     pages:Math.round(num("pages",2)), totalPages:Math.round(num("pages",2)),
     sigAuto:$("sigPages").value==="auto", sigPages:$("sigPages").value==="auto"?32:parseInt($("sigPages").value),
     copies:Math.round(booklet?num("copies",1):num("copies2",1)),
+    extent:booklet?1:Math.max(1,Math.round(num("extentFlat",1))),
     gsm:num("gsm"), rotate:$("rotate").checked,
     margins:{bleed:num("bleed",3),gripper:num("gripper",10),sidelay:num("sidelay",3),backside:num("backside",3),paperTrim:num("paperTrim",3)},
     trimmed:$("trimmed")?$("trimmed").checked:true,
@@ -609,19 +631,20 @@ function printSheet(){
 }
 
 /* ---------- MACHINE engine (your real presses) ---------- */
-// max = max PAPER (feed) size; grip = gripper (mm); max PRINT area = max paper minus gripper on the lead edge
+// MACHINE MASTER — real presses from Process master data (sizes mm→in; max=max paper, print=max print area, grip mm)
 const MACHINES=[
-  {name:"Heidelberg SM102", max:[28,40], min:[14,20], col:4, speed:9000,  grip:12},
-  {name:"Planeta Variant",  max:[28,40], min:[14,20], col:4, speed:7000,  grip:12},
-  {name:"Man Roland Parva", max:[25,36], min:[13,18], col:2, speed:7000,  grip:11},
-  {name:"Man Roland R-200", max:[20,30], min:[10,14], col:5, speed:8000,  grip:10},
-  {name:"Komori L-40",      max:[20,30], min:[10,14], col:4, speed:15000, grip:10},
-  {name:"Komori L-32",      max:[19,25], min:[10,14], col:4, speed:13000, grip:10},
-  {name:"Komori Florence",  max:[18,25], min:[10,14], col:4, speed:13000, grip:10},
+  {name:"Heidelberg SM102 · Nabamudran", id:"M001", vendor:"Nabamudran", loc:"Sector 5", max:[28.3,40.2], print:[28.0,40.2], min:[13.4,18.9], col:4, speed:13000, grip:12},
+  {name:"MAN Roland 200 · Nabamudran",   id:"M002", vendor:"Nabamudran", loc:"Sector 5", max:[20.5,29.1], print:[20.1,29.1], min:[8.3,11.0],  col:5, speed:13000, grip:12},
+  {name:"Parva 28×40 · Nabamudran",      id:"M003", vendor:"Nabamudran", loc:"Sector 5", max:[28.0,40.0], print:[27.6,39.4], min:[13.0,18.9], col:2, speed:10000, grip:12},
+  {name:"Komori L-40 · Balaji",          id:"M004", vendor:"Balaji",     loc:"Ultodanga",max:[28.3,40.6], print:[28.0,40.2], min:[14.2,20.5], col:4, speed:15000, grip:12},
+  {name:"Komori L-32 · Balaji",          id:"M005", vendor:"Balaji",     loc:"Ultodanga",max:[22.0,32.3], print:[21.7,31.9], min:[11.7,16.5], col:4, speed:13000, grip:12},
+  {name:"Heidelberg SM102 · Darpan",     id:"M007", vendor:"Darpan",     loc:"Bantala",  max:[28.3,40.2], print:[28.0,40.2], min:[13.4,18.9], col:4, speed:13000, grip:12},
+  {name:"Heidelberg SM74 · Darpan",      id:"M008", vendor:"Darpan",     loc:"Bantala",  max:[20.9,29.1], print:[20.1,29.1], min:[8.3,11.0],  col:4, speed:12000, grip:10},
+  {name:"Mitsubishi Daiya 18×25 · Florence", id:"FLR1", vendor:"Florence", loc:"Esplanade", max:[18.0,25.0], print:[17.7,24.4], min:[7.1,9.8], col:1, speed:8000, grip:12},
 ];
 let SELECTED_MACHINE=null;
 function machineBand(m){ const lo=Math.max(...m.max), sh=Math.min(...m.max); return (lo>=34&&sh>=22)?"big":"small"; }
-function maxPrint(m){ const lo=Math.max(...m.max), sh=Math.min(...m.max); return [lo, +(sh-(m.grip||0)/25.4).toFixed(1)]; } // image area
+function maxPrint(m){ if(m.print) return [Math.max(...m.print),Math.min(...m.print)]; const lo=Math.max(...m.max), sh=Math.min(...m.max); return [lo, +(sh-(m.grip||0)/25.4).toFixed(1)]; }
 function machineFit(m,sw,sh){
   const lo=Math.max(...m.max), sh2=Math.min(...m.max), sl=Math.max(sw,sh), ss=Math.min(sw,sh);
   if(sl>lo||ss>sh2) return "too_big";          // sheet can't be fed
@@ -663,7 +686,7 @@ function renderMachine(o){
     `<div class="prow"><span><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
     `<span><label>Speed</label><input value="${m.speed.toLocaleString('en-IN')}/hr" disabled></span>`+
     `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr" disabled></span></div>`+
-    `<div style="font-size:11.5px;color:#6b7480;margin:2px 0 8px">Max paper <b>${m.max[0]}×${m.max[1]}</b> · max print <b>${mp[0]}×${mp[1]}</b> (gripper ${m.grip}mm) · min <b>${m.min[0]}×${m.min[1]}</b> · ${m.col}-col`+
+    `<div style="font-size:11.5px;color:#6b7480;margin:2px 0 8px"><b>${m.vendor||""}</b>${m.loc?" · "+m.loc:""} · Max paper <b>${m.max[0]}×${m.max[1]}</b> · max print <b>${mp[0]}×${mp[1]}</b> (gripper ${m.grip}mm) · min <b>${m.min[0]}×${m.min[1]}</b> · ${m.col}-col`+
     `${tightPrint?` · <span style="color:#a9761a">⚠ sheet ${o.sw}×${o.sh} exceeds printable area — image must clear the ${m.grip}mm gripper</span>`:""}</div>`+
     `<table style="font-size:12px"><thead><tr><th>Press</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Band</th><th>Print+plates</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
     `<div style="font-size:11px;color:#6b7480;margin-top:6px">Cheapest print+plates: <b>${cheapest.m.name}</b> (₹${Math.round(cheapest.c).toLocaleString('en-IN')}) · click a row to switch press.</div></div>`;

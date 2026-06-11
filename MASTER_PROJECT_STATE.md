@@ -113,6 +113,20 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 
 ---
 
+## 6c. Process-master spec (2026-06-10) — implemented gaps
+
+Real **machine master** from `Process master data.pdf` baked into `MACHINES` (8 presses, mm→in):
+Heidelberg SM102 (Nabamudran M001 & Darpan M007), MAN Roland 200 (M002), Parva 28×40 (M003),
+Komori L-40 (Balaji M004), Komori L-32 (M005), Heidelberg SM74 (Darpan M008), Mitsubishi Daiya 18×25
+(Florence). Each has vendor, location, max-paper, **max-print area**, min, gripper(mm), colours, speed.
+- ✅ Product classification (signature vs non-signature) — `isSig()`, two optgroups.
+- ✅ **Non-signature extent multiplier** — `extentFlat` (default 1) multiplies paper; no signatures.
+- ✅ **Binding-dependent page validation** — saddle/none = ×4, perfect/sewn/case = ×2; warns + suggests nearest valid.
+- ✅ **3-way cover detection** — Cover type select: No cover / Self cover / Separate cover.
+- ✅ Paper-master automation (auto ₹/sheet + weight by GSM), machine auto-select + price compare, least-waste imposition.
+- 🟡 Remaining nice-to-haves: gutter/colour-bar margins as explicit inputs; per-machine operating-cost field
+  (PDF cost columns were blank). Fit uses max-paper; max-print shown + gripper-clearance warning.
+
 ## 6b. NKK SIR'S CANONICAL METHOD (★ source-of-truth algorithm — build & test against this)
 
 > His guidance: *"Make the algorithm, then test it manually 2–10 times until perfect.
