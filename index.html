@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Paper Calculator</title>
+<style>
+  :root{
+    --ink:#101a26;--muted:#6a7686;--line:#e3e7ee;--line2:#eef1f6;
+    --bg1:#eef1f6;--bg2:#e6ebf2;
+    --brand:#13314f;--brand2:#1f5286;--accent:#b8862f;--accent2:#caa14e;
+    --good:#1c7a52;--good2:#249060;--bad:#c0392b;--warn:#a9761a;
+    --shadow:0 1px 2px rgba(16,26,38,.04),0 6px 20px rgba(16,26,38,.06);
+    --shadow-lg:0 2px 6px rgba(16,26,38,.06),0 18px 50px rgba(16,26,38,.10);
+  }
+  *{box-sizing:border-box}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{margin:0;font-family:"Inter","Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
+    background:linear-gradient(180deg,var(--bg1),var(--bg2)) fixed;color:var(--ink);line-height:1.5;font-size:14px}
+
+  /* ---- Masthead ---- */
+  header{background:
+      radial-gradient(120% 140% at 92% -20%,rgba(184,134,47,.30),transparent 55%),
+      linear-gradient(120deg,#0e2740 0%,#13314f 45%,#1f5286 120%);
+    color:#fff;padding:0;border-bottom:3px solid var(--accent);box-shadow:var(--shadow)}
+  .masthead{max-width:1140px;margin:0 auto;padding:22px 24px;display:flex;align-items:center;gap:16px}
+  .brandmark{width:46px;height:46px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:24px;background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+  header h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.2px;line-height:1.15}
+  header h1 .sub{font-weight:400;color:var(--accent2)}
+  header p{margin:3px 0 0;opacity:.82;font-size:12.5px;max-width:680px}
+  .tagchip{margin-left:auto;align-self:flex-start;font-size:11px;letter-spacing:.5px;text-transform:uppercase;
+    color:#dCe6f1;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:5px 12px;white-space:nowrap}
+
+  .wrap{max-width:1140px;margin:0 auto;padding:22px 24px}
+  .grid{display:grid;grid-template-columns:392px 1fr;gap:22px;align-items:start}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+
+  h2{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--brand2);font-weight:700;
+    margin:20px 0 11px;padding-bottom:7px;border-bottom:1px solid var(--line2);display:flex;align-items:center;gap:7px}
+  h2:first-of-type{margin-top:0}
+  h2::before{content:"";width:4px;height:13px;border-radius:2px;background:linear-gradient(var(--accent),var(--accent2))}
+
+  label{display:block;font-size:11.5px;font-weight:600;color:#46505e;margin-bottom:5px;letter-spacing:.1px}
+  .fld{margin-bottom:12px}
+  input,select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;
+    background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
+  input::placeholder{color:#aab2bd}
+  input:hover,select:hover{border-color:#c4ccd6}
+  input:focus,select:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 3px rgba(31,82,134,.15)}
+  input:disabled{background:#f3f5f8;color:#7c8694}
+  input.bad{border-color:var(--bad);background:#fdf2f2;box-shadow:0 0 0 3px rgba(192,57,43,.10)}
+  select{appearance:none;-webkit-appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236a7686' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45}
+
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:flex;align-items:center;gap:7px;border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:13px;
+    font-weight:500;cursor:pointer;user-select:none;background:#fff;transition:.15s}
+  .chip:hover{border-color:var(--brand2);background:#f6f9fc}
+  .chip input{width:auto;accent-color:var(--brand2)}
+  .chip:has(input:checked){background:#eef4fa;border-color:var(--brand2);color:var(--brand)}
+
+  .go{cursor:pointer;border:0;border-radius:12px;font-weight:700;font-size:15px;letter-spacing:.2px;padding:14px;color:#fff;
+    background:linear-gradient(135deg,var(--good),var(--good2));width:100%;margin-top:18px;
+    box-shadow:0 8px 18px rgba(28,122,82,.28);transition:transform .12s,box-shadow .12s,filter .12s}
+  .go:hover{filter:brightness(1.05);box-shadow:0 10px 24px rgba(28,122,82,.34)}
+  .go:active{transform:translateY(1px)}
+  .err{color:var(--bad);font-size:13px;margin-top:11px;min-height:1px;font-weight:500}
+  .placeholder{color:var(--muted);font-size:13.5px;text-align:center;padding:56px 18px;line-height:1.6;
+    border:1.5px dashed var(--line);border-radius:14px}
+
+  .opensize{background:linear-gradient(#f3f8fd,#eef5fc);border:1px solid #d4e4f3;border-radius:12px;padding:11px 14px;
+    font-size:13px;color:#1a3f63;margin-bottom:14px}
+  .resulthead{border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;
+    background:radial-gradient(120% 130% at 88% -10%,rgba(202,161,78,.34),transparent 55%),linear-gradient(125deg,#10341f,#1c7a52)}
+  .rh-lbl{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;opacity:.86}
+  .rh-big{font-size:27px;font-weight:800;margin:3px 0;letter-spacing:.2px}
+  .rh-sub{font-size:13px;opacity:.95;line-height:1.5}
+
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;margin-top:8px}
+  th,td{padding:9px 8px;border-bottom:1px solid var(--line2);text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;
+    border-bottom:1.5px solid var(--line);background:#fafbfd;position:sticky;top:0}
+  tbody tr[data-click]{cursor:pointer;transition:background .12s}
+  tbody tr[data-click]:hover{background:#f5f8fb}
+  tr.best{background:#eaf7f0!important} tr.best td{font-weight:700;color:#125e3c}
+  tr.nofit td{color:var(--warn)}
+
+  .pill{display:inline-block;color:#fff;border-radius:6px;padding:2px 7px;font-size:9.5px;font-weight:700;letter-spacing:.4px;
+    text-transform:uppercase;margin-left:6px;background:var(--brand2);vertical-align:middle}
+  .pbox{background:#f8fafc;border:1px solid var(--line2);border-radius:13px;padding:14px;margin-top:14px}
+  .ptitle{font-size:12px;font-weight:700;color:var(--brand);margin-bottom:9px;letter-spacing:.2px}
+  .prow{display:flex;gap:10px;margin-bottom:9px} .prow span{flex:1}
+  .prow label{font-size:11px;margin-bottom:3px} .prow input,.prow select{padding:8px 10px;font-size:13px;border-radius:9px}
+
+  .mbtn{cursor:pointer;border:0;border-radius:10px;font-weight:600;font-size:13.5px;padding:11px 16px;margin:5px 7px 0 0;transition:.15s}
+  .mbtn.p{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 5px 14px rgba(19,49,79,.22)}
+  .mbtn.p:hover{filter:brightness(1.08)}
+  .mbtn.s{background:#eef3f9;color:var(--brand);border:1px solid #d2dded}
+  .mbtn.s:hover{background:#e4edf6}
+  .suggest{background:linear-gradient(#fff9ec,#fef4e0);border:1px solid #efd9a6;border-radius:12px;padding:11px 14px;
+    font-size:12.5px;color:#7a5810;margin-top:12px;line-height:1.5}
+</style>
+</head>
+<body>
+<header>
+  <div class="masthead">
+    <div class="brandmark">📐</div>
+    <div>
+      <h1>Print Estimator <span class="sub">· Paper &amp; Costing</span></h1>
+      <p>Signature products use the <b>open (spread)</b> size automatically; sheet products skip it. Margins in mm. Rates from the vendor price master.</p>
+    </div>
+    <span class="tagchip">Anderson Technology</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Job</h2>
+      <div class="fld"><label>Product / job name</label><input id="product_name" type="text" placeholder="e.g. Annual brochure" /></div>
+      <div class="row">
+        <div class="fld"><label>Product type</label>
+          <select id="product" onchange="onProductChange()">
+            <optgroup label="Signature-based (extent → signature → forms)">
+              <option value="booklet" selected>Book / Booklet</option>
+              <option value="catalogue">Catalogue</option>
+              <option value="magazine">Magazine</option>
+              <option value="manual">Manual</option>
+              <option value="annual">Annual report</option>
+              <option value="brochure_multi">Brochure (multi-page)</option>
+            </optgroup>
+            <optgroup label="Non-signature (size → ups → qty)">
+              <option value="leaflet">Leaflet / Flyer</option>
+              <option value="poster">Poster</option>
+              <option value="card">Visiting / Greeting card</option>
+              <option value="calendar_sheet">Single-sheet calendar</option>
+              <option value="calendar_table">Table calendar</option>
+              <option value="dangler">Dangler / Tent card</option>
+              <option value="insert">Loose insert / single sheet</option>
+            </optgroup>
+          </select></div>
+        <div class="fld"><label>Orientation</label>
+          <select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
+      </div>
+      <div class="row3">
+        <div class="fld"><label>Width</label><input id="W" type="number" step="0.5" placeholder="e.g. 7" /></div>
+        <div class="fld"><label>Height</label><input id="H" type="number" step="0.5" placeholder="e.g. 9.5" /></div>
+        <div class="fld"><label>Unit</label><select id="unit"><option value="in" selected>inch</option><option value="mm">mm</option><option value="cm">cm</option></select></div>
+      </div>
+      <div class="hint" id="closedHint">Booklet: enter the <b>closed</b> page size — open spread is auto-calculated.</div>
+
+      <div id="bookletFields">
+        <div class="row3">
+          <div class="fld"><label>Extent (total pages)</label><input id="pages" type="number" placeholder="e.g. 80" /></div>
+          <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>16</option><option>32</option></select></div>
+          <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" /></div>
+        </div>
+        <div class="fld"><label>Cover type</label>
+          <select id="coverType" onchange="onCoverChange()">
+            <option value="none">No cover</option>
+            <option value="self">Self cover (same stock as text)</option>
+            <option value="separate" selected>Separate cover (own stock)</option>
+          </select></div>
+        <input type="checkbox" id="separateCover" checked style="display:none" />
+        <div id="coverFields" class="pbox" style="margin:0 0 10px">
+          <div class="ptitle">Cover component</div>
+          <div class="row3">
+            <div class="fld"><label>Cover paper (price list)</label><select id="coverGrade" onchange="onCoverPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual</option></select></div>
+            <div class="fld"><label>Cover GSM</label><select id="coverGsmSel" onchange="onCoverPick()"><option value="">—</option></select></div>
+            <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="100" oninput="showPrice()" /></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Cover GSM (used)</label><input id="coverGsm" type="number" value="300" oninput="showPrice()" /></div>
+            <div class="fld"><label>Cover paper ₹/sheet</label><input id="coverPaperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onCoverRateEdit()" /></div>
+            <div class="fld" style="align-self:end;font-size:11px;color:#6b7480" id="coverRateNote">Manual rate.</div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Cover colours front</label><input id="coverCf" type="number" value="4" oninput="showPrice()" /></div>
+            <div class="fld"><label>Cover colours back</label><input id="coverCb" type="number" value="4" oninput="showPrice()" /></div>
+            <div class="fld"><label>Cover coating</label><select id="coverLam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></div>
+          </div>
+        </div>
+      </div>
+      <div id="flatFields" style="display:none">
+        <div class="row">
+          <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" /></div>
+          <div class="fld"><label>Extent (sheets/versions per product)</label><input id="extentFlat" type="number" value="1" placeholder="1" />
+            <div class="hint">Multiplies paper (e.g. table calendar = 12 leaves). Default 1.</div></div>
+        </div>
+      </div>
+      <div class="fld"><label id="gsmLabel">Text paper GSM</label><input id="gsm" type="number" placeholder="e.g. 130" /></div>
+
+      <h2>Margins (mm)</h2>
+      <label class="chip" style="margin-bottom:10px;font-weight:600"><input type="checkbox" id="trimmed" checked onchange="if(RESULT)run()" /> Trimmed job (apply bleed + paper-trim) — uncheck for no-trim</label>
+      <div class="row3">
+        <div class="fld"><label>Bleed</label><input id="bleed" type="number" placeholder="3" /></div>
+        <div class="fld"><label>Gripper</label><input id="gripper" type="number" placeholder="10" /></div>
+        <div class="fld"><label>Side-lay</label><input id="sidelay" type="number" placeholder="3" /></div>
+      </div>
+      <div class="row3">
+        <div class="fld"><label>Backside</label><input id="backside" type="number" placeholder="3" /></div>
+        <div class="fld"><label>Paper trim</label><input id="paperTrim" type="number" placeholder="3" /></div>
+        <div class="fld" style="display:flex;align-items:flex-end"><label class="chip" style="margin:0;font-weight:600"><input type="checkbox" id="rotate" /> Rotate</label></div>
+      </div>
+
+      <h2>Wastage</h2>
+      <div class="row">
+        <div class="fld"><label>Make-ready sheets</label><input id="setup" type="number" placeholder="100" /></div>
+        <div class="fld"><label>Running waste (%)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
+      </div>
+
+      <h2>Sheet sizes (in) — incl. cut-downs</h2>
+      <div class="chips">
+        <label class="chip"><input type="checkbox" class="ss" value="20,30" checked /> 20×30</label>
+        <label class="chip"><input type="checkbox" class="ss" value="23,36" checked /> 23×36</label>
+        <label class="chip"><input type="checkbox" class="ss" value="25,36" checked /> 25×36</label>
+        <label class="chip"><input type="checkbox" class="ss" value="28,40" checked /> 28×40</label>
+        <label class="chip"><input type="checkbox" class="ss" value="30,40" checked /> 30×40</label>
+      </div>
+
+      <button class="go" onclick="run()">🔍 Find Minimum Paper Usage</button>
+      <div id="err" class="err"></div>
+    </div>
+
+    <!-- RESULTS -->
+    <div class="card">
+      <div id="placeholder" class="placeholder">Fill the job and click <b>Find Minimum Paper Usage</b> — the open size, the lowest-wastage sheet, its layout and the price appear here.</div>
+      <div id="results" style="display:none">
+        <div class="opensize" id="opensize"></div>
+        <div class="resulthead">
+          <div class="rh-lbl" id="m_lbl">♻️ Lowest-wastage sheet</div>
+          <div class="rh-big" id="m_size"></div>
+          <div class="rh-sub" id="m_sub"></div>
+        </div>
+        <div id="diagram" style="margin-top:12px"></div>
+        <div id="machine"></div>
+        <div class="pbox">
+          <div class="ptitle">💰 Colour · plate · impression · price</div>
+          <div class="prow">
+            <span><label>Colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
+            <span><label>Front</label><input id="cf" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
+            <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
+          </div>
+          <div class="prow">
+            <span style="flex:2"><label>Paper (price list)</label><select id="paperGrade" onchange="onPaperPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual rate</option></select></span>
+            <span><label>Paper GSM</label><select id="paperGsmSel" onchange="onPaperPick()"><option value="">—</option></select></span>
+          </div>
+          <div class="prow">
+            <span><label>Coating</label><select id="lam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></span>
+            <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="cover" selected>Cover only</option><option value="all">All sheets</option></select></span>
+            <span><label id="paperRateLabel">Text paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onPaperRateEdit()" /></span>
+          </div>
+          <div id="paperRateNote" class="hint" style="margin:-4px 0 8px"></div>
+          <div class="prow">
+            <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="showPrice()">
+              <option value="anderson" selected>Naba Mudran (agreement)</option>
+              <option value="nabamudran">Nabamudran Heidelberg-102</option>
+              <option value="komori_l40">Komori L-40</option>
+              <option value="komori_l32">Komori L-32</option>
+              <option value="balaji_2030">Balaji Press 20×30</option>
+              <option value="balaji_1925">Balaji Press 19×25</option>
+            </select></span>
+            <span><label>Coating rate source</label><select id="coatSrc" onchange="showPrice()">
+              <option value="card" selected>Standard card</option><option value="anderson">Anderson agreement</option>
+            </select></span>
+            <span><label>Work style</label><select id="workStyle" onchange="if(CHOSEN)drawInto('diagram',CHOSEN);showPrice()">
+              <option value="back" selected>Work &amp; back (sheetwise)</option>
+              <option value="turn">Work &amp; turn</option>
+              <option value="tumble">Work &amp; tumble</option>
+            </select></span>
+          </div>
+          <div class="prow" id="bindingFields">
+            <span><label>Binding</label><select id="binding" onchange="setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="perfect">Perfect binding</option><option value="sewn">Section sewn</option><option value="case">Hard case</option></select></span>
+            <span><label>Binding ₹/book</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="showPrice()" /></span>
+            <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
+          </div>
+          <div class="prow">
+            <span><label>Margin %</label><input id="margin" type="number" value="28" oninput="showPrice()" /></span>
+            <span><label>GST %</label><input id="gst" type="number" value="18" oninput="showPrice()" /></span>
+            <span></span>
+          </div>
+        </div>
+        <div class="pbox">
+          <div class="ptitle">Quotation details</div>
+          <div class="prow">
+            <span><label>Customer / company</label><input id="customer" type="text" placeholder="Customer name" /></span>
+            <span><label>Quotation no.</label><input id="quoteNo" type="text" placeholder="Auto-generated" /></span>
+            <span><label>Valid for (days)</label><input id="validDays" type="number" value="15" /></span>
+          </div>
+          <div class="prow"><span><label>Notes / terms</label><input id="quoteNotes" type="text" placeholder="Delivery, payment or exclusions" /></span></div>
+        </div>
+        <div id="m_price" style="margin-top:10px"></div>
+        <div style="margin-top:10px">
+          <button class="mbtn p" onclick="printQuotation()">Print quotation</button>
+          <button class="mbtn s" onclick="printJobSheet()">Print internal job sheet</button>
+        </div>
+        <div style="margin-top:10px"><button class="mbtn p" onclick="printSheet()">🖨 Print cut sheet</button></div>
+        <div id="suggest"></div>
+        <h2 style="margin-top:18px;margin-bottom:4px">All sheet sizes <span style="text-transform:none;font-weight:400;color:#6b7480">(click a row to switch)</span></h2>
+        <table>
+          <thead><tr><th>Sheet</th><th>Signature</th><th>Sheets</th><th>Reams</th><th>Weight</th><th>Waste %</th></tr></thead>
+          <tbody id="tb"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const MM=25.4;
+/* ---- PRODUCT CLASSIFICATION (NKK sir rule: identify product type BEFORE any calc) ----
+   Signature-based → extent → signature → forms → imposition → paper.
+   Non-signature   → size → ups → quantity → wastage → paper (NO signature, NO extent). */
+const SIGNATURE_PRODUCTS=new Set(["booklet","catalogue","magazine","manual","annual","brochure_multi"]);
+const isSig=p=>SIGNATURE_PRODUCTS.has(p);
+const PAPER_DB=[{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":125,"w":25.0,"h":36.0,"r":17.4},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":125,"w":28.0,"h":40.0,"r":22.3},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":150,"w":25.0,"h":36.0,"r":19.45},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":150,"w":28.0,"h":40.0,"r":26.75},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":150,"w":23.0,"h":33.0,"r":17.9},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":150,"w":25.0,"h":35.98,"r":17.9},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":170,"w":25.0,"h":36.0,"r":23.9},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":170,"w":28.0,"h":40.0,"r":30.2},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":180,"w":25.0,"h":36.0,"r":25.05},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":180,"w":28.0,"h":40.0,"r":31.75},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":210,"w":25.0,"h":36.0,"r":30.0},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":210,"w":28.0,"h":40.0,"r":37.95},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":230,"w":25.0,"h":36.0,"r":32.0},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":230,"w":25.0,"h":33.27,"r":29.85},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":230,"w":28.0,"h":40.0,"r":41.9},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":250,"w":25.0,"h":36.0,"r":36.0},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":250,"w":28.0,"h":40.0,"r":45.55},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":280,"w":25.0,"h":36.0,"r":40.3},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":280,"w":28.0,"h":40.0,"r":41.0},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":135,"w":25.0,"h":36.0,"r":18.96},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":135,"w":28.0,"h":40.0,"r":24.0},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":160,"w":25.0,"h":36.0,"r":22.45},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":160,"w":28.0,"h":40.0,"r":28.45},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":190,"w":25.0,"h":36.0,"r":26.0},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":190,"w":28.0,"h":40.0,"r":32.95},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":210,"w":25.0,"h":36.0,"r":28.75},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":210,"w":28.0,"h":40.0,"r":31.5},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":230,"w":25.0,"h":36.0,"r":39.85},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":230,"w":28.0,"h":40.0,"r":34.55},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":250,"w":25.0,"h":36.0,"r":34.56},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":250,"w":28.0,"h":40.0,"r":43.7},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":310,"w":25.0,"h":36.0,"r":42.8},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":310,"w":28.0,"h":40.0,"r":54.2},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":125,"w":25.0,"h":36.0,"r":17.4},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":125,"w":28.0,"h":40.0,"r":22.05},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":160,"w":25.0,"h":36.0,"r":22.1},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":160,"w":28.0,"h":40.0,"r":27.95},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":220,"w":25.0,"h":36.0,"r":30.4},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":220,"w":28.0,"h":40.0,"r":38.45},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":200,"w":25.0,"h":36.0,"r":28.3},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":200,"w":28.0,"h":40.0,"r":35.85},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":245,"w":25.0,"h":36.0,"r":34.4},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":245,"w":28.0,"h":40.0,"r":43.55},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":285,"w":25.0,"h":36.0,"r":40.05},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":285,"w":28.0,"h":40.0,"r":50.65},{"t":"Special Paper","g":"S-PLUS","b":"MOORIM","gsm":100,"w":25.0,"h":36.0,"r":12.3},{"t":"Special Paper","g":"S-PLUS","b":"MOORIM","gsm":100,"w":28.0,"h":40.0,"r":15.6},{"t":"Special Paper","g":"S-PLUS","b":"MOORIM","gsm":120,"w":25.0,"h":36.0,"r":14.65},{"t":"Special Paper","g":"S-PLUS","b":"MOORIM","gsm":120,"w":28.0,"h":40.0,"r":17.8},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":120,"w":25.2,"h":35.4,"r":25.25},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":32.25},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":145,"w":25.2,"h":35.4,"r":30.5},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":145,"w":28.3,"h":40.1,"r":39.0},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":170,"w":25.2,"h":35.4,"r":35.75},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":170,"w":28.3,"h":40.1,"r":45.75},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":200,"w":25.2,"h":35.4,"r":41.75},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":200,"w":28.3,"h":40.1,"r":53.25},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":240,"w":25.2,"h":35.4,"r":50.0},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":240,"w":28.3,"h":40.1,"r":63.75},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":280,"w":25.2,"h":35.4,"r":58.25},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":280,"w":28.3,"h":40.1,"r":74.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":120,"w":25.2,"h":35.4,"r":25.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":32.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":145,"w":25.2,"h":35.4,"r":30.5},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":145,"w":28.3,"h":40.1,"r":39.0},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":200,"w":25.2,"h":35.4,"r":41.75},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":200,"w":28.3,"h":40.1,"r":53.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":280,"w":25.2,"h":35.4,"r":58.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":280,"w":28.3,"h":40.1,"r":74.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":100,"w":25.0,"h":36.0,"r":18.5},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":100,"w":27.6,"h":39.4,"r":22.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":100,"w":28.3,"h":40.1,"r":23.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":130,"w":25.0,"h":36.0,"r":22.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":130,"w":27.6,"h":39.4,"r":27.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":130,"w":28.3,"h":40.1,"r":28.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":160,"w":25.0,"h":36.0,"r":28.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":160,"w":27.6,"h":39.4,"r":33.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":160,"w":28.3,"h":40.1,"r":35.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":190,"w":25.0,"h":36.0,"r":33.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":190,"w":27.6,"h":39.4,"r":40.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":190,"w":28.3,"h":40.1,"r":42.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":240,"w":25.0,"h":36.0,"r":42.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":240,"w":27.6,"h":39.4,"r":50.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":240,"w":28.3,"h":40.1,"r":52.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":270,"w":25.0,"h":36.0,"r":47.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":270,"w":27.6,"h":39.4,"r":56.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":270,"w":28.3,"h":40.1,"r":59.5},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":120,"w":28.3,"h":39.8,"r":38.0},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":160,"w":25.2,"h":35.4,"r":40.0},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":160,"w":28.3,"h":39.8,"r":50.5},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":200,"w":28.3,"h":39.8,"r":61.5},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":240,"w":25.2,"h":35.4,"r":58.25},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":240,"w":28.3,"h":39.8,"r":73.5},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":300,"w":25.2,"h":39.4,"r":72.75},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":300,"w":28.3,"h":39.8,"r":92.0},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":120,"w":28.3,"h":39.8,"r":38.0},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":160,"w":25.2,"h":35.4,"r":40.0},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":160,"w":28.3,"h":39.8,"r":50.5},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":200,"w":28.3,"h":39.8,"r":61.5},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":260,"w":25.2,"h":35.4,"r":63.25},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":260,"w":28.3,"h":39.8,"r":79.75},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":300,"w":25.2,"h":35.4,"r":72.75},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":300,"w":28.3,"h":39.8,"r":92.0},{"t":"Special Paper","g":"MYARTELIBRIS BLU","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"MYARTELIBRIS FUMO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"MYARTELIBRIS  BLU NAVY","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":54.0},{"t":"Special Paper","g":"MY ARTELIBRIS ROSSO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"MY ARTELIBRIS CAFFE","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":54.0},{"t":"Special Paper","g":"MY ARTELIBRIS GRIGIO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"MY ARTELIBRIS BIANCO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":43.0},{"t":"Special Paper","g":"MY ARTELIBRIS AVORIO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":43.0},{"t":"Special Paper","g":"MY ARTELIBRIS KAKI","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"BUSAN BLUE","b":"CARDINAL","gsm":250,"w":25.0,"h":35.8,"r":41.0},{"t":"Special Paper","g":"BOMBAY BLUE","b":"CARDINAL","gsm":120,"w":25.0,"h":35.8,"r":21.0},{"t":"Special Paper","g":"BOMBAY BLUE","b":"CARDINAL","gsm":250,"w":25.0,"h":35.8,"r":43.5},{"t":"Special Paper","g":"BOCHAM BLUE","b":"CARDINAL","gsm":120,"w":25.0,"h":35.8,"r":21.0},{"t":"Special Paper","g":"BOCHAM BLUE","b":"CARDINAL","gsm":120,"w":31.0,"h":43.0,"r":31.0},{"t":"Special Paper","g":"BOCHAM BLUE","b":"CARDINAL","gsm":250,"w":25.0,"h":35.8,"r":43.5},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":105,"w":25.0,"h":36.0,"r":12.75},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":105,"w":28.3,"h":40.1,"r":16.0},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":128,"w":25.0,"h":36.0,"r":14.5},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":128,"w":28.3,"h":40.1,"r":18.25},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":157,"w":25.0,"h":36.0,"r":17.75},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":157,"w":28.3,"h":40.1,"r":22.5},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":186,"w":25.0,"h":36.0,"r":21.0},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":186,"w":28.3,"h":40.1,"r":26.5},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":256,"w":25.0,"h":36.0,"r":28.75},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":256,"w":28.3,"h":40.1,"r":36.25},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":300,"w":25.0,"h":36.0,"r":33.75},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":300,"w":28.3,"h":40.1,"r":42.5},{"t":"Special Paper","g":"MYLEATHERLIKE CLASSIC BLACK","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":142.0},{"t":"Special Paper","g":"MYLEATHERLIKE CLASSIC BLACK","b":"CARDINAL","gsm":230,"w":28.3,"h":40.1,"r":243.5},{"t":"Special Paper","g":"MYLEATHERLIKE CLASSIC BLACK","b":"CARDINAL","gsm":360,"w":28.3,"h":40.1,"r":380.0},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":90,"w":25.0,"h":35.8,"r":15.0},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":90,"w":31.0,"h":43.0,"r":22.5},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":120,"w":25.0,"h":35.8,"r":19.5},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":180,"w":25.0,"h":35.8,"r":28.75},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":250,"w":25.0,"h":35.8,"r":40.5},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":300,"w":25.0,"h":35.8,"r":48.5},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":250,"w":27.6,"h":39.4,"r":88.0},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":300,"w":27.6,"h":39.4,"r":104.0},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":390,"w":27.6,"h":39.4,"r":138.0},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":450,"w":27.6,"h":39.4,"r":157.0},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":700,"w":27.6,"h":39.4,"r":327.0},{"t":"Special Paper","g":"PLIKE BLACK","b":"CARDINAL","gsm":140,"w":28.3,"h":40.1,"r":95.0},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":20.0,"h":30.0,"r":4.03},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":23.0,"h":36.0,"r":5.56},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":25.0,"h":36.0,"r":6.05},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":20.0,"h":30.0,"r":4.43},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":23.0,"h":36.0,"r":6.11},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":25.0,"h":36.0,"r":6.64},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"NAINI","gsm":90,"w":25.0,"h":36.0,"r":6.48},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":20.0,"h":30.0,"r":4.92},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":23.0,"h":36.0,"r":6.79},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":22.0,"h":32.0,"r":5.77},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":25.0,"h":36.0,"r":8.86},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":23.0,"h":36.0,"r":8.15},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":20.0,"h":30.0,"r":5.9},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":20.0,"h":30.0,"r":6.4},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":23.0,"h":36.0,"r":8.83},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":25.0,"h":36.0,"r":9.59},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":22.0,"h":32.0,"r":7.5},{"t":"Coated Paper (C2S)","g":"ART PAPER(MATT)","b":"HI KOTE","gsm":130,"w":25.0,"h":36.0,"r":9.59},{"t":"Coated Paper (C2S)","g":"ART PAPER(MATT)","b":"HI KOTE","gsm":130,"w":23.0,"h":36.0,"r":8.83},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":20.0,"h":30.0,"r":7.72},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":23.0,"h":36.0,"r":10.66},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":25.0,"h":36.0,"r":11.59},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":25.0,"h":36.0,"r":12.09},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":23.0,"h":36.0,"r":11.12},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":20.0,"h":30.0,"r":8.06},{"t":"Coated Paper (C2S)","g":"ART PAPER(MATT)","b":"HI KOTE","gsm":170,"w":20.0,"h":30.0,"r":8.06},{"t":"Coated Paper (C2S)","g":"ART PAPER(MATT)","b":"HI KOTE","gsm":170,"w":25.0,"h":36.0,"r":12.09},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":20.0,"h":30.0,"r":9.48},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":23.0,"h":36.0,"r":13.08},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":25.0,"h":36.0,"r":14.22},{"t":"Coated Paper (C2S)","g":"ART BOARD(MATT)","b":"HI KOTE","gsm":210,"w":22.0,"h":28.0,"r":10.22},{"t":"Coated Paper (C2S)","g":"ART BOARD(MATT)","b":"HI KOTE","gsm":210,"w":25.0,"h":36.0,"r":14.93},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":20.0,"h":30.0,"r":9.95},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":22.0,"h":28.0,"r":10.22},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":23.0,"h":36.0,"r":13.74},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":25.0,"h":36.0,"r":14.93},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":25.0,"h":36.0,"r":17.77},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":23.0,"h":36.0,"r":16.35},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":20.0,"h":30.0,"r":11.85},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":22.0,"h":28.0,"r":12.17},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":25.0,"h":36.0,"r":21.33},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":23.0,"h":36.0,"r":19.62},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":20.0,"h":30.0,"r":14.22},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":25.0,"h":36.0,"r":18.68},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":23.0,"h":36.0,"r":17.18},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":22.0,"h":28.0,"r":12.78},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":300,"w":25.0,"h":36.0,"r":22.41},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":300,"w":23.0,"h":36.0,"r":20.62},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":300,"w":22.0,"h":28.0,"r":15.34},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":350,"w":25.0,"h":36.0,"r":26.14},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":350,"w":23.0,"h":36.0,"r":24.05},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":350,"w":22.0,"h":28.0,"r":17.89},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":22.0,"h":28.0,"r":11.86},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":23.0,"h":36.0,"r":15.94},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":25.0,"h":38.0,"r":18.29},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":31.5,"h":41.5,"r":25.16},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":22.0,"h":28.0,"r":13.28},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":23.0,"h":36.0,"r":17.85},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":25.0,"h":38.0,"r":20.48},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":31.5,"h":41.5,"r":28.18},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":22.0,"h":28.0,"r":14.23},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":23.0,"h":36.0,"r":19.13},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":25.0,"h":38.0,"r":21.95},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":31.5,"h":41.5,"r":30.2},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":20.0,"h":30.0,"r":3.19},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":25.0,"h":36.0,"r":4.79},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":23.0,"h":36.0,"r":4.4},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":20.0,"h":30.0,"r":3.74},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":25.0,"h":36.0,"r":5.62},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":23.0,"h":36.0,"r":5.17},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":20.0,"h":30.0,"r":4.21},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":25.0,"h":36.0,"r":6.32},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":23.0,"h":36.0,"r":5.81},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":20.0,"h":30.0,"r":4.68},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":20.0,"h":30.0,"r":5.62},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":23.0,"h":36.0,"r":7.75},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":25.0,"h":36.0,"r":8.42},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":60,"w":20.0,"h":30.0,"r":2.7},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":60,"w":23.0,"h":36.0,"r":3.73},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":60,"w":25.0,"h":36.0,"r":4.05},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":70,"w":20.0,"h":30.0,"r":3.15},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":70,"w":23.0,"h":36.0,"r":4.35},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":70,"w":25.0,"h":36.0,"r":4.72},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":80,"w":20.0,"h":30.0,"r":3.6},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":80,"w":23.0,"h":36.0,"r":4.97},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":80,"w":25.0,"h":36.0,"r":5.4},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":90,"w":20.0,"h":30.0,"r":4.05},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":90,"w":23.0,"h":36.0,"r":5.59},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":90,"w":25.0,"h":36.0,"r":6.08},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":120,"w":20.0,"h":30.0,"r":5.4},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":120,"w":23.0,"h":36.0,"r":7.45},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":120,"w":25.0,"h":36.0,"r":8.1},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":280,"w":22.0,"h":28.0,"r":13.45},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":280,"w":23.0,"h":36.0,"r":18.08},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":280,"w":25.0,"h":38.0,"r":20.75},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":280,"w":31.5,"h":41.5,"r":28.55},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":300,"w":22.0,"h":28.0,"r":14.41},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":300,"w":23.0,"h":36.0,"r":19.38},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":300,"w":25.0,"h":38.0,"r":22.23},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":300,"w":31.5,"h":41.5,"r":30.59},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":350,"w":23.0,"h":36.0,"r":22.6},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":350,"w":31.5,"h":41.5,"r":35.69},{"t":"SBS(CS1)","g":"ITC HIZINE","b":"ITC","gsm":120,"w":25.0,"h":36.0,"r":8.64},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":80,"w":20.0,"h":30.0,"r":4.08},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":80,"w":23.0,"h":36.0,"r":5.63},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":80,"w":25.0,"h":36.0,"r":6.12},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":90,"w":20.0,"h":30.0,"r":4.48},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":90,"w":23.0,"h":36.0,"r":6.19},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":90,"w":25.0,"h":36.0,"r":6.72},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":100,"w":20.0,"h":30.0,"r":4.8},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":100,"w":23.0,"h":36.0,"r":6.62},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":100,"w":22.0,"h":32.0,"r":5.63},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":120,"w":25.0,"h":36.0,"r":8.64},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":120,"w":23.0,"h":36.0,"r":7.95},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":120,"w":20.0,"h":30.0,"r":5.76},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":130,"w":20.0,"h":30.0,"r":6.24},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":130,"w":23.0,"h":36.0,"r":8.61},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":130,"w":25.0,"h":36.0,"r":9.36},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":130,"w":22.0,"h":32.0,"r":7.32},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":157,"w":20.0,"h":30.0,"r":7.54},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":157,"w":23.0,"h":36.0,"r":10.4},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":157,"w":25.0,"h":36.0,"r":11.3},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":170,"w":25.0,"h":36.0,"r":12.24},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":170,"w":23.0,"h":36.0,"r":11.26},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":170,"w":20.0,"h":30.0,"r":8.16},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":200,"w":20.0,"h":30.0,"r":9.12},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":200,"w":23.0,"h":36.0,"r":12.59},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":200,"w":25.0,"h":36.0,"r":13.68},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":210,"w":20.0,"h":30.0,"r":10.08},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":210,"w":22.0,"h":28.0,"r":10.35},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":210,"w":23.0,"h":36.0,"r":13.91},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":210,"w":25.0,"h":36.0,"r":15.12},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":25.0,"h":36.0,"r":18.0},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":23.0,"h":36.0,"r":16.56},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":20.0,"h":30.0,"r":12.0},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":22.0,"h":28.0,"r":12.32},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":25.0,"h":36.0,"r":18.9},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":23.0,"h":36.0,"r":17.39},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":20.0,"h":30.0,"r":12.6},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":22.0,"h":28.0,"r":12.94},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":25.0,"h":36.0,"r":21.6},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":23.0,"h":36.0,"r":19.87},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":20.0,"h":30.0,"r":14.4},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":25.0,"h":36.0,"r":18.0},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":23.0,"h":36.0,"r":16.56},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":22.0,"h":28.0,"r":12.32},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":25.0,"h":36.0,"r":21.6},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":23.0,"h":36.0,"r":19.87},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":22.0,"h":28.0,"r":14.78},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":350,"w":25.0,"h":36.0,"r":25.2},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":350,"w":23.0,"h":36.0,"r":23.18},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":350,"w":22.0,"h":28.0,"r":17.25},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":54,"w":20.0,"h":30.0,"r":2.56},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":54,"w":23.0,"h":36.0,"r":3.53},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":54,"w":25.0,"h":36.0,"r":3.84},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":20.0,"h":30.0,"r":3.32},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":25.0,"h":36.0,"r":4.98},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":23.0,"h":36.0,"r":4.58},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":20.0,"h":30.0,"r":3.79},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":25.0,"h":36.0,"r":5.69},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":23.0,"h":36.0,"r":5.23},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":20.0,"h":30.0,"r":4.27},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":25.0,"h":36.0,"r":6.4},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":23.0,"h":36.0,"r":5.89},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":20.0,"h":30.0,"r":4.74},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":23.0,"h":36.0,"r":6.54},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":25.0,"h":36.0,"r":7.11},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":20.0,"h":30.0,"r":5.69},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":23.0,"h":36.0,"r":7.85},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":25.0,"h":36.0,"r":8.53},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":140,"w":20.0,"h":30.0,"r":6.64},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":140,"w":23.0,"h":36.0,"r":9.16},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":140,"w":25.0,"h":36.0,"r":9.95},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":60,"w":20.0,"h":30.0,"r":2.92},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":60,"w":23.0,"h":36.0,"r":4.02},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":60,"w":25.0,"h":36.0,"r":4.37},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":70,"w":20.0,"h":30.0,"r":3.4},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":70,"w":23.0,"h":36.0,"r":4.69},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":70,"w":25.0,"h":36.0,"r":5.1},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":80,"w":20.0,"h":30.0,"r":3.89},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":80,"w":23.0,"h":36.0,"r":5.37},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":80,"w":25.0,"h":36.0,"r":5.83},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":90,"w":20.0,"h":30.0,"r":4.37},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":90,"w":23.0,"h":36.0,"r":6.04},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":90,"w":25.0,"h":36.0,"r":6.56},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":120,"w":20.0,"h":30.0,"r":5.83},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":120,"w":23.0,"h":36.0,"r":8.05},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":120,"w":25.0,"h":36.0,"r":8.75},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":20.0,"h":30.0,"r":3.98},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":23.0,"h":36.0,"r":5.5},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":25.0,"h":36.0,"r":5.98},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":20.0,"h":30.0,"r":4.37},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":23.0,"h":36.0,"r":6.04},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":25.0,"h":36.0,"r":6.56},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":20.0,"h":30.0,"r":4.68},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":23.0,"h":36.0,"r":6.46},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":22.0,"h":32.0,"r":5.49},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":25.0,"h":36.0,"r":8.42},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":23.0,"h":36.0,"r":7.75},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":20.0,"h":30.0,"r":5.62},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":20.0,"h":30.0,"r":6.08},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":23.0,"h":36.0,"r":8.4},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":25.0,"h":36.0,"r":9.13},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":22.0,"h":32.0,"r":7.14},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":20.0,"h":30.0,"r":7.35},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":23.0,"h":36.0,"r":10.14},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":25.0,"h":36.0,"r":11.02},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":25.0,"h":36.0,"r":11.93},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":23.0,"h":36.0,"r":10.98},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":20.0,"h":30.0,"r":7.96},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":20.0,"h":30.0,"r":9.24},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":23.0,"h":36.0,"r":12.75},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":25.0,"h":36.0,"r":13.86},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":20.0,"h":30.0,"r":9.7},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":22.0,"h":28.0,"r":9.96},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":23.0,"h":36.0,"r":13.39},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":25.0,"h":36.0,"r":14.55},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":25.0,"h":36.0,"r":17.32},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":23.0,"h":36.0,"r":15.94},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":20.0,"h":30.0,"r":11.55},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":22.0,"h":28.0,"r":11.86},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":25.0,"h":36.0,"r":20.79},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":23.0,"h":36.0,"r":19.13},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":20.0,"h":30.0,"r":13.86},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":25.0,"h":36.0,"r":17.32},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":23.0,"h":36.0,"r":15.94},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":22.0,"h":28.0,"r":11.86},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":25.0,"h":36.0,"r":20.79},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":23.0,"h":36.0,"r":19.13},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":22.0,"h":28.0,"r":14.23},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":350,"w":25.0,"h":36.0,"r":24.25},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":350,"w":23.0,"h":36.0,"r":22.31},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":350,"w":22.0,"h":28.0,"r":16.6},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":22.0,"h":28.0,"r":14.23},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":23.0,"h":36.0,"r":19.13},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":25.0,"h":36.0,"r":20.79},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":31.5,"h":41.5,"r":30.2},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":22.0,"h":28.0,"r":11.86},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":23.0,"h":36.0,"r":15.94},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":25.0,"h":36.0,"r":17.32},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":31.5,"h":41.5,"r":25.16},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":22.0,"h":28.0,"r":11.86},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":23.0,"h":36.0,"r":15.94},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":25.0,"h":38.0,"r":18.29},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":31.5,"h":41.5,"r":25.16},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":22.0,"h":28.0,"r":14.14},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":23.0,"h":36.0,"r":19.01},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":25.0,"h":38.0,"r":21.81},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":31.5,"h":41.5,"r":30.01},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":22.0,"h":28.0,"r":15.15},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":23.0,"h":36.0,"r":20.37},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":25.0,"h":38.0,"r":23.37},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":31.5,"h":41.5,"r":32.16},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":20.0,"h":30.0,"r":3.19},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":25.0,"h":36.0,"r":4.79},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":23.0,"h":36.0,"r":4.4},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":20.0,"h":30.0,"r":3.65},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":25.0,"h":36.0,"r":5.47},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":23.0,"h":36.0,"r":5.03},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":20.0,"h":30.0,"r":4.1},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":25.0,"h":36.0,"r":6.16},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":23.0,"h":36.0,"r":5.66},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":20.0,"h":30.0,"r":4.56},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":20.0,"h":30.0,"r":5.47},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":23.0,"h":36.0,"r":7.55},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":25.0,"h":36.0,"r":8.21},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":60,"w":20.0,"h":30.0,"r":2.74},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":60,"w":23.0,"h":36.0,"r":3.78},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":60,"w":25.0,"h":36.0,"r":4.1},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":70,"w":20.0,"h":30.0,"r":3.19},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":70,"w":23.0,"h":36.0,"r":4.4},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":70,"w":25.0,"h":36.0,"r":4.79},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":80,"w":20.0,"h":30.0,"r":3.65},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":80,"w":23.0,"h":36.0,"r":5.03},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":80,"w":25.0,"h":36.0,"r":5.47},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":90,"w":20.0,"h":30.0,"r":4.1},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":90,"w":23.0,"h":36.0,"r":5.66},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":90,"w":25.0,"h":36.0,"r":6.16},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":120,"w":20.0,"h":30.0,"r":5.47},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":120,"w":23.0,"h":36.0,"r":7.55},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":120,"w":23.0,"h":36.0,"r":7.55},{"t":"Coated Paper (C2S)","g":"SSP","b":"BALLARPUR","gsm":90,"w":25.0,"h":36.0,"r":7.13},{"t":"Coated Paper (C2S)","g":"SSP","b":"BALLARPUR","gsm":90,"w":23.0,"h":36.0,"r":6.56},{"t":"Coated Paper (C2S)","g":"SSP","b":"BALLARPUR","gsm":90,"w":31.0,"h":40.0,"r":9.82},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"","gsm":128,"w":23.0,"h":36.0,"r":8.58},{"t":"Coated Paper (C2S)","g":"PINDO HI BULK GOLD","b":"PINDO","gsm":210,"w":28.0,"h":40.0,"r":20.46},{"t":"Coated Paper (C2S)","g":"PINDO HI BULK GOLD","b":"PINDO","gsm":210,"w":25.0,"h":36.0,"r":16.44},{"t":"Coated Paper (C2S)","g":"PINDO HI BULK GOLD","b":"PINDO","gsm":210,"w":23.0,"h":36.0,"r":15.13},{"t":"Coated Paper (C2S)","g":"PINDO HI BULK GOLD","b":"PINDO","gsm":210,"w":22.0,"h":28.0,"r":11.25},{"t":"BOND PAPER","g":"JK EXCEL BOND","b":"JK","gsm":120,"w":25.0,"h":36.0,"r":11.45},{"t":"BOND PAPER","g":"JK EXCEL BOND","b":"JK","gsm":100,"w":18.0,"h":23.0,"r":4.39},{"t":"BOND PAPER","g":"JK EXCEL BOND","b":"JK","gsm":80,"w":17.0,"h":24.0,"r":3.46},{"t":"BOND PAPER","g":"JK EXCEL BOND","b":"JK","gsm":80,"w":18.0,"h":23.0,"r":3.51},{"t":"Coated Paper (C2S)","g":"GLOSS ART PAPER","b":"HI COAT","gsm":170,"w":25.0,"h":36.0,"r":16.22},{"t":"MATT","g":"GLOSS ART PAPER","b":"HI COAT","gsm":170,"w":25.0,"h":36.0,"r":16.22},{"t":"Coated Paper (C2S)","g":"HIZINE","b":"BALLARPUR","gsm":120,"w":25.0,"h":36.0,"r":0},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":300,"w":25.0,"h":36.0,"r":21.33},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":300,"w":23.0,"h":36.0,"r":19.62},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":350,"w":25.0,"h":36.0,"r":24.89},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":350,"w":23.0,"h":36.0,"r":22.89},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":320,"w":25.0,"h":36.0,"r":22.75},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":260,"w":24.25,"h":17.76,"r":8.85},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":250,"w":23.0,"h":36.0,"r":16.35},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":250,"w":25.0,"h":36.0,"r":17.77},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":250,"w":31.0,"h":42.0,"r":25.71},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":220,"w":28.0,"h":33.0,"r":16.06},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":220,"w":31.5,"h":41.0,"r":22.45},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":220,"w":32.0,"h":42.0,"r":23.36},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":200,"w":22.0,"h":28.0,"r":9.73},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":200,"w":25.0,"h":36.0,"r":14.22},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":200,"w":25.0,"h":38.0,"r":15.01},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":200,"w":32.0,"h":42.0,"r":21.24}];
+function num(id,def){ const e=$(id); if(!e) return def; const v=e.value.trim(); if(v==="")return def; const n=parseFloat(v); return isFinite(n)?n:def; }
+function toIn(v,unit){ return unit==="mm"?v/MM : unit==="cm"?v/2.54 : v; }
+
+function onProductChange(){
+  const b=isSig($("product").value);
+  $("bookletFields").style.display=b?"block":"none";
+  $("flatFields").style.display=b?"none":"block";
+  $("closedHint").style.display=b?"block":"none";
+  $("bindingFields").style.display=b?"flex":"none";
+  $("gsmLabel").textContent=b?"Text paper GSM":"Paper GSM";
+  $("paperRateLabel").textContent=b?"Text paper ₹/sheet":"Paper ₹/sheet";
+  onCoverChange();
+}
+function onCoverChange(){
+  const sep=$("coverType")?$("coverType").value==="separate":$("separateCover").checked;
+  if($("separateCover")) $("separateCover").checked=sep;        // keep legacy flag in sync
+  const b=isSig($("product").value)&&sep;
+  $("coverFields").style.display=b?"block":"none";
+  $("lam").disabled=b; $("coatArea").disabled=b;
+  if(RESULT)run();
+}
+
+/* ---------- PAPER PRICE AUTO-PICKUP (from embedded PAPER_DB) ---------- */
+let PAPER_AUTO=false;
+function paperKey(o){return o.t+" — "+o.g;}
+function buildPaperPickers(){
+  const sel=$("paperGrade"); if(!sel)return;
+  const keys=[...new Set(PAPER_DB.map(paperKey))].sort();
+  for(const k of keys){ const op=document.createElement("option"); op.value=k; op.textContent=k; sel.appendChild(op); }
+}
+function fillGsmOptions(){
+  const key=$("paperGrade").value, gs=$("paperGsmSel");
+  gs.innerHTML="";
+  if(!key){ gs.innerHTML='<option value="">—</option>'; return; }
+  const gsms=[...new Set(PAPER_DB.filter(o=>paperKey(o)===key).map(o=>o.gsm))].sort((a,b)=>a-b);
+  for(const g of gsms){ const op=document.createElement("option"); op.value=g; op.textContent=g+" gsm"; gs.appendChild(op); }
+}
+// ₹/sheet for one DB row at a target sheet size (orientation-agnostic; area-scaled if size not exact)
+function sizeRate(o,w,h){
+  if((Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6)) return {rate:o.r,via:`${o.w}×${o.h} list`};
+  return {rate:+(o.r*(w*h)/(o.w*o.h)).toFixed(2),via:`scaled from ${o.w}×${o.h}`};
+}
+// rate for a chosen grade+gsm at a sheet size
+function lookupPaperRate(key,gsm,w,h){
+  const cands=PAPER_DB.filter(o=>paperKey(o)===key&&o.gsm===gsm&&o.r>0);
+  if(!cands.length)return null;
+  const exact=cands.find(o=>(Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6));
+  if(exact)return{rate:exact.r,via:`${exact.w}×${exact.h} list`};
+  let best=null,bd=1e9; for(const o of cands){const d=Math.abs(o.w*o.h-w*h);if(d<bd){bd=d;best=o;}}
+  return{rate:+(best.r*(w*h)/(best.w*best.h)).toFixed(2),via:`scaled from ${best.w}×${best.h}`};
+}
+// AUTO: best-priced paper for a given GSM at a sheet size (prefers exact-size list price, then cheapest)
+function lookupByGsm(gsm,w,h){
+  if(!(gsm>0))return null;
+  let cands=PAPER_DB.filter(o=>o.gsm===gsm&&o.r>0);
+  if(!cands.length){ let nd=1e9; for(const o of PAPER_DB) if(o.r>0) nd=Math.min(nd,Math.abs(o.gsm-gsm));
+    if(nd>15)return null; cands=PAPER_DB.filter(o=>o.r>0&&Math.abs(o.gsm-gsm)===nd); }
+  const exact=cands.filter(o=>(Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6));
+  const pool=exact.length?exact:cands;
+  let pick=null;
+  for(const o of pool){ const s=sizeRate(o,w,h); if(!pick||s.rate<pick.rate) pick={rate:s.rate,grade:paperKey(o),gsm:o.gsm,via:s.via}; }
+  return pick;
+}
+function onPaperPick(){
+  const grade=$("paperGrade").value, specific=grade!=="__auto"&&grade!=="";
+  $("paperGsmSel").disabled=!specific;
+  if(specific&&grade!==onPaperPick._lastKey) fillGsmOptions();
+  onPaperPick._lastKey=grade;
+  $("paperRate").readOnly=(grade!=="");                 // editable only in Manual mode
+  if(specific){ const g=parseFloat($("paperGsmSel").value); if(isFinite(g)&&LASTINP){ $("gsm").value=g; run(); return; } }
+  showPrice();
+}
+function onPaperRateEdit(){ $("paperGrade").value=""; $("paperRate").readOnly=false; $("paperRateNote").textContent="Manual rate."; showPrice(); }
+function autoPaperRate(){
+  if(!CHOSEN)return;
+  const grade=$("paperGrade").value;
+  if(grade==="") return;                                // Manual: leave typed value
+  if(grade==="__auto"){
+    const gsm=num("gsm",0), hit=lookupByGsm(gsm,CHOSEN.sw,CHOSEN.sh);
+    if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto @ ${gsm}gsm, ${CHOSEN.sw}×${CHOSEN.sh}: ${hit.grade} — ₹${hit.rate}/sheet (best price, ${hit.via}).`; }
+    else $("paperRateNote").textContent=`No ${gsm||"?"}gsm paper in the price list — choose a grade or enter the rate manually.`;
+    return;
+  }
+  const gsm=parseFloat($("paperGsmSel").value), hit=isFinite(gsm)?lookupPaperRate(grade,gsm,CHOSEN.sw,CHOSEN.sh):null;
+  if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${grade} ${gsm}gsm @ ${CHOSEN.sw}×${CHOSEN.sh} = ₹${hit.rate}/sheet (${hit.via}).`; }
+  else $("paperRateNote").textContent=`No list price for ${grade} ${gsm}gsm at ${CHOSEN.sw}×${CHOSEN.sh} — enter manually.`;
+}
+/* ---- COVER paper auto-pickup (same DB) ---- */
+let COVER_AUTO=false;
+function buildCoverPickers(){
+  const sel=$("coverGrade"); if(!sel)return;
+  const keys=[...new Set(PAPER_DB.map(paperKey))].sort();
+  for(const k of keys){ const op=document.createElement("option"); op.value=k; op.textContent=k; sel.appendChild(op); }
+}
+function fillCoverGsm(){
+  const key=$("coverGrade").value, gs=$("coverGsmSel"); gs.innerHTML="";
+  if(!key){ gs.innerHTML='<option value="">—</option>'; return; }
+  const gsms=[...new Set(PAPER_DB.filter(o=>paperKey(o)===key).map(o=>o.gsm))].sort((a,b)=>a-b);
+  for(const g of gsms){ const op=document.createElement("option"); op.value=g; op.textContent=g+" gsm"; gs.appendChild(op); }
+}
+function onCoverPick(){
+  const grade=$("coverGrade").value, specific=grade!=="__auto"&&grade!=="";
+  $("coverGsmSel").disabled=!specific;
+  if(specific&&grade!==onCoverPick._lastKey) fillCoverGsm();
+  onCoverPick._lastKey=grade;
+  $("coverPaperRate").readOnly=(grade!=="");
+  if(specific){ const g=parseFloat($("coverGsmSel").value); if(isFinite(g)) $("coverGsm").value=g; }  // drives cover weight
+  showPrice();
+}
+function onCoverRateEdit(){ $("coverGrade").value=""; $("coverPaperRate").readOnly=false; $("coverRateNote").textContent="Manual rate."; showPrice(); }
+// cover ₹/sheet for a given cover sheet size (auto from DB by grade or by GSM, else manual input)
+function coverRateFor(w,h){
+  const grade=$("coverGrade").value;
+  if(grade==="") return num("coverPaperRate",0);                  // manual
+  let hit;
+  if(grade==="__auto"){ hit=lookupByGsm(num("coverGsm",0),w,h); }
+  else { const gsm=parseFloat($("coverGsmSel").value); hit=isFinite(gsm)?lookupPaperRate(grade,gsm,w,h):null; }
+  if(hit){ $("coverPaperRate").value=hit.rate; $("coverRateNote").textContent=`Auto ₹${hit.rate}/sheet @ ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).`; return hit.rate; }
+  $("coverRateNote").textContent=`No list price @ ${w}×${h} — manual.`; return num("coverPaperRate",0);
+}
+
+/* ---------- PURE CALCULATION (NKK sir corrected logic) ---------- */
+function openSize(p){ // p.W,p.H in inches; returns spread in inches
+  let W=p.W, H=p.H;
+  if(isSig(p.product)){ if(p.orientation==="portrait") W=2*W; else H=2*H; }
+  return {w:W,h:H};
+}
+function computePaper(inp){
+  const m=inp.margins;                       // mm
+  const o=openSize(inp);                      // inches (open spread)
+  const cellW=o.w*MM+2*m.bleed, cellH=o.h*MM+2*m.bleed;   // mm imaged size
+  const orients=inp.rotate?["upright","rotated"]:["upright"];
+  const target=inp.sigPages;                   // your chosen signature (NKK sir's input)
+  const STD=[4,8,16,32];                        // standard folds; a sheet holds up to 4×(spreads that fit)
+  const options=inp.sizes.map(([wi,hi])=>{
+    const w=wi*MM,h=hi*MM, long=Math.max(w,h), short=Math.min(w,h);
+    const usableLong=long-2*m.sidelay-2*m.paperTrim;        // side-lay both sides + stock trim
+    const usableShort=short-m.gripper-m.backside-2*m.paperTrim; // gripper + backside + stock trim
+    let ups=0,orient="—",cols=0,rows=0,ua=0,ub=0;
+    for(const nm of orients){ const [a,b]=nm==="upright"?[cellW,cellH]:[cellH,cellW];
+      const cc=Math.floor(usableLong/a), rr=Math.floor(usableShort/b);
+      if(cc*rr>ups){ups=cc*rr;orient=nm;cols=cc;rows=rr;ua=a;ub=b;} }
+    const opt={sw:wi,sh:hi,ups,orient,cols,rows};
+    if(ups<=0){ opt.shortfall=+Math.max(cellW-usableLong, cellH-usableShort).toFixed(1); return opt; }
+    let sig=4, signatures=1, good, spc, sigDropped=false;
+    if(inp.isSig){
+      const cap=Math.min(target, 4*ups);        // largest signature that can FOLD from this sheet (4 × spreads/side)
+      for(const x of STD){ if(x<=cap) sig=x; }
+      sigDropped = !inp.sigAuto && sig<target;   // only a "drop" if user manually picked a bigger signature
+      signatures=Math.max(1,Math.ceil(inp.pages/sig));
+      good=signatures*inp.copies; spc=signatures;
+    } else { const ext=Math.max(1,inp.extent||1); good=Math.ceil(inp.copies/ups)*ext; spc=ext/ups; }   // extent multiplies paper (no signatures)
+    // NKK sir wastage spec: Production = Required × (1 + running%);  Total = Production + Setup
+    const production=good*(1+inp.running/100), total=Math.round(production+inp.setup), run=Math.round(production-good);
+    const reams=+(total/500).toFixed(1);
+    const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000;
+    // TRUE utilisation (Bug #1 fix): a signature uses `sig` of the sheet's 4×ups page capacity, so waste must
+    // reflect the chosen fold — not the full geometric packing. cell = open spread (2 pages). Flats use `ups` pieces.
+    const eff = inp.isSig ? 100*sig*cellW*cellH/(4*w*h) : 100*ups*cellW*cellH/(w*h);
+    Object.assign(opt,{sig,signatures,sigDropped,sheets_per_copy:spc,good,setup:inp.setup,run,total,reams,
+      total_wt:+(wt*total).toFixed(2), wt_sheet:+wt.toFixed(4), eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1),
+      cell_used_w:ua/MM, cell_used_h:ub/MM,
+      gripper:m.gripper/MM, sidelay:(m.sidelay+m.paperTrim)/MM, bleed:m.bleed/MM, gutter:0});
+    return opt;
+  });
+  const usable=options.filter(o=>o.ups>0);
+  const best=usable.slice().sort((a,b)=>a.total-b.total||(a.sw*a.sh*a.total)-(b.sw*b.sh*b.total))[0]||null;
+  const bestWaste=usable.slice().sort((a,b)=>a.waste-b.waste)[0]||null;
+  return {options,best,bestWaste,openW:o.w,openH:o.h,maxSig:target,cellW:+cellW.toFixed(1),cellH:+cellH.toFixed(1)};
+}
+
+/* ---------- read + validate ---------- */
+function run(){
+  $("err").textContent=""; document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
+  const booklet=isSig($("product").value);
+  const req=[["W","width"],["H","height"],["gsm","GSM"]];
+  req.push(booklet?["pages","total pages"]:[null,null], booklet?["copies","quantity"]:["copies2","quantity"]);
+  const missing=[];
+  for(const [id,name] of req){ if(!id)continue; const v=$(id).value.trim(); if(v===""||!(parseFloat(v)>0)){ $(id).classList.add("bad"); missing.push(name); } }
+  const sizes=[...document.querySelectorAll(".ss:checked")].map(c=>c.value.split(",").map(Number));
+  if(missing.length){ $("err").textContent="Please enter: "+missing.join(", ")+"."; return; }
+  if(!sizes.length){ $("err").textContent="Tick at least one sheet size."; return; }
+  const unit=$("unit").value;
+  // Binding-dependent page validation: saddle = multiple of 4; perfect/sewn/case = multiple of 2 (leaves)
+  if(booklet){
+    const bind=$("binding")?$("binding").value:"saddle";
+    const mult=(bind==="saddle"||bind==="none")?4:2;
+    const pg=Math.round(num("pages",0));
+    if(pg%mult!==0){ $("pages").classList.add("bad");
+      const up=Math.ceil(pg/mult)*mult, dn=Math.floor(pg/mult)*mult;
+      $("err").textContent=`For ${bind==="none"?"saddle":bind} binding, pages must be a multiple of ${mult}. Nearest valid: ${dn} or ${up}.`;
+      return; }
+  }
+  const inp={
+    product_name:$("product_name").value.trim(), product:$("product").value, isSig:booklet, orientation:$("orientation").value,
+    W:toIn(num("W"),unit), H:toIn(num("H"),unit),
+    pages:Math.round(num("pages",2)), totalPages:Math.round(num("pages",2)),
+    sigAuto:$("sigPages").value==="auto", sigPages:$("sigPages").value==="auto"?32:parseInt($("sigPages").value),
+    copies:Math.round(booklet?num("copies",1):num("copies2",1)),
+    extent:booklet?1:Math.max(1,Math.round(num("extentFlat",1))),
+    gsm:num("gsm"), rotate:$("rotate").checked,
+    margins:{bleed:num("bleed",3),gripper:num("gripper",10),sidelay:num("sidelay",3),backside:num("backside",3),paperTrim:num("paperTrim",3)},
+    trimmed:$("trimmed")?$("trimmed").checked:true,
+    setup:Math.round(num("setup",100)), running:num("running",5), sizes, unit
+  };
+  if(!inp.trimmed){ inp.margins.bleed=0; inp.margins.paperTrim=0; }   // no-trim: drop bleed + paper-trim allowances
+
+  inp.separateCover=booklet&&$("separateCover").checked;
+  if(inp.separateCover){
+    if(inp.totalPages<=4){ $("err").textContent="A separate cover needs more than 4 total pages."; return; }
+    inp.pages=inp.totalPages-4;
+  }
+  LASTINP=inp;
+  const r=computePaper(inp);
+  if(!r.options.some(o=>o.ups>0)){
+    render(r);
+    const least=r.options.slice().sort((a,b)=>a.shortfall-b.shortfall)[0];
+    $("err").textContent=`No sheet fits the ${r.openW}×${r.openH}" spread. Closest: ${least.sw}×${least.sh} — reduce design by ~${Math.ceil(least.shortfall)}mm or pick a larger sheet.`;
+    return;
+  }
+  render(r);
+}
+
+/* ---------- render ---------- */
+let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=true;
+function render(r){
+  RESULT=r; $("placeholder").style.display="none"; $("results").style.display="block";
+  const opensize = LASTINP.isSig
+    ? `Open spread: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${LASTINP.totalPages}pp${LASTINP.separateCover?` = ${LASTINP.pages}pp text + 4pp cover`:""} · signature <b>${LASTINP.sigAuto?"Auto (best fit per sheet)":r.maxSig+"pp"}</b>${LASTINP.sigAuto?"":" (drops per sheet if it won't fold)"}`
+    : `Finished size: <b>${r.openW} × ${r.openH} in</b>`;
+  $("opensize").innerHTML=opensize;
+  const bp=r.best, bw=r.bestWaste;
+  const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
+  $("tb").innerHTML=r.options.map((o,idx)=>{
+    if(!o.ups) return `<tr class="nofit"><td>${o.sw}×${o.sh}</td><td colspan="5" style="text-align:left">won't fit · reduce ~${Math.ceil(o.shortfall)}mm</td></tr>`;
+    const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh, isP=bp&&o.sw===bp.sw&&o.sh===bp.sh;
+    const noPress = !machinesFor(o.sw,o.sh,need).length;
+    const sigCell = LASTINP.isSig
+      ? `${o.sig}pp (${o.ups}up)${o.sigDropped?' <span class="pill" style="background:#b9770a">↓</span>':''}` : `${o.ups} (${o.orient})`;
+    return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}"><td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}${noPress?'<span class="pill" style="background:#c0392b">no press</span>':''}</td>`+
+      `<td>${sigCell}</td><td>${o.total.toLocaleString("en-IN")}</td><td>${o.reams}</td><td>${o.total_wt} kg</td><td>${o.waste}%</td></tr>`;
+  }).join("");
+  // suggestions for non-fitting sheets
+  const nofit=r.options.filter(o=>!o.ups);
+  $("suggest").innerHTML = nofit.length
+    ? `<div class="suggest">💡 ${nofit.map(o=>`${o.sw}×${o.sh} needs ~${Math.ceil(o.shortfall)}mm less`).join(" · ")}. Reduce the design slightly, rotate, or use a larger sheet.</div>` : "";
+  SELECTED_MACHINE=null;                         // re-recommend a press for this job
+  const runnable=r.options.filter(o=>o.ups&&machinesFor(o.sw,o.sh,need).length).sort((a,b)=>a.waste-b.waste||a.total-b.total)[0];
+  r.bestRunnable=runnable||null;
+  showSheet(runnable||bw||bp||r.options.find(o=>o.ups));
+}
+function showSheet(o){
+  if(!o||!o.ups)return; CHOSEN=o;
+  const isBW=RESULT&&RESULT.bestWaste&&o.sw===RESULT.bestWaste.sw&&o.sh===RESULT.bestWaste.sh;
+  const isBR=RESULT&&RESULT.bestRunnable&&o.sw===RESULT.bestRunnable.sw&&o.sh===RESULT.bestRunnable.sh;
+  $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":isBR?"Lowest-wastage runnable sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
+  $("m_size").textContent=`${o.sw} × ${o.sh} in`;
+  if(LASTINP.isSig){
+    $("m_sub").innerHTML=`${o.sig}pp signature → ${o.signatures}/book · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
+      (o.sigDropped?`<div style="margin-top:5px;color:#ffd9a8">⚠ Your ${RESULT.maxSig}pp signature won't fold from this sheet — using ${o.sig}pp (= ${o.signatures} signatures, more sheets).</div>`:"");
+  } else {
+    $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.total_wt} kg`;
+  }
+  drawInto("diagram",o); renderMachine(o); showPrice();
+}
+function drawIdx(i){ if(RESULT&&RESULT.options[i]&&RESULT.options[i].ups) showSheet(RESULT.options[i]); }
+
+/* ---------- diagram ---------- */
+function buildSVG(o,numFn,gripTop){
+  const long=Math.max(o.sw,o.sh), short=Math.min(o.sw,o.sh);
+  const W=360, sc=W/long, H=Math.round(short*sc);
+  const g=o.gripper*sc, sl=o.sidelay*sc, bl=o.bleed*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
+  const yOff=gripTop?g:0;                                   // gripper at top (tumble) pushes cells down
+  const fs=Math.max(7,Math.min(13,cw/2.6)); let cells="";
+  for(let r=0;r<o.rows;r++) for(let c=0;c<o.cols;c++){
+    const x=sl+c*cw, y=yOff+r*ch;
+    cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${cw.toFixed(1)}" height="${ch.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3" stroke-width="0.7"/>`;
+    if(bl>1) cells+=`<rect x="${(x+bl).toFixed(1)}" y="${(y+bl).toFixed(1)}" width="${(cw-2*bl).toFixed(1)}" height="${(ch-2*bl).toFixed(1)}" fill="none" stroke="#9bbbe0" stroke-dasharray="2 2" stroke-width="0.5"/>`;
+    cells+=`<text x="${(x+cw/2).toFixed(1)}" y="${(y+ch/2+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold">${numFn(r,c)}</text>`;
+  }
+  const uH=(H-g).toFixed(1);
+  const side=`<rect x="0" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/><rect x="${(W-sl).toFixed(1)}" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/>`;
+  const grip=`<rect x="0" y="${gripTop?0:(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
+}
+// back-side cell mapping depends on how the sheet is flipped:
+//   turn  = flip L↔R  → horizontal mirror     · tumble = flip T↕B → vertical mirror · back/sheetwise = 180°
+function backIndex(o,work){
+  if(work==="tumble") return (r,c)=>(o.rows-1-r)*o.cols+c+1;
+  if(work==="back")   return (r,c)=>(o.rows-1-r)*o.cols+(o.cols-1-c)+1;
+  return (r,c)=>r*o.cols+(o.cols-1-c)+1;                    // turn (default)
+}
+function numFn(o,side){
+  // Page imposition is for ONE signature (one sheet = one signature of o.sig pages), NOT the whole book.
+  const sig=o.sig||0, work=($("workStyle")?$("workStyle").value:"back");
+  if(bookletMode && LASTINP && LASTINP.isSig && o.cols%2===0 && sig>=4) return (r,c)=>{const inCol=c%2,sheet=r;
+    const n=side==="front"?(inCol===0?sig-2*sheet:1+2*sheet):(inCol===0?2+2*sheet:sig-1-2*sheet); return (n>=1&&n<=sig)?n:"·";};
+  return side==="front"?(r,c)=>r*o.cols+c+1:backIndex(o,work);
+}
+function workLabel(){ const w=$("workStyle")?$("workStyle").value:"back";
+  return w==="turn"?"work &amp; turn — flip L⇄R":w==="tumble"?"work &amp; tumble — flip T⇅B":"work &amp; back — sheetwise (separate forme)"; }
+function diagramHTML(o){
+  const dbl=LASTINP&&LASTINP.isSig, work=($("workStyle")?$("workStyle").value:"back");
+  const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 page order</label>`:"";
+  const sigNote=dbl&&bookletMode&&o.sig>=4?` · <b>1 of ${o.signatures}</b> signature${o.signatures>1?'s':''} (${o.sig}pp shown; pages 1–${o.sig})`:"";
+  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
+  const gripTopBack = work==="tumble";                       // tumble moves the gripper to the opposite edge on the back
+  const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"),false)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildSVG(o,numFn(o,"back"),gripTopBack)}</div></div>`:buildSVG(o,numFn(o,"front"),false);
+  return head+svgs;
+}
+function drawInto(boxId,o){ const box=$(boxId); if(!o||!o.ups){box.innerHTML="";return;} box.innerHTML=diagramHTML(o); }
+function printSheet(){
+  if(!CHOSEN)return; const w=window.open("","_blank","width=940,height=720");
+  w.document.write(`<html><head><title>Cut sheet</title><style>body{font-family:Arial,sans-serif;padding:22px}svg{max-width:440px}</style></head><body>`+
+    `<h2>${LASTINP.product_name?LASTINP.product_name+" — ":""}Cut sheet · ${CHOSEN.sw}×${CHOSEN.sh} in · ${CHOSEN.ups}-up</h2>${$("diagram").innerHTML}`+
+    `<p style="color:#666;font-size:12px">Numbers = page/leaf positions. Red = gripper · yellow = side-lay · dashed = finished page.</p></body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
+}
+
+/* ---------- MACHINE engine (your real presses) ---------- */
+// MACHINE MASTER — real presses from Process master data (sizes mm→in; max=max paper, print=max print area, grip mm)
+const MACHINES=[
+  {name:"Heidelberg SM102 · Nabamudran", id:"M001", vendor:"Nabamudran", loc:"Sector 5", max:[28.3,40.2], print:[28.0,40.2], min:[13.4,18.9], col:4, speed:13000, grip:12},
+  {name:"MAN Roland 200 · Nabamudran",   id:"M002", vendor:"Nabamudran", loc:"Sector 5", max:[20.5,29.1], print:[20.1,29.1], min:[8.3,11.0],  col:5, speed:13000, grip:12},
+  {name:"Parva 28×40 · Nabamudran",      id:"M003", vendor:"Nabamudran", loc:"Sector 5", max:[28.0,40.0], print:[27.6,39.4], min:[13.0,18.9], col:2, speed:10000, grip:12},
+  {name:"Komori L-40 · Balaji",          id:"M004", vendor:"Balaji",     loc:"Ultodanga",max:[28.3,40.6], print:[28.0,40.2], min:[14.2,20.5], col:4, speed:15000, grip:12},
+  {name:"Komori L-32 · Balaji",          id:"M005", vendor:"Balaji",     loc:"Ultodanga",max:[22.0,32.3], print:[21.7,31.9], min:[11.7,16.5], col:4, speed:13000, grip:12},
+  {name:"Heidelberg SM102 · Darpan",     id:"M007", vendor:"Darpan",     loc:"Bantala",  max:[28.3,40.2], print:[28.0,40.2], min:[13.4,18.9], col:4, speed:13000, grip:12},
+  {name:"Heidelberg SM74 · Darpan",      id:"M008", vendor:"Darpan",     loc:"Bantala",  max:[20.9,29.1], print:[20.1,29.1], min:[8.3,11.0],  col:4, speed:12000, grip:10},
+  {name:"Mitsubishi Daiya 18×25 · Florence", id:"FLR1", vendor:"Florence", loc:"Esplanade", max:[18.0,25.0], print:[17.7,24.4], min:[7.1,9.8], col:1, speed:8000, grip:12},
+];
+let SELECTED_MACHINE=null;
+function machineBand(m){ const lo=Math.max(...m.max), sh=Math.min(...m.max); return (lo>=34&&sh>=22)?"big":"small"; }
+function maxPrint(m){ if(m.print) return [Math.max(...m.print),Math.min(...m.print)]; const lo=Math.max(...m.max), sh=Math.min(...m.max); return [lo, +(sh-(m.grip||0)/25.4).toFixed(1)]; }
+function machineFit(m,sw,sh){
+  const lo=Math.max(...m.max), sh2=Math.min(...m.max), sl=Math.max(sw,sh), ss=Math.min(sw,sh);
+  if(sl>lo||ss>sh2) return "too_big";          // sheet can't be fed
+  const nlo=Math.max(...m.min), nsh=Math.min(...m.min);
+  if(sl<nlo||ss<nsh) return "too_small";        // below minimum feed
+  return "fits";
+}
+function machinesFor(sw,sh,need){ return MACHINES.filter(m=>machineFit(m,sw,sh)==="fits" && m.col>=need).sort((a,b)=>b.speed-a.speed); }
+// press-dependent cost (printing + plates) for the current job on a given press — for comparison
+function pressPrintCost(machine){ try{ const q=priceJob(CHOSEN,currentPriceParams(),machine); return q.printing+q.plates; }catch(e){ return Infinity; } }
+function selectMachine(name){ SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE; showPrice(); }
+function renderMachine(o){
+  const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
+  const ok=machinesFor(o.sw,o.sh,need), box=$("machine");
+  if(!ok.length){
+    SELECTED_MACHINE=null;
+    const biggest=MACHINES.slice().sort((a,b)=>Math.max(...b.max)-Math.max(...a.max))[0];
+    box.innerHTML=`<div class="pbox" style="border-color:#f3c0a0;background:#fff5ef"><div class="ptitle" style="color:#b9770a">🖨 Machine</div>`+
+      `⚠ A <b>${o.sw}×${o.sh}</b> sheet needs ${need} colours and won't run on any press (largest is ${biggest.name} ${biggest.max[0]}×${biggest.max[1]}). `+
+      `<b>Cut the sheet down</b> to ≤ ${biggest.max[0]}×${biggest.max[1]}, drop colours, or add a larger press.</div>`;
+    return;
+  }
+  if(!SELECTED_MACHINE || !ok.includes(SELECTED_MACHINE)) SELECTED_MACHINE=ok[0];
+  const m=SELECTED_MACHINE, hrs=o.total/m.speed, mp=maxPrint(m);
+  const img=Math.max(o.sw,o.sh), imgS=Math.min(o.sw,o.sh);
+  const tightPrint = img>mp[0]||imgS>mp[1];     // sheet fits feed but exceeds printable area (gripper)
+  const opts=ok.map(x=>`<option ${x===m?'selected':''}>${x.name}</option>`).join("");
+  const cheapest=ok.map(x=>({m:x,c:pressPrintCost(x)})).sort((a,b)=>a.c-b.c)[0];
+  // FULL machine master — every press from Process master, with fit status (runnable ones priced + clickable)
+  const rowsHtml=MACHINES.map(x=>{
+    const fit=machineFit(x,o.sw,o.sh), colOk=x.col>=need, runnable=fit==="fits"&&colOk;
+    const sel=x===m, best=cheapest&&x===cheapest.m;
+    let status,cost="—",cls="";
+    if(runnable){ status=`<span style="color:#1c7a52">✓ ${machineBand(x)}</span>`; cost="₹"+Math.round(pressPrintCost(x)).toLocaleString('en-IN'); }
+    else if(fit==="too_big"){ status='<span style="color:#c0392b">sheet too big</span>'; cls="nofit"; }
+    else if(fit==="too_small"){ status='<span style="color:#a9761a">sheet too small</span>'; cls="nofit"; }
+    else { status=`<span style="color:#a9761a">${x.col}-col only (need ${need})</span>`; cls="nofit"; }
+    const click=runnable?`data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" style="cursor:pointer"`:'style="opacity:.6"';
+    return `<tr ${click} class="${sel?'best':''} ${cls}">`+
+      `<td>${x.name}${best?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${sel?'<span class="pill">SELECTED</span>':''}</td>`+
+      `<td>${x.vendor||""}</td><td>${x.max[0]}×${x.max[1]}</td><td>${x.col}c</td><td>${x.grip}mm</td>`+
+      `<td>${runnable?'~'+(o.total/x.speed).toFixed(1)+'h':'—'}</td><td>${status}</td><td>${cost}</td></tr>`;
+  }).join("");
+  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine — full press master (${MACHINES.length} presses), fit &amp; price</div>`+
+    `<div class="prow"><span><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
+    `<span><label>Speed</label><input value="${m.speed.toLocaleString('en-IN')}/hr" disabled></span>`+
+    `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr" disabled></span></div>`+
+    `<div style="font-size:11.5px;color:#6b7480;margin:2px 0 8px"><b>${m.vendor||""}</b>${m.loc?" · "+m.loc:""} · Max paper <b>${m.max[0]}×${m.max[1]}</b> · max print <b>${mp[0]}×${mp[1]}</b> (gripper ${m.grip}mm) · min <b>${m.min[0]}×${m.min[1]}</b> · ${m.col}-col`+
+    `${tightPrint?` · <span style="color:#a9761a">⚠ sheet ${o.sw}×${o.sh} exceeds printable area — image must clear the ${m.grip}mm gripper</span>`:""}</div>`+
+    `<table style="font-size:12px"><thead><tr><th>Press</th><th>Vendor</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Status</th><th>Print+plates</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
+    `<div style="font-size:11px;color:#6b7480;margin-top:6px">Only presses that fit the ${o.sw}×${o.sh} sheet with ${need}+ colours are selectable. Cheapest runnable: <b>${cheapest?cheapest.m.name:"—"}</b> · click a green row to switch.</div></div>`;
+}
+
+/* ---------- PRICE (Naba Mudran / Anderson default + vendor sources) ---------- */
+const PRINT={small:{4:{lot:1500},2:{lot:1000},1:{lot:600},plate:475,per1000:125},
+             big:{4:{lot:2325,a:195,b:175},2:{lot:1225,a:205,b:185},1:{lot:625,a:208,b:195},plate:575}};
+// Vendor printing rate sources. 'band' = Anderson agreement (size→small/big). 'flat' = single-press quote
+// (rates are 4-col/side; other colour counts scaled ×cols/4). Anderson is the default.
+const PRINT_SOURCES={
+  anderson:{label:"Naba Mudran (agreement)",mode:"band"},
+  nabamudran:{label:"Nabamudran Heidelberg-102",mode:"flat",lotQty:3000,lot4:2200,tiers:[{upTo:10000,r:720},{upTo:Infinity,r:640}],plate:550},
+  komori_l40:{label:"Komori L-40",mode:"flat",lotQty:2000,lot4:2700,tiers:[{upTo:Infinity,r:460}],plate:400},
+  komori_l32:{label:"Komori L-32",mode:"flat",lotQty:2000,lot4:2400,tiers:[{upTo:Infinity,r:360}],plate:400},
+  balaji_2030:{label:"Balaji Press 20×30",mode:"flat",lotQty:2000,lot4:2700,tiers:[{upTo:Infinity,r:460}],plate:400},
+  balaji_1925:{label:"Balaji Press 19×25",mode:"flat",lotQty:2000,lot4:2400,tiers:[{upTo:Infinity,r:360}],plate:400}
+};
+function activePrint(){ return PRINT_SOURCES[($("printSrc")&&$("printSrc").value)||"anderson"]||PRINT_SOURCES.anderson; }
+function plateRate(src,band){ return src.mode==="band" ? PRINT[band].plate : src.plate; }
+// coating rate sources (per 100 sq.in + job minimum)
+const COAT_SOURCES={
+  card:{label:"Standard card (current)",r:{none:{r:0,min:0},matt:{r:0.40,min:1000},gloss:{r:0.28,min:800},bopp:{r:0.45,min:1000},uv:{r:0.30,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},drip:{r:0.55,min:3500}}},
+  anderson:{label:"Anderson agreement",r:{none:{r:0,min:0},matt:{r:0.45,min:0},gloss:{r:0.35,min:0},bopp:{r:0.40,min:0},uv:{r:0.30,min:1000},gaqua:{r:0.18,min:600},maqua:{r:0.30,min:1000},drip:{r:0.55,min:3500}}}
+};
+function activeCoat(){ return (COAT_SOURCES[($("coatSrc")&&$("coatSrc").value)||"card"]||COAT_SOURCES.card).r; }
+// binding ₹/book + job minimum — real POST_PRESS rates (hardcase 95, perfect 9, section-sew+perfect 6.75, centre-stitch 3.5)
+const BINDING={none:[0,0],saddle:[3.5,500],perfect:[9,1000],sewn:[6.75,3000],case:[95,5000]};
+function setBinding(v){ const x=BINDING[v]||BINDING.none; $("bindingRate").value=x[0]; $("bindingMin").value=x[1]; showPrice(); }
+function refreshMachineAndPrice(){ if(CHOSEN)renderMachine(CHOSEN); showPrice(); }
+function setColours(v){ if(!v)return; const p=v.split("+").map(Number); $("cf").value=p[0]; $("cb").value=p[1]; refreshMachineAndPrice(); }
+function sizeBand(w,h){const lo=Math.max(w,h),sh=Math.min(w,h);return (lo>=34&&sh>=22)?"big":"small";}
+function sideCost(src,band,cols,sheets){ if(cols<=0)return 0;
+  if(src.mode==="band"){ const t=PRINT[band];
+    if(sheets<=3000) return (t[cols]||t[4]).lot;
+    if(band==="small") return cols*(sheets/1000)*t.per1000;
+    const s=t[cols]||t[4]; return cols*(sheets/1000)*(sheets<=10000?s.a:s.b); }
+  // flat single-press source: 4-col rates scaled by cols/4
+  const scale=cols/4;
+  if(sheets<=src.lotQty) return src.lot4*scale;
+  const tier=src.tiers.find(t=>sheets<=t.upTo)||src.tiers[src.tiers.length-1];
+  return scale*tier.r*(sheets/1000); }
+function priceJob(o,p,machine){
+  const press=machine===undefined?SELECTED_MACHINE:machine;
+  const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
+  const src=activePrint();
+  const printing=sideCost(src,band,p.cf,sheets)+sideCost(src,band,p.cb,sheets);
+  const sigs=o.signatures||1;
+  // Work style: work-and-back = separate front+back plates; work-and-turn/tumble share one plate set (both sides imaged together)
+  const work=p.work||"back";
+  const platesPerForme=(work==="back")?(Math.max(0,p.cf)+Math.max(0,p.cb)):Math.max(Math.max(0,p.cf),Math.max(0,p.cb));
+  const plateCount=platesPerForme*sigs;
+  const plates=plateCount*plateRate(src,band);
+  const sides=(p.cf>0?1:0)+(p.cb>0?1:0), impressions=sheets*sides;
+  const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
+  const coatSheets = (p.coatArea==="cover") ? Math.round(sheets/sigs) : sheets;   // cover = one signature's sheets
+  const lam=p.lam==="none"?0:Math.max(c.r*(o.sw*o.sh/100)*coatSheets, c.min);
+  const paper=(p.paperRate||0)*sheets, wt=o.total_wt;
+  const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
+  const base=paper+printing+plates+lam+packing+freight, overhead=base*0.12, prod=base+overhead;
+  const margin=prod*p.margin/100, pretax=prod+margin, gst=pretax*p.gst/100, grand=pretax+gst;
+  return {band,paper,printing,plates,plateCount,impressions,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
+}
+function currentPriceParams(){
+  return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
+          coatArea:($("coatArea")?$("coatArea").value:"cover"),paperRate:num("paperRate",0),
+          work:($("workStyle")?$("workStyle").value:"back"),
+          margin:num("margin",28),gst:num("gst",18),books:LASTINP?LASTINP.copies:1,
+          binding:LASTINP&&LASTINP.isSig?$("binding").value:"none",bindingRate:num("bindingRate",0),bindingMin:num("bindingMin",0)};
+}
+function coverPlan(){
+  if(!LASTINP||!LASTINP.separateCover)return null;
+  const inp=Object.assign({},LASTINP,{pages:4,totalPages:4,sigPages:4,gsm:num("coverGsm",300),setup:Math.round(num("coverSetup",100)),separateCover:false});
+  const r=computePaper(inp), need=Math.max(Math.round(num("coverCf",4)),Math.round(num("coverCb",4)));
+  const o=r.options.filter(x=>x.ups&&machinesFor(x.sw,x.sh,need).length).sort((a,b)=>a.waste-b.waste||a.total-b.total)[0];
+  if(!o)return {result:r,option:null,machine:null};
+  return {result:r,option:o,machine:machinesFor(o.sw,o.sh,need)[0]};
+}
+function combinedPrice(){
+  const p=currentPriceParams(), textP=Object.assign({},p), cp=coverPlan();
+  if(LASTINP&&LASTINP.separateCover) textP.lam="none";
+  const tq=priceJob(CHOSEN,textP);
+  const binding=p.binding==="none"?0:Math.max(p.bindingRate*p.books,p.bindingMin);
+  if(!cp||!cp.option){
+    if(!binding)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0};
+    const base=tq.paper+tq.printing+tq.plates+tq.lam+binding+tq.packing+tq.freight,overhead=base*0.12,prod=base+overhead;
+    const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
+    return {p,q:Object.assign({},tq,{overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding};
+  }
+  const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
+    paperRate:coverRateFor(cp.option.sw,cp.option.sh),margin:p.margin,gst:p.gst,books:p.books};
+  const cq=priceJob(cp.option,coverP,cp.machine);
+  const paper=tq.paper+cq.paper,printing=tq.printing+cq.printing,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
+  const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=CHOSEN.total_wt+cp.option.total_wt;
+  const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+  const base=paper+printing+plates+lam+binding+packing+freight,overhead=base*0.12,prod=base+overhead;
+  const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
+  const q={band:tq.band+" text / "+cq.band+" cover",paper,printing,plates,plateCount,impressions,lam,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books};
+  return {p,q,text:tq,cover:cq,coverPlan:cp,binding};
+}
+function showPrice(){
+  if(!CHOSEN)return;
+  autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
+  const x=combinedPrice(),p=x.p,q=x.q,inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
+  const totalWt=CHOSEN.total_wt+((x.coverPlan&&x.coverPlan.option)?x.coverPlan.option.total_wt:0);
+  const perKg=totalWt>0?(q.paper/totalWt):0;
+  const wlabel=p.work==="back"?"W&amp;back":"W&amp;"+p.work;
+  let rows;
+  if(x.cover){                                   // separate cover → itemise text vs cover so cover costing is explicit
+    const txtWt=CHOSEN.total_wt, cvWt=x.coverPlan.option.total_wt;
+    rows=[
+      [`Text paper (${txtWt.toFixed(1)} kg)`, x.text.paper],
+      [`Cover paper (${cvWt.toFixed(1)} kg)`, x.cover.paper],
+      [`Printing — text (${x.text.impressions.toLocaleString("en-IN")} impr)`, x.text.printing],
+      [`Printing — cover (${x.cover.impressions.toLocaleString("en-IN")} impr)`, x.cover.printing],
+      [`Plates (${q.plateCount}, ${wlabel})`, q.plates],
+      ["Coating (cover)", q.lam]
+    ];
+  } else {
+    rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
+  }
+  if(x.binding)rows.push([`${$("binding").selectedOptions[0].text} binding`,x.binding]);
+  rows.push(["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]);
+  let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
+  rows.forEach(([k,v])=>h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+  h+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
+  h+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
+  h+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
+  h+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
+  h+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
+  h+=`<div style="font-size:11px;color:#6b7480;margin-top:6px">Printing band: ${q.band} · rates from Naba Mudran agreement</div>`;
+  if(x.coverPlan&&x.coverPlan.option) h+=`<div class="suggest"><b>Separate cover:</b> ${x.coverPlan.option.sw}×${x.coverPlan.option.sh} in · ${x.coverPlan.option.total.toLocaleString("en-IN")} sheets · ${x.coverPlan.machine.name} · ${num("coverGsm",300)} GSM · ${Math.round(num("coverCf",4))}+${Math.round(num("coverCb",4))}</div>`;
+  if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter paper ₹/sheet rates for the full price.</div>';
+  $("m_price").innerHTML=h;
+}
+/* ---------- PHASE 4: quotation + internal job sheet ---------- */
+function esc(v){ return String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function money(n){ return "Rs. "+Math.round(n).toLocaleString("en-IN"); }
+function coatingName(v){ const e=$("lam"); return [...e.options].find(o=>o.value===v)?.text||v; }
+function quoteMeta(){
+  const now=new Date(), valid=new Date(now); valid.setDate(valid.getDate()+Math.max(0,Math.round(num("validDays",15))));
+  const stamp=now.getFullYear()+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0");
+  return {customer:$("customer").value.trim()||"Valued customer", no:$("quoteNo").value.trim()||("Q-"+stamp),
+    date:now.toLocaleDateString("en-IN"), valid:valid.toLocaleDateString("en-IN"), notes:$("quoteNotes").value.trim()};
+}
+function docCSS(){
+  return `<style>
+    *{box-sizing:border-box}
+    body{font-family:"Helvetica Neue",Arial,sans-serif;color:#1a232e;margin:0;padding:34px 38px;font-size:12px;line-height:1.5;-webkit-font-smoothing:antialiased}
+    .letterhead{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;padding-bottom:14px;border-bottom:2.5px solid #13314f;position:relative}
+    .letterhead::after{content:"";position:absolute;left:0;right:0;bottom:-5px;height:2px;background:#b8862f}
+    .firm{font-size:21px;font-weight:800;letter-spacing:.3px;color:#13314f;margin:0}
+    .firm .accent{color:#b8862f}
+    .firmsub{color:#6a7686;font-size:11px;margin-top:3px;letter-spacing:.3px}
+    .doctype{text-align:right}
+    .doctype .dt{font-size:15px;font-weight:800;letter-spacing:2px;color:#13314f;text-transform:uppercase}
+    .doctype .meta{color:#5b6675;font-size:11px;margin-top:5px;line-height:1.6}
+    h1{font-size:21px;margin:0;color:#13314f}
+    h2{font-size:11px;margin:22px 0 7px;color:#1f5286;text-transform:uppercase;letter-spacing:1px;font-weight:700;
+       padding-bottom:5px;border-bottom:1px solid #e7ebf1}
+    .muted{color:#6a7686}.right{text-align:right}
+    .box{border:1px solid #dde3ea;border-left:3px solid #b8862f;border-radius:8px;padding:11px 13px;margin-top:14px;background:#fbfcfd}
+    table{width:100%;border-collapse:collapse;margin-top:4px}
+    th,td{padding:7px 8px;border-bottom:1px solid #e7ebf1;text-align:left;vertical-align:top}
+    tbody tr:nth-child(even){background:#fafbfd}
+    th{color:#6a7686;font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:700}
+    .num{text-align:right;font-variant-numeric:tabular-nums}
+    .total{font-size:16px;font-weight:800;border-top:2px solid #1c7a52;color:#13314f}
+    .cols{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .sign{margin-top:52px;display:flex;justify-content:space-between}
+    .foot{margin-top:30px;padding-top:12px;border-top:1px solid #e7ebf1;color:#8b95a2;font-size:10px;text-align:center;letter-spacing:.3px}
+    svg{max-width:320px}@media print{body{padding:14mm}}
+  </style>`;
+}
+function docHeader(title,meta){
+  return `<div class="letterhead">
+    <div><div class="firm">Anderson <span class="accent">Technology</span></div>
+      <div class="firmsub">Commercial Offset Printing &amp; Fabrication · Kolkata</div></div>
+    <div class="doctype"><div class="dt">${esc(title)}</div>
+      <div class="meta"><b>${esc(meta.no)}</b><br>Date: ${meta.date}<br>Valid until: ${meta.valid}</div></div>
+  </div>`;
+}
+function specsTable(p,q,internal){
+  const product=LASTINP.product_name||($("product").selectedOptions[0]?.text||LASTINP.product);
+  const size=LASTINP.isSig
+    ? `${RESULT.openW} x ${RESULT.openH} in open (${LASTINP.W} x ${LASTINP.H} in closed)`
+    : `${RESULT.openW} x ${RESULT.openH} in finished`;
+  const sig=LASTINP.isSig?`${CHOSEN.sig}pp x ${CHOSEN.signatures} signatures`:`${CHOSEN.ups}-up`;
+  const rows=[["Job",product],["Quantity",LASTINP.copies.toLocaleString("en-IN")],["Pages",LASTINP.isSig?LASTINP.totalPages+"pp":"—"],["Size",size],
+    ["Paper",`${LASTINP.gsm} GSM; ${CHOSEN.sw} x ${CHOSEN.sh} in`],["Colours",`${p.cf}+${p.cb}`],
+    ["Coating",LASTINP.separateCover?"Separate cover component":coatingName(p.lam)],["Signature / layout",sig]];
+  if(internal) rows.push(["Machine",SELECTED_MACHINE?SELECTED_MACHINE.name:"No compatible press"],["Sheets",CHOSEN.total.toLocaleString("en-IN")],
+    ["Good + make-ready + running waste",`${CHOSEN.good.toLocaleString("en-IN")} + ${CHOSEN.setup.toLocaleString("en-IN")} + ${CHOSEN.run.toLocaleString("en-IN")}`],
+    ["Plates / impressions",`${q.plateCount} / ${q.impressions.toLocaleString("en-IN")}`],["Paper weight / layout waste",`${CHOSEN.total_wt} kg / ${CHOSEN.waste}%`]);
+  return `<table>${rows.map(x=>`<tr><th>${esc(x[0])}</th><td>${esc(x[1])}</td></tr>`).join("")}</table>`;
+}
+function componentTables(x){
+  if(!x.cover||!x.coverPlan||!x.coverPlan.option)return "";
+  const o=x.coverPlan.option,c=x.cover;
+  return `<div class="cols"><div><h2>Text component</h2><table>
+    <tr><th>Pages / stock</th><td>${LASTINP.pages}pp / ${LASTINP.gsm} GSM</td></tr>
+    <tr><th>Sheet / press</th><td>${CHOSEN.sw} x ${CHOSEN.sh} in / ${SELECTED_MACHINE.name}</td></tr>
+    <tr><th>Signatures / sheets</th><td>${CHOSEN.signatures} / ${CHOSEN.total.toLocaleString("en-IN")}</td></tr>
+    <tr><th>Plates / impressions</th><td>${x.text.plateCount} / ${x.text.impressions.toLocaleString("en-IN")}</td></tr></table></div>
+    <div><h2>Cover component</h2><table>
+    <tr><th>Pages / stock</th><td>4pp / ${num("coverGsm",300)} GSM</td></tr>
+    <tr><th>Sheet / press</th><td>${o.sw} x ${o.sh} in / ${x.coverPlan.machine.name}</td></tr>
+    <tr><th>Sheets / colours</th><td>${o.total.toLocaleString("en-IN")} / ${Math.round(num("coverCf",4))}+${Math.round(num("coverCb",4))}</td></tr>
+    <tr><th>Plates / coating</th><td>${c.plateCount} / ${esc(coatingName($("coverLam").value))}</td></tr></table></div></div>`;
+}
+function openPrintDocument(title,body){
+  const w=window.open("","_blank","width=980,height=760");
+  if(!w){ alert("Allow pop-ups to print this document."); return; }
+  const foot=`<div class="foot">Computer-generated estimate · Anderson Technology · Rates per current agreement · Taxes extra as applicable</div>`;
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)}</title>${docCSS()}</head><body>${body}${foot}</body></html>`);
+  w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350);
+}
+function printablePlanReady(){
+  if(!SELECTED_MACHINE){ alert("This sheet has no compatible press. Select a runnable sheet before printing production documents."); return false; }
+  const cp=coverPlan();
+  if(LASTINP.separateCover&&(!cp||!cp.option)){ alert("The separate cover has no compatible sheet and press. Change its colours or available sheets."); return false; }
+  return true;
+}
+function printQuotation(){
+  if(!CHOSEN||!LASTINP||!printablePlanReady())return;
+  const x=combinedPrice(),p=x.p,q=x.q,m=quoteMeta();
+  const body=docHeader("QUOTATION",m)+`<div class="box"><b>Prepared for</b><br>${esc(m.customer)}</div>
+    <h2>Job specification</h2>${specsTable(p,q,false)}
+    ${LASTINP.isSig?`<div class="box"><b>Binding:</b> ${esc($("binding").selectedOptions[0].text)}${LASTINP.separateCover?" · Separate 4pp cover and text production":""}</div>`:""}
+    <h2>Commercial summary</h2><table>
+      <tr><td>Production estimate</td><td class="num">${money(q.pretax)}</td></tr>
+      <tr><td>GST (${p.gst}%)</td><td class="num">${money(q.gst)}</td></tr>
+      <tr class="total"><td>Grand total</td><td class="num">${money(q.grand)}</td></tr>
+      <tr><td>Price per piece</td><td class="num">Rs. ${q.unit.toFixed(2)}</td></tr></table>
+    ${m.notes?`<h2>Notes / terms</h2><div class="box">${esc(m.notes)}</div>`:""}
+    <div class="sign"><span>Customer acceptance</span><span>Authorised signatory</span></div>`;
+  openPrintDocument(m.no+" quotation",body);
+}
+function printJobSheet(){
+  if(!CHOSEN||!LASTINP||!printablePlanReady())return;
+  const x=combinedPrice(),p=x.p,q=x.q,m=quoteMeta();
+  const costs=[["Paper",q.paper],["Printing",q.printing],["Plates",q.plates],["Coating",q.lam],["Packing",q.packing],["Freight",q.freight],
+    ["Overhead (12%)",q.overhead],["Production",q.prod],["Margin ("+p.margin+"%)",q.margin],["Pre-tax",q.pretax],["GST ("+p.gst+"%)",q.gst],["Grand total",q.grand]];
+  if(x.binding)costs.splice(4,0,[$("binding").selectedOptions[0].text+" binding",x.binding]);
+  const body=docHeader("INTERNAL JOB SHEET",m)+`<div class="box"><b>Customer:</b> ${esc(m.customer)} &nbsp; <b>Job:</b> ${esc(LASTINP.product_name||"Untitled job")}</div>
+    <div class="cols"><div><h2>Production specification</h2>${specsTable(p,q,true)}</div>
+    <div><h2>Internal costing</h2><table>${costs.map((x,i)=>`<tr class="${i===costs.length-1?"total":""}"><td>${esc(x[0])}</td><td class="num">${money(x[1])}</td></tr>`).join("")}</table></div></div>
+    ${componentTables(x)}
+    <h2>Layout / cut sheet</h2>${diagramHTML(CHOSEN)}
+    ${m.notes?`<h2>Instructions</h2><div class="box">${esc(m.notes)}</div>`:""}
+    <div class="sign"><span>Pre-press checked</span><span>Production approved</span><span>Dispatch checked</span></div>`;
+  openPrintDocument(m.no+" job sheet",body);
+}
+buildPaperPickers();
+buildCoverPickers();
+onProductChange();
+</script>
+</body>
+</html>
