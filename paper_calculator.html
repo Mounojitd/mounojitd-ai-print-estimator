@@ -190,6 +190,7 @@
       <div class="fld"><label id="gsmLabel">Text paper GSM</label><input id="gsm" type="number" placeholder="e.g. 130" /></div>
 
       <h2>Margins (mm)</h2>
+      <label class="chip" style="margin-bottom:10px;font-weight:600"><input type="checkbox" id="trimmed" checked onchange="if(RESULT)run()" /> Trimmed job (apply bleed + paper-trim) — uncheck for no-trim</label>
       <div class="row3">
         <div class="fld"><label>Bleed</label><input id="bleed" type="number" placeholder="3" /></div>
         <div class="fld"><label>Gripper</label><input id="gripper" type="number" placeholder="10" /></div>
@@ -260,6 +261,11 @@
             </select></span>
             <span><label>Coating rate source</label><select id="coatSrc" onchange="showPrice()">
               <option value="card" selected>Standard card</option><option value="anderson">Anderson agreement</option>
+            </select></span>
+            <span><label>Work style</label><select id="workStyle" onchange="showPrice()">
+              <option value="back" selected>Work &amp; back (sheetwise)</option>
+              <option value="turn">Work &amp; turn</option>
+              <option value="tumble">Work &amp; tumble</option>
             </select></span>
           </div>
           <div class="prow" id="bindingFields">
@@ -495,8 +501,11 @@ function run(){
     copies:Math.round(booklet?num("copies",1):num("copies2",1)),
     gsm:num("gsm"), rotate:$("rotate").checked,
     margins:{bleed:num("bleed",3),gripper:num("gripper",10),sidelay:num("sidelay",3),backside:num("backside",3),paperTrim:num("paperTrim",3)},
+    trimmed:$("trimmed")?$("trimmed").checked:true,
     setup:Math.round(num("setup",100)), running:num("running",5), sizes, unit
   };
+  if(!inp.trimmed){ inp.margins.bleed=0; inp.margins.paperTrim=0; }   // no-trim: drop bleed + paper-trim allowances
+
   inp.separateCover=booklet&&$("separateCover").checked;
   if(inp.separateCover){
     if(inp.totalPages<=4){ $("err").textContent="A separate cover needs more than 4 total pages."; return; }
@@ -682,7 +691,10 @@ function priceJob(o,p,machine){
   const src=activePrint();
   const printing=sideCost(src,band,p.cf,sheets)+sideCost(src,band,p.cb,sheets);
   const sigs=o.signatures||1;
-  const plateCount=(Math.max(0,p.cf)+Math.max(0,p.cb))*sigs;     // plates per signature × signatures
+  // Work style: work-and-back = separate front+back plates; work-and-turn/tumble share one plate set (both sides imaged together)
+  const work=p.work||"back";
+  const platesPerForme=(work==="back")?(Math.max(0,p.cf)+Math.max(0,p.cb)):Math.max(Math.max(0,p.cf),Math.max(0,p.cb));
+  const plateCount=platesPerForme*sigs;
   const plates=plateCount*plateRate(src,band);
   const sides=(p.cf>0?1:0)+(p.cb>0?1:0), impressions=sheets*sides;
   const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
@@ -697,6 +709,7 @@ function priceJob(o,p,machine){
 function currentPriceParams(){
   return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
           coatArea:($("coatArea")?$("coatArea").value:"cover"),paperRate:num("paperRate",0),
+          work:($("workStyle")?$("workStyle").value:"back"),
           margin:num("margin",28),gst:num("gst",18),books:LASTINP?LASTINP.copies:1,
           binding:LASTINP&&LASTINP.isSig?$("binding").value:"none",bindingRate:num("bindingRate",0),bindingMin:num("bindingMin",0)};
 }
@@ -735,7 +748,9 @@ function showPrice(){
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
   const x=combinedPrice(),p=x.p,q=x.q,inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
-  const rows=[["Paper",q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount})`,q.plates],["Coating",q.lam]];
+  const totalWt=CHOSEN.total_wt+((x.coverPlan&&x.coverPlan.option)?x.coverPlan.option.total_wt:0);
+  const perKg=totalWt>0?(q.paper/totalWt):0;
+  const rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount}, ${p.work==="back"?"W&amp;back":"W&amp;"+p.work})`,q.plates],["Coating",q.lam]];
   if(x.binding)rows.push([`${$("binding").selectedOptions[0].text} binding`,x.binding]);
   rows.push(["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
