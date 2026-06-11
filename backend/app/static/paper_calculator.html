@@ -168,7 +168,7 @@
         <div id="coverFields" class="pbox" style="margin:0 0 10px">
           <div class="ptitle">Cover component</div>
           <div class="row3">
-            <div class="fld"><label>Cover paper (price list)</label><select id="coverGrade" onchange="onCoverPick()"><option value="">✏️ Manual</option></select></div>
+            <div class="fld"><label>Cover paper (price list)</label><select id="coverGrade" onchange="onCoverPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual</option></select></div>
             <div class="fld"><label>Cover GSM</label><select id="coverGsmSel" onchange="onCoverPick()"><option value="">—</option></select></div>
             <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="100" oninput="showPrice()" /></div>
           </div>
@@ -240,7 +240,7 @@
             <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
           </div>
           <div class="prow">
-            <span style="flex:2"><label>Paper (price list)</label><select id="paperGrade" onchange="onPaperPick()"><option value="">✏️ Manual rate</option></select></span>
+            <span style="flex:2"><label>Paper (price list)</label><select id="paperGrade" onchange="onPaperPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual rate</option></select></span>
             <span><label>Paper GSM</label><select id="paperGsmSel" onchange="onPaperPick()"><option value="">—</option></select></span>
           </div>
           <div class="prow">
@@ -343,33 +343,55 @@ function fillGsmOptions(){
   const gsms=[...new Set(PAPER_DB.filter(o=>paperKey(o)===key).map(o=>o.gsm))].sort((a,b)=>a-b);
   for(const g of gsms){ const op=document.createElement("option"); op.value=g; op.textContent=g+" gsm"; gs.appendChild(op); }
 }
-// ₹/sheet for selected paper at a sheet size (orientation-agnostic; scales nearest size by area if exact missing)
+// ₹/sheet for one DB row at a target sheet size (orientation-agnostic; area-scaled if size not exact)
+function sizeRate(o,w,h){
+  if((Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6)) return {rate:o.r,via:`${o.w}×${o.h} list`};
+  return {rate:+(o.r*(w*h)/(o.w*o.h)).toFixed(2),via:`scaled from ${o.w}×${o.h}`};
+}
+// rate for a chosen grade+gsm at a sheet size
 function lookupPaperRate(key,gsm,w,h){
   const cands=PAPER_DB.filter(o=>paperKey(o)===key&&o.gsm===gsm&&o.r>0);
   if(!cands.length)return null;
-  const tA=w*h;
   const exact=cands.find(o=>(Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6));
   if(exact)return{rate:exact.r,via:`${exact.w}×${exact.h} list`};
-  let best=null,bd=1e9; for(const o of cands){const d=Math.abs(o.w*o.h-tA);if(d<bd){bd=d;best=o;}}
-  return{rate:+(best.r*tA/(best.w*best.h)).toFixed(2),via:`scaled from ${best.w}×${best.h}`};
+  let best=null,bd=1e9; for(const o of cands){const d=Math.abs(o.w*o.h-w*h);if(d<bd){bd=d;best=o;}}
+  return{rate:+(best.r*(w*h)/(best.w*best.h)).toFixed(2),via:`scaled from ${best.w}×${best.h}`};
+}
+// AUTO: best-priced paper for a given GSM at a sheet size (prefers exact-size list price, then cheapest)
+function lookupByGsm(gsm,w,h){
+  if(!(gsm>0))return null;
+  let cands=PAPER_DB.filter(o=>o.gsm===gsm&&o.r>0);
+  if(!cands.length){ let nd=1e9; for(const o of PAPER_DB) if(o.r>0) nd=Math.min(nd,Math.abs(o.gsm-gsm));
+    if(nd>15)return null; cands=PAPER_DB.filter(o=>o.r>0&&Math.abs(o.gsm-gsm)===nd); }
+  const exact=cands.filter(o=>(Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6));
+  const pool=exact.length?exact:cands;
+  let pick=null;
+  for(const o of pool){ const s=sizeRate(o,w,h); if(!pick||s.rate<pick.rate) pick={rate:s.rate,grade:paperKey(o),gsm:o.gsm,via:s.via}; }
+  return pick;
 }
 function onPaperPick(){
-  const key=$("paperGrade").value;
-  if(key!==onPaperPick._lastKey){ fillGsmOptions(); onPaperPick._lastKey=key; }
-  if(!key){ PAPER_AUTO=false; $("paperRate").readOnly=false; $("paperRateNote").textContent="Manual rate."; showPrice(); return; }
-  const gsm=parseFloat($("paperGsmSel").value);
-  PAPER_AUTO=true; $("paperRate").readOnly=true;
-  if(isFinite(gsm)&&LASTINP){ $("gsm").value=gsm; run(); }   // sync GSM → re-run so weight is right
-  else showPrice();
+  const grade=$("paperGrade").value, specific=grade!=="__auto"&&grade!=="";
+  $("paperGsmSel").disabled=!specific;
+  if(specific&&grade!==onPaperPick._lastKey) fillGsmOptions();
+  onPaperPick._lastKey=grade;
+  $("paperRate").readOnly=(grade!=="");                 // editable only in Manual mode
+  if(specific){ const g=parseFloat($("paperGsmSel").value); if(isFinite(g)&&LASTINP){ $("gsm").value=g; run(); return; } }
+  showPrice();
 }
-function onPaperRateEdit(){ PAPER_AUTO=false; $("paperGrade").value=""; $("paperRate").readOnly=false; $("paperRateNote").textContent="Manual rate."; showPrice(); }
+function onPaperRateEdit(){ $("paperGrade").value=""; $("paperRate").readOnly=false; $("paperRateNote").textContent="Manual rate."; showPrice(); }
 function autoPaperRate(){
-  if(!PAPER_AUTO||!CHOSEN)return;
-  const key=$("paperGrade").value, gsm=parseFloat($("paperGsmSel").value);
-  if(!key||!isFinite(gsm))return;
-  const hit=lookupPaperRate(key,gsm,CHOSEN.sw,CHOSEN.sh);
-  if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${key} ${gsm}gsm @ ${CHOSEN.sw}×${CHOSEN.sh} = ₹${hit.rate}/sheet (${hit.via}).`; }
-  else $("paperRateNote").textContent=`No list price for ${key} ${gsm}gsm at ${CHOSEN.sw}×${CHOSEN.sh} — enter manually.`;
+  if(!CHOSEN)return;
+  const grade=$("paperGrade").value;
+  if(grade==="") return;                                // Manual: leave typed value
+  if(grade==="__auto"){
+    const gsm=num("gsm",0), hit=lookupByGsm(gsm,CHOSEN.sw,CHOSEN.sh);
+    if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto @ ${gsm}gsm, ${CHOSEN.sw}×${CHOSEN.sh}: ${hit.grade} — ₹${hit.rate}/sheet (best price, ${hit.via}).`; }
+    else $("paperRateNote").textContent=`No ${gsm||"?"}gsm paper in the price list — choose a grade or enter the rate manually.`;
+    return;
+  }
+  const gsm=parseFloat($("paperGsmSel").value), hit=isFinite(gsm)?lookupPaperRate(grade,gsm,CHOSEN.sw,CHOSEN.sh):null;
+  if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${grade} ${gsm}gsm @ ${CHOSEN.sw}×${CHOSEN.sh} = ₹${hit.rate}/sheet (${hit.via}).`; }
+  else $("paperRateNote").textContent=`No list price for ${grade} ${gsm}gsm at ${CHOSEN.sw}×${CHOSEN.sh} — enter manually.`;
 }
 /* ---- COVER paper auto-pickup (same DB) ---- */
 let COVER_AUTO=false;
@@ -385,22 +407,24 @@ function fillCoverGsm(){
   for(const g of gsms){ const op=document.createElement("option"); op.value=g; op.textContent=g+" gsm"; gs.appendChild(op); }
 }
 function onCoverPick(){
-  const key=$("coverGrade").value;
-  if(key!==onCoverPick._lastKey){ fillCoverGsm(); onCoverPick._lastKey=key; }
-  if(!key){ COVER_AUTO=false; $("coverRateNote").textContent="Manual rate."; showPrice(); return; }
-  const gsm=parseFloat($("coverGsmSel").value);
-  COVER_AUTO=true; if(isFinite(gsm)) $("coverGsm").value=gsm;   // drives cover weight
+  const grade=$("coverGrade").value, specific=grade!=="__auto"&&grade!=="";
+  $("coverGsmSel").disabled=!specific;
+  if(specific&&grade!==onCoverPick._lastKey) fillCoverGsm();
+  onCoverPick._lastKey=grade;
+  $("coverPaperRate").readOnly=(grade!=="");
+  if(specific){ const g=parseFloat($("coverGsmSel").value); if(isFinite(g)) $("coverGsm").value=g; }  // drives cover weight
   showPrice();
 }
-function onCoverRateEdit(){ COVER_AUTO=false; $("coverGrade").value=""; $("coverRateNote").textContent="Manual rate."; showPrice(); }
-// returns the cover ₹/sheet for a given cover sheet size (auto from DB, else manual input)
+function onCoverRateEdit(){ $("coverGrade").value=""; $("coverPaperRate").readOnly=false; $("coverRateNote").textContent="Manual rate."; showPrice(); }
+// cover ₹/sheet for a given cover sheet size (auto from DB by grade or by GSM, else manual input)
 function coverRateFor(w,h){
-  if(COVER_AUTO){ const key=$("coverGrade").value, gsm=parseFloat($("coverGsmSel").value);
-    const hit=(key&&isFinite(gsm))?lookupPaperRate(key,gsm,w,h):null;
-    if(hit){ $("coverPaperRate").value=hit.rate; $("coverRateNote").textContent=`Auto ₹${hit.rate}/sheet @ ${w}×${h} (${hit.via}).`; return hit.rate; }
-    $("coverRateNote").textContent=`No list price @ ${w}×${h} — manual.`;
-  }
-  return num("coverPaperRate",0);
+  const grade=$("coverGrade").value;
+  if(grade==="") return num("coverPaperRate",0);                  // manual
+  let hit;
+  if(grade==="__auto"){ hit=lookupByGsm(num("coverGsm",0),w,h); }
+  else { const gsm=parseFloat($("coverGsmSel").value); hit=isFinite(gsm)?lookupPaperRate(grade,gsm,w,h):null; }
+  if(hit){ $("coverPaperRate").value=hit.rate; $("coverRateNote").textContent=`Auto ₹${hit.rate}/sheet @ ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).`; return hit.rate; }
+  $("coverRateNote").textContent=`No list price @ ${w}×${h} — manual.`; return num("coverPaperRate",0);
 }
 
 /* ---------- PURE CALCULATION (NKK sir corrected logic) ---------- */
