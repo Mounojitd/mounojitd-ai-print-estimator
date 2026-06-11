@@ -794,7 +794,21 @@ function showPrice(){
   if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
   const totalWt=CHOSEN.total_wt+((x.coverPlan&&x.coverPlan.option)?x.coverPlan.option.total_wt:0);
   const perKg=totalWt>0?(q.paper/totalWt):0;
-  const rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount}, ${p.work==="back"?"W&amp;back":"W&amp;"+p.work})`,q.plates],["Coating",q.lam]];
+  const wlabel=p.work==="back"?"W&amp;back":"W&amp;"+p.work;
+  let rows;
+  if(x.cover){                                   // separate cover → itemise text vs cover so cover costing is explicit
+    const txtWt=CHOSEN.total_wt, cvWt=x.coverPlan.option.total_wt;
+    rows=[
+      [`Text paper (${txtWt.toFixed(1)} kg)`, x.text.paper],
+      [`Cover paper (${cvWt.toFixed(1)} kg)`, x.cover.paper],
+      [`Printing — text (${x.text.impressions.toLocaleString("en-IN")} impr)`, x.text.printing],
+      [`Printing — cover (${x.cover.impressions.toLocaleString("en-IN")} impr)`, x.cover.printing],
+      [`Plates (${q.plateCount}, ${wlabel})`, q.plates],
+      ["Coating (cover)", q.lam]
+    ];
+  } else {
+    rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
+  }
   if(x.binding)rows.push([`${$("binding").selectedOptions[0].text} binding`,x.binding]);
   rows.push(["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
