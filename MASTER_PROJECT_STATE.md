@@ -145,9 +145,9 @@ max paper / min paper; find which can run the sheet; recommend best fit + compar
 **STEP 5 — THE REST** (*"very easy after the above"*): weight → packing/cartons → freight →
 overhead 12% → margin → GST → quotation + job sheet + signature plan. → ✅
 
-**Outstanding vs his method:** 🔴 book imposition (Bug #1, 8-vs-12-up — awaiting his pages-per-sheet
-number) is the ONLY remaining item. *(per-kg, work-and-turn/tumble, trim toggle, per-press gripper +
-machine price comparison all DONE 2026-06-10.)*
+**Outstanding vs his method:** ✅ NONE — all Steps 0–5 implemented. Bug #1 (imposition/waste) resolved
+2026-06-10 by honest waste-on-signature math. *(per-kg, work-and-turn/tumble, trim toggle, per-press
+gripper + machine price comparison, waste fix all DONE 2026-06-10.)*
 
 ---
 
@@ -165,6 +165,15 @@ machine price comparison all DONE 2026-06-10.)*
 
 ## 8. Known Bugs / Issues
 
+- **🟢 RESOLVED 2026-06-10 — imposition/waste inconsistency (Bug #1).** Fix: waste % now computed on the
+  **pages the chosen signature actually uses**, not the sheet's full geometric capacity:
+  `eff = 100 × sig × cellSpread / (4 × sheetArea)` for signature products (flats unchanged). When the
+  fold fills the sheet (sig = 4×ups) this equals the old formula; when the fold drops below capacity it
+  correctly shows the real waste. Shyam 180pp @250 on 25×36 now reads **8pp · 23 sigs · 6,138 sheets ·
+  570 kg · 39.4 % waste** — fully consistent (was a misleading 9.1 %). Method-consistent with NKK sir's
+  standard folds {4,8,16,32} & signatures = sheets/book; no ganging/non-standard folds invented. Honest
+  waste now drives sheet selection, so the engine flags awkward square-on-oblong jobs to cut down.
+  *(Original report retained below for history.)*
 - **🔴 Imposition/waste inconsistency (CONFIRMED 2026-06-09, NKK sir flagged "weight wrong").**
   Booklet imposes the **open spread as one atomic block**; sheet packing reports `ups`
   spreads/side, but the chosen signature may use **fewer** spreads than `ups`. Example —

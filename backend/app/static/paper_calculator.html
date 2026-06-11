@@ -467,7 +467,10 @@ function computePaper(inp){
     // NKK sir wastage spec: Production = Required × (1 + running%);  Total = Production + Setup
     const production=good*(1+inp.running/100), total=Math.round(production+inp.setup), run=Math.round(production-good);
     const reams=+(total/500).toFixed(1);
-    const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000, eff=100*ups*cellW*cellH/(w*h);
+    const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000;
+    // TRUE utilisation (Bug #1 fix): a signature uses `sig` of the sheet's 4×ups page capacity, so waste must
+    // reflect the chosen fold — not the full geometric packing. cell = open spread (2 pages). Flats use `ups` pieces.
+    const eff = inp.isSig ? 100*sig*cellW*cellH/(4*w*h) : 100*ups*cellW*cellH/(w*h);
     Object.assign(opt,{sig,signatures,sigDropped,sheets_per_copy:spc,good,setup:inp.setup,run,total,reams,
       total_wt:+(wt*total).toFixed(2), wt_sheet:+wt.toFixed(4), eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1),
       cell_used_w:ua/MM, cell_used_h:ub/MM,
