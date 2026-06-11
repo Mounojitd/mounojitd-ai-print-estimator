@@ -548,7 +548,7 @@ function run(){
 }
 
 /* ---------- render ---------- */
-let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=false;
+let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=true;
 function render(r){
   RESULT=r; $("placeholder").style.display="none"; $("results").style.display="block";
   const opensize = LASTINP.isSig
@@ -617,9 +617,10 @@ function backIndex(o,work){
   return (r,c)=>r*o.cols+(o.cols-1-c)+1;                    // turn (default)
 }
 function numFn(o,side){
-  const pages=LASTINP?LASTINP.pages:0, work=($("workStyle")?$("workStyle").value:"back");
-  if(bookletMode && o.cols%2===0 && pages>=4) return (r,c)=>{const inCol=c%2,sheet=r;
-    const n=side==="front"?(inCol===0?pages-2*sheet:1+2*sheet):(inCol===0?2+2*sheet:pages-1-2*sheet); return (n>=1&&n<=pages)?n:"·";};
+  // Page imposition is for ONE signature (one sheet = one signature of o.sig pages), NOT the whole book.
+  const sig=o.sig||0, work=($("workStyle")?$("workStyle").value:"back");
+  if(bookletMode && LASTINP && LASTINP.isSig && o.cols%2===0 && sig>=4) return (r,c)=>{const inCol=c%2,sheet=r;
+    const n=side==="front"?(inCol===0?sig-2*sheet:1+2*sheet):(inCol===0?2+2*sheet:sig-1-2*sheet); return (n>=1&&n<=sig)?n:"·";};
   return side==="front"?(r,c)=>r*o.cols+c+1:backIndex(o,work);
 }
 function workLabel(){ const w=$("workStyle")?$("workStyle").value:"back";
@@ -627,7 +628,8 @@ function workLabel(){ const w=$("workStyle")?$("workStyle").value:"back";
 function diagramHTML(o){
   const dbl=LASTINP&&LASTINP.isSig, work=($("workStyle")?$("workStyle").value:"back");
   const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 page order</label>`:"";
-  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
+  const sigNote=dbl&&bookletMode&&o.sig>=4?` · <b>1 of ${o.signatures}</b> signature${o.signatures>1?'s':''} (${o.sig}pp shown; pages 1–${o.sig})`:"";
+  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
   const gripTopBack = work==="tumble";                       // tumble moves the gripper to the opposite edge on the back
   const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"),false)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildSVG(o,numFn(o,"back"),gripTopBack)}</div></div>`:buildSVG(o,numFn(o,"front"),false);
   return head+svgs;
