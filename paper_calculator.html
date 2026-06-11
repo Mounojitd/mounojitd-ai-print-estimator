@@ -672,24 +672,30 @@ function renderMachine(o){
   const img=Math.max(o.sw,o.sh), imgS=Math.min(o.sw,o.sh);
   const tightPrint = img>mp[0]||imgS>mp[1];     // sheet fits feed but exceeds printable area (gripper)
   const opts=ok.map(x=>`<option ${x===m?'selected':''}>${x.name}</option>`).join("");
-  // price comparison across all compatible presses (printing + plates is the press-dependent cost)
-  const costs=ok.map(x=>({m:x,c:pressPrintCost(x),hr:o.total/x.speed}));
-  const cheapest=costs.slice().sort((a,b)=>a.c-b.c)[0];
-  const rowsHtml=costs.map(({m:x,c,hr})=>{
-    const sel=x===m, best=x===cheapest.m;
-    return `<tr data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" class="${sel?'best':''}" style="${sel?'':'cursor:pointer'}">`+
+  const cheapest=ok.map(x=>({m:x,c:pressPrintCost(x)})).sort((a,b)=>a.c-b.c)[0];
+  // FULL machine master — every press from Process master, with fit status (runnable ones priced + clickable)
+  const rowsHtml=MACHINES.map(x=>{
+    const fit=machineFit(x,o.sw,o.sh), colOk=x.col>=need, runnable=fit==="fits"&&colOk;
+    const sel=x===m, best=cheapest&&x===cheapest.m;
+    let status,cost="—",cls="";
+    if(runnable){ status=`<span style="color:#1c7a52">✓ ${machineBand(x)}</span>`; cost="₹"+Math.round(pressPrintCost(x)).toLocaleString('en-IN'); }
+    else if(fit==="too_big"){ status='<span style="color:#c0392b">sheet too big</span>'; cls="nofit"; }
+    else if(fit==="too_small"){ status='<span style="color:#a9761a">sheet too small</span>'; cls="nofit"; }
+    else { status=`<span style="color:#a9761a">${x.col}-col only (need ${need})</span>`; cls="nofit"; }
+    const click=runnable?`data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" style="cursor:pointer"`:'style="opacity:.6"';
+    return `<tr ${click} class="${sel?'best':''} ${cls}">`+
       `<td>${x.name}${best?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${sel?'<span class="pill">SELECTED</span>':''}</td>`+
-      `<td>${x.max[0]}×${x.max[1]}</td><td>${x.col}c</td><td>${x.grip}mm</td><td>~${hr.toFixed(1)}h</td>`+
-      `<td>${machineBand(x)}</td><td>₹${Math.round(c).toLocaleString('en-IN')}</td></tr>`;
+      `<td>${x.vendor||""}</td><td>${x.max[0]}×${x.max[1]}</td><td>${x.col}c</td><td>${x.grip}mm</td>`+
+      `<td>${runnable?'~'+(o.total/x.speed).toFixed(1)+'h':'—'}</td><td>${status}</td><td>${cost}</td></tr>`;
   }).join("");
-  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine — fit &amp; price comparison</div>`+
+  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine — full press master (${MACHINES.length} presses), fit &amp; price</div>`+
     `<div class="prow"><span><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
     `<span><label>Speed</label><input value="${m.speed.toLocaleString('en-IN')}/hr" disabled></span>`+
     `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr" disabled></span></div>`+
     `<div style="font-size:11.5px;color:#6b7480;margin:2px 0 8px"><b>${m.vendor||""}</b>${m.loc?" · "+m.loc:""} · Max paper <b>${m.max[0]}×${m.max[1]}</b> · max print <b>${mp[0]}×${mp[1]}</b> (gripper ${m.grip}mm) · min <b>${m.min[0]}×${m.min[1]}</b> · ${m.col}-col`+
     `${tightPrint?` · <span style="color:#a9761a">⚠ sheet ${o.sw}×${o.sh} exceeds printable area — image must clear the ${m.grip}mm gripper</span>`:""}</div>`+
-    `<table style="font-size:12px"><thead><tr><th>Press</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Band</th><th>Print+plates</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
-    `<div style="font-size:11px;color:#6b7480;margin-top:6px">Cheapest print+plates: <b>${cheapest.m.name}</b> (₹${Math.round(cheapest.c).toLocaleString('en-IN')}) · click a row to switch press.</div></div>`;
+    `<table style="font-size:12px"><thead><tr><th>Press</th><th>Vendor</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Status</th><th>Print+plates</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
+    `<div style="font-size:11px;color:#6b7480;margin-top:6px">Only presses that fit the ${o.sw}×${o.sh} sheet with ${need}+ colours are selectable. Cheapest runnable: <b>${cheapest?cheapest.m.name:"—"}</b> · click a green row to switch.</div></div>`;
 }
 
 /* ---------- PRICE (Naba Mudran / Anderson default + vendor sources) ---------- */
