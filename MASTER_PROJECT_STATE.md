@@ -113,6 +113,22 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 
 ---
 
+## 6e. PER-FORME costing (2026-06-11, NKK sir review of live estimator) ★ major correction
+
+Sir's findings, all fixed:
+1. **Wastage was job-level → now PER FORME.** Every printed side (forme) gets its own make-ready
+   sheets + running-waste %. `formes = signatures × sides`; make-readies = formes for work&back,
+   = signatures for work&turn/tumble. `total = good + formes×copies×run% + makeReadies×setup`.
+2. **Printing was one price for the whole job → now PER FORME.** Each forme is a separate press run
+   of `formeRun = total/signatures` sheets with its OWN lot/minimum tier. 18 text sides + 2 cover
+   sides = **20 make-readies + 20 printing prices** (verified: 9 sigs 4+4 + cover → 18+2=20 ✓).
+   Short runs now correctly lot-charge per forme (e.g. 1300 sheets/forme → ₹2325 × 18 = ₹41,850,
+   not one ₹2325). Plates were already correct (per sir).
+3. **Fold positions now drawn** on the imposition diagram — numbered dash-dot FOLD lines at the
+   internal cell boundaries (fold 1 = between columns, then cross folds), front + back.
+- 🟡 PENDING SIR'S VERIFICATION: printing impression tables, minimum prices, plate-per-plate prices
+  (he said he will check the tables). Rates unchanged until he confirms.
+
 ## 6d. Imposition drawing fixes (2026-06-10, sir: "drawing not correct")
 
 - **Back-side flip now follows Work style:** work&turn = L⇄R mirror, work&tumble = T⇅B mirror (gripper

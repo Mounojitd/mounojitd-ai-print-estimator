@@ -214,8 +214,8 @@
 
       <h2>Wastage</h2>
       <div class="row">
-        <div class="fld"><label>Make-ready sheets</label><input id="setup" type="number" placeholder="100" /></div>
-        <div class="fld"><label>Running waste (%)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
+        <div class="fld"><label>Make-ready sheets (per forme)</label><input id="setup" type="number" placeholder="100" /></div>
+        <div class="fld"><label>Running waste % (per forme)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
       </div>
 
       <h2>Sheet sizes (in) — incl. cut-downs</h2>
@@ -272,7 +272,7 @@
             <span><label>Coating rate source</label><select id="coatSrc" onchange="showPrice()">
               <option value="card" selected>Standard card</option><option value="anderson">Anderson agreement</option>
             </select></span>
-            <span><label>Work style</label><select id="workStyle" onchange="if(CHOSEN)drawInto('diagram',CHOSEN);showPrice()">
+            <span><label>Work style</label><select id="workStyle" onchange="if(RESULT)run();else showPrice()">
               <option value="back" selected>Work &amp; back (sheetwise)</option>
               <option value="turn">Work &amp; turn</option>
               <option value="tumble">Work &amp; tumble</option>
@@ -476,14 +476,23 @@ function computePaper(inp){
       signatures=Math.max(1,Math.ceil(inp.pages/sig));
       good=signatures*inp.copies; spc=signatures;
     } else { const ext=Math.max(1,inp.extent||1); good=Math.ceil(inp.copies/ups)*ext; spc=ext/ups; }   // extent multiplies paper (no signatures)
-    // NKK sir wastage spec: Production = Required × (1 + running%);  Total = Production + Setup
-    const production=good*(1+inp.running/100), total=Math.round(production+inp.setup), run=Math.round(production-good);
+    // PER-FORME wastage (NKK sir): every printed side (forme) gets its OWN make-ready sheets + running-waste %.
+    // formes = printing passes; make-readies = formes for work&back (separate forme each side),
+    // = one per signature for work&turn/tumble (front+back share one forme).
+    const sides=inp.sides||2;
+    let formes, formesMR, perForme;
+    if(inp.isSig){ formes=signatures*sides; formesMR=(inp.work==="back")?formes:signatures; perForme=inp.copies; }
+    else        { formes=sides;            formesMR=(inp.work==="back")?formes:1;          perForme=good; }
+    const runWaste=Math.ceil(formes*perForme*inp.running/100);   // running % applied per forme
+    const setupWaste=formesMR*inp.setup;                          // make-ready sheets per forme
+    const total=good+runWaste+setupWaste, run=runWaste;
     const reams=+(total/500).toFixed(1);
     const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000;
     // TRUE utilisation (Bug #1 fix): a signature uses `sig` of the sheet's 4×ups page capacity, so waste must
     // reflect the chosen fold — not the full geometric packing. cell = open spread (2 pages). Flats use `ups` pieces.
     const eff = inp.isSig ? 100*sig*cellW*cellH/(4*w*h) : 100*ups*cellW*cellH/(w*h);
     Object.assign(opt,{sig,signatures,sigDropped,sheets_per_copy:spc,good,setup:inp.setup,run,total,reams,
+      formes,formesMR,perForme,setupWaste,
       total_wt:+(wt*total).toFixed(2), wt_sheet:+wt.toFixed(4), eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1),
       cell_used_w:ua/MM, cell_used_h:ub/MM,
       gripper:m.gripper/MM, sidelay:(m.sidelay+m.paperTrim)/MM, bleed:m.bleed/MM, gutter:0});
@@ -524,6 +533,8 @@ function run(){
     sigAuto:$("sigPages").value==="auto", sigPages:$("sigPages").value==="auto"?32:parseInt($("sigPages").value),
     copies:Math.round(booklet?num("copies",1):num("copies2",1)),
     extent:booklet?1:Math.max(1,Math.round(num("extentFlat",1))),
+    sides:Math.max(1,(Math.round(num("cf",4))>0?1:0)+(Math.round(num("cb",4))>0?1:0)),
+    work:($("workStyle")?$("workStyle").value:"back"),
     gsm:num("gsm"), rotate:$("rotate").checked,
     margins:{bleed:num("bleed",3),gripper:num("gripper",10),sidelay:num("sidelay",3),backside:num("backside",3),paperTrim:num("paperTrim",3)},
     trimmed:$("trimmed")?$("trimmed").checked:true,
@@ -582,7 +593,7 @@ function showSheet(o){
   $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":isBR?"Lowest-wastage runnable sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
   $("m_size").textContent=`${o.sw} × ${o.sh} in`;
   if(LASTINP.isSig){
-    $("m_sub").innerHTML=`${o.sig}pp signature → ${o.signatures}/book · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
+    $("m_sub").innerHTML=`${o.sig}pp signature → ${o.signatures}/book · <b>${o.formes} formes / ${o.formesMR} make-readies</b> · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
       (o.sigDropped?`<div style="margin-top:5px;color:#ffd9a8">⚠ Your ${RESULT.maxSig}pp signature won't fold from this sheet — using ${o.sig}pp (= ${o.signatures} signatures, more sheets).</div>`:"");
   } else {
     $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.total_wt} kg`;
@@ -592,7 +603,7 @@ function showSheet(o){
 function drawIdx(i){ if(RESULT&&RESULT.options[i]&&RESULT.options[i].ups) showSheet(RESULT.options[i]); }
 
 /* ---------- diagram ---------- */
-function buildSVG(o,numFn,gripTop){
+function buildSVG(o,numFn,gripTop,showFolds){
   const long=Math.max(o.sw,o.sh), short=Math.min(o.sw,o.sh);
   const W=360, sc=W/long, H=Math.round(short*sc);
   const g=o.gripper*sc, sl=o.sidelay*sc, bl=o.bleed*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
@@ -604,10 +615,25 @@ function buildSVG(o,numFn,gripTop){
     if(bl>1) cells+=`<rect x="${(x+bl).toFixed(1)}" y="${(y+bl).toFixed(1)}" width="${(cw-2*bl).toFixed(1)}" height="${(ch-2*bl).toFixed(1)}" fill="none" stroke="#9bbbe0" stroke-dasharray="2 2" stroke-width="0.5"/>`;
     cells+=`<text x="${(x+cw/2).toFixed(1)}" y="${(y+ch/2+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold">${numFn(r,c)}</text>`;
   }
+  // FOLD POSITIONS — dash-dot lines at the internal cell boundaries, numbered in fold order
+  // (fold 1 = long axis between columns, then cross folds between rows)
+  let folds="";
+  if(showFolds){
+    let fn=1;
+    const top=yOff, bot=yOff+o.rows*ch;
+    for(let c=1;c<o.cols;c++){ const x=sl+c*cw;
+      folds+=`<line x1="${x.toFixed(1)}" y1="${top.toFixed(1)}" x2="${x.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="#c2410c" stroke-width="1.4" stroke-dasharray="7 3 1.5 3"/>`+
+        `<rect x="${(x-16).toFixed(1)}" y="${(top+2).toFixed(1)}" width="32" height="11" rx="3" fill="#c2410c"/>`+
+        `<text x="${x.toFixed(1)}" y="${(top+10.5).toFixed(1)}" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold">FOLD ${fn++}</text>`; }
+    for(let r=1;r<o.rows;r++){ const y=yOff+r*ch;
+      folds+=`<line x1="${sl.toFixed(1)}" y1="${y.toFixed(1)}" x2="${(sl+o.cols*cw).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#c2410c" stroke-width="1.4" stroke-dasharray="7 3 1.5 3"/>`+
+        `<rect x="${(sl+3).toFixed(1)}" y="${(y-5.5).toFixed(1)}" width="32" height="11" rx="3" fill="#c2410c"/>`+
+        `<text x="${(sl+19).toFixed(1)}" y="${(y+3).toFixed(1)}" font-size="8" text-anchor="middle" fill="#fff" font-weight="bold">FOLD ${fn++}</text>`; }
+  }
   const uH=(H-g).toFixed(1);
   const side=`<rect x="0" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/><rect x="${(W-sl).toFixed(1)}" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/>`;
   const grip=`<rect x="0" y="${gripTop?0:(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}</svg>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${side}${grip}${cells}${folds}</svg>`;
 }
 // back-side cell mapping depends on how the sheet is flipped:
 //   turn  = flip L↔R  → horizontal mirror     · tumble = flip T↕B → vertical mirror · back/sheetwise = 180°
@@ -629,9 +655,10 @@ function diagramHTML(o){
   const dbl=LASTINP&&LASTINP.isSig, work=($("workStyle")?$("workStyle").value:"back");
   const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 page order</label>`:"";
   const sigNote=dbl&&bookletMode&&o.sig>=4?` · <b>1 of ${o.signatures}</b> signature${o.signatures>1?'s':''} (${o.sig}pp shown; pages 1–${o.sig})`:"";
-  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${toggle}</div>`;
+  const showFolds=dbl&&(o.cols>1||o.rows>1);                 // signature products fold; show fold positions
+  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${showFolds?'&nbsp;<span style="color:#c2410c">┄</span>fold':''}${toggle}</div>`;
   const gripTopBack = work==="tumble";                       // tumble moves the gripper to the opposite edge on the back
-  const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"),false)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildSVG(o,numFn(o,"back"),gripTopBack)}</div></div>`:buildSVG(o,numFn(o,"front"),false);
+  const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"),false,showFolds)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildSVG(o,numFn(o,"back"),gripTopBack,showFolds)}</div></div>`:buildSVG(o,numFn(o,"front"),false,false);
   return head+svgs;
 }
 function drawInto(boxId,o){ const box=$(boxId); if(!o||!o.ups){box.innerHTML="";return;} box.innerHTML=diagramHTML(o); }
@@ -735,7 +762,7 @@ function activeCoat(){ return (COAT_SOURCES[($("coatSrc")&&$("coatSrc").value)||
 // binding ₹/book + job minimum — real POST_PRESS rates (hardcase 95, perfect 9, section-sew+perfect 6.75, centre-stitch 3.5)
 const BINDING={none:[0,0],saddle:[3.5,500],perfect:[9,1000],sewn:[6.75,3000],case:[95,5000]};
 function setBinding(v){ const x=BINDING[v]||BINDING.none; $("bindingRate").value=x[0]; $("bindingMin").value=x[1]; showPrice(); }
-function refreshMachineAndPrice(){ if(CHOSEN)renderMachine(CHOSEN); showPrice(); }
+function refreshMachineAndPrice(){ if(RESULT){run();return;} if(CHOSEN)renderMachine(CHOSEN); showPrice(); }   // sides affect per-forme paper → recompute
 function setColours(v){ if(!v)return; const p=v.split("+").map(Number); $("cf").value=p[0]; $("cb").value=p[1]; refreshMachineAndPrice(); }
 function sizeBand(w,h){const lo=Math.max(w,h),sh=Math.min(w,h);return (lo>=34&&sh>=22)?"big":"small";}
 function sideCost(src,band,cols,sheets){ if(cols<=0)return 0;
@@ -752,14 +779,18 @@ function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
   const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
   const src=activePrint();
-  const printing=sideCost(src,band,p.cf,sheets)+sideCost(src,band,p.cb,sheets);
   const sigs=o.signatures||1;
+  // PER-FORME printing (NKK sir): each printed side of each signature is a SEPARATE press run with its
+  // own lot/minimum. 18 text sides + 2 cover sides = 20 printing prices, not one.
+  const formeRun=Math.max(1,Math.round(sheets/sigs));            // sheets passing the press per forme
+  const fFront=p.cf>0?sigs:0, fBack=p.cb>0?sigs:0, formes=fFront+fBack;
+  const printing=fFront*sideCost(src,band,p.cf,formeRun)+fBack*sideCost(src,band,p.cb,formeRun);
   // Work style: work-and-back = separate front+back plates; work-and-turn/tumble share one plate set (both sides imaged together)
   const work=p.work||"back";
   const platesPerForme=(work==="back")?(Math.max(0,p.cf)+Math.max(0,p.cb)):Math.max(Math.max(0,p.cf),Math.max(0,p.cb));
   const plateCount=platesPerForme*sigs;
   const plates=plateCount*plateRate(src,band);
-  const sides=(p.cf>0?1:0)+(p.cb>0?1:0), impressions=sheets*sides;
+  const impressions=formes*formeRun;
   const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
   const coatSheets = (p.coatArea==="cover") ? Math.round(sheets/sigs) : sheets;   // cover = one signature's sheets
   const lam=p.lam==="none"?0:Math.max(c.r*(o.sw*o.sh/100)*coatSheets, c.min);
@@ -767,7 +798,7 @@ function priceJob(o,p,machine){
   const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+packing+freight, overhead=base*0.12, prod=base+overhead;
   const margin=prod*p.margin/100, pretax=prod+margin, gst=pretax*p.gst/100, grand=pretax+gst;
-  return {band,paper,printing,plates,plateCount,impressions,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
+  return {band,paper,printing,plates,plateCount,impressions,formes,formeRun,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
 }
 function currentPriceParams(){
   return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
@@ -778,7 +809,8 @@ function currentPriceParams(){
 }
 function coverPlan(){
   if(!LASTINP||!LASTINP.separateCover)return null;
-  const inp=Object.assign({},LASTINP,{pages:4,totalPages:4,sigPages:4,gsm:num("coverGsm",300),setup:Math.round(num("coverSetup",100)),separateCover:false});
+  const inp=Object.assign({},LASTINP,{pages:4,totalPages:4,sigPages:4,gsm:num("coverGsm",300),setup:Math.round(num("coverSetup",100)),separateCover:false,
+    sides:Math.max(1,(Math.round(num("coverCf",4))>0?1:0)+(Math.round(num("coverCb",4))>0?1:0))});
   const r=computePaper(inp), need=Math.max(Math.round(num("coverCf",4)),Math.round(num("coverCb",4)));
   const o=r.options.filter(x=>x.ups&&machinesFor(x.sw,x.sh,need).length).sort((a,b)=>a.waste-b.waste||a.total-b.total)[0];
   if(!o)return {result:r,option:null,machine:null};
@@ -820,13 +852,13 @@ function showPrice(){
     rows=[
       [`Text paper (${txtWt.toFixed(1)} kg)`, x.text.paper],
       [`Cover paper (${cvWt.toFixed(1)} kg)`, x.cover.paper],
-      [`Printing — text (${x.text.impressions.toLocaleString("en-IN")} impr)`, x.text.printing],
-      [`Printing — cover (${x.cover.impressions.toLocaleString("en-IN")} impr)`, x.cover.printing],
+      [`Printing — text (${x.text.formes} formes × ~${x.text.formeRun.toLocaleString("en-IN")} sheets)`, x.text.printing],
+      [`Printing — cover (${x.cover.formes} formes × ~${x.cover.formeRun.toLocaleString("en-IN")} sheets)`, x.cover.printing],
       [`Plates (${q.plateCount}, ${wlabel})`, q.plates],
       ["Coating (cover)", q.lam]
     ];
   } else {
-    rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.impressions.toLocaleString("en-IN")} impr)`,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
+    rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.formes} formes × ~${q.formeRun.toLocaleString("en-IN")} sheets)`,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
   }
   if(x.binding)rows.push([`${$("binding").selectedOptions[0].text} binding`,x.binding]);
   rows.push(["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]);
@@ -899,7 +931,8 @@ function specsTable(p,q,internal){
     ["Paper",`${LASTINP.gsm} GSM; ${CHOSEN.sw} x ${CHOSEN.sh} in`],["Colours",`${p.cf}+${p.cb}`],
     ["Coating",LASTINP.separateCover?"Separate cover component":coatingName(p.lam)],["Signature / layout",sig]];
   if(internal) rows.push(["Machine",SELECTED_MACHINE?SELECTED_MACHINE.name:"No compatible press"],["Sheets",CHOSEN.total.toLocaleString("en-IN")],
-    ["Good + make-ready + running waste",`${CHOSEN.good.toLocaleString("en-IN")} + ${CHOSEN.setup.toLocaleString("en-IN")} + ${CHOSEN.run.toLocaleString("en-IN")}`],
+    ["Formes / make-readies",`${CHOSEN.formes} / ${CHOSEN.formesMR}`],
+    ["Good + make-ready + running waste",`${CHOSEN.good.toLocaleString("en-IN")} + ${(CHOSEN.setupWaste||CHOSEN.setup).toLocaleString("en-IN")} + ${CHOSEN.run.toLocaleString("en-IN")}`],
     ["Plates / impressions",`${q.plateCount} / ${q.impressions.toLocaleString("en-IN")}`],["Paper weight / layout waste",`${CHOSEN.total_wt} kg / ${CHOSEN.waste}%`]);
   return `<table>${rows.map(x=>`<tr><th>${esc(x[0])}</th><td>${esc(x[1])}</td></tr>`).join("")}</table>`;
 }
