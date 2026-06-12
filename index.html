@@ -599,7 +599,7 @@ function render(r){
     const sigCell = LASTINP.isSig
       ? `${o.sig}pp (${o.ups}up)${o.sigDropped?' <span class="pill" style="background:#b9770a">↓</span>':''}` : `${o.ups} (${o.orient})`;
     return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}"><td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}${noPress?'<span class="pill" style="background:#c0392b">no press</span>':''}</td>`+
-      `<td>${sigCell}</td><td>${o.total.toLocaleString("en-IN")}</td><td>${o.reams}</td><td>${o.total_wt} kg</td><td>${o.waste}%</td></tr>`;
+      `<td>${sigCell}</td><td>${o.total.toLocaleString("en-IN")}<div style="font-size:10px;color:#8a96a4;font-weight:400">${o.good.toLocaleString("en-IN")}+${o.run.toLocaleString("en-IN")}w+${o.setupWaste.toLocaleString("en-IN")}mr</div></td><td>${o.reams}</td><td>${o.total_wt} kg<div style="font-size:10px;color:#8a96a4;font-weight:400">${o.wt_sheet} kg/sh</div></td><td>${o.waste}%</td></tr>`;
   }).join("");
   // suggestions for non-fitting sheets
   const nofit=r.options.filter(o=>!o.ups);
