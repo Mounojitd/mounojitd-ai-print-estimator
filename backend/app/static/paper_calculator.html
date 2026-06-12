@@ -252,8 +252,8 @@
             <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
           </div>
           <div class="prow">
-            <span><label>Paper type</label><select id="paperTypeSel" onchange="onPaperTypeChange()"><option value="">All types</option></select></span>
-            <span style="flex:2"><label>Paper (price list)</label><select id="paperGrade" onchange="onPaperPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual rate</option></select></span>
+            <span><label id="paperTypeLabel">Text paper type</label><select id="paperTypeSel" onchange="onPaperTypeChange()"><option value="">All types</option></select></span>
+            <span style="flex:2"><label id="paperGradeLabel">Text paper (price list)</label><select id="paperGrade" onchange="onPaperPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual rate</option></select></span>
             <span><label>Paper GSM</label><select id="paperGsmSel" onchange="onPaperPick()"><option value="">—</option></select></span>
           </div>
           <div class="prow">
@@ -337,6 +337,8 @@ function onProductChange(){
   $("bindingFields").style.display=b?"flex":"none";
   $("gsmLabel").textContent=b?"Text paper GSM":"Paper GSM";
   $("paperRateLabel").textContent=b?"Text paper ₹/sheet":"Paper ₹/sheet";
+  if($("paperTypeLabel")) $("paperTypeLabel").textContent=b?"Text paper type":"Paper type";
+  if($("paperGradeLabel")) $("paperGradeLabel").textContent=b?"Text paper (price list)":"Paper (price list)";
   onCoverChange();
 }
 function onCoverChange(){
