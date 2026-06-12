@@ -732,28 +732,42 @@ function buildFormSVG(o,side,gripTop){
   const pc=splitH?o.cols*2:o.cols, pr=splitH?o.rows:o.rows*2;       // PAGE grid (a spread = 2 pages)
   const pw=splitH?cw/2:cw, ph=splitH?ch:ch/2;
   const yOff=gripTop?g:0;
-  const pat=IMPO[`${o.sig}|${pc}x${pr}`];
+  // exact pattern for the placed grid, else fit a smaller named form INSIDE the grid (partial form):
+  // used pages get the pattern, the leftover strip is greyed as UNUSED with a cut line.
+  let pat=IMPO[`${o.sig}|${pc}x${pr}`], patC=pc;
+  if(!pat){ for(const k in IMPO){ const [s,dim]=k.split("|"); if(+s!==o.sig) continue;
+      const [c2,r2]=dim.split("x").map(Number);
+      if(r2===pr&&c2<=pc){ pat=IMPO[k]; patC=c2; break; } } }
+  const usedC=pat?patC:pc, partial=pat&&patC<pc;
+  const work=($("workStyle")?$("workStyle").value:"back");
+  const colOff=(partial&&side==="back"&&work!=="tumble")?(pc-patC):0;   // flipped sheet: unused strip lands left on the back view
   const fs=Math.max(8,Math.min(14,pw/2.2));
   let cells="";
   for(let r=0;r<pr;r++)for(let c=0;c<pc;c++){
     const x=sl+c*pw, y=yOff+r*ph, cx=x+pw/2, cy=y+ph/2;
-    const n=pat?(side==="front"?pat.F:pat.B)[r][c]:(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
+    const used=!partial||(c>=colOff&&c<colOff+patC);
+    cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}" fill="${used?'#dbeafe':'#eef1f5'}" stroke="#9bbbe0" stroke-width="0.6"/>`;
+    if(!used){ cells+=`<text x="${cx.toFixed(1)}" y="${(cy+3).toFixed(1)}" font-size="8" text-anchor="middle" fill="#aab2bd">unused</text>`; continue; }
+    const n=pat?(side==="front"?pat.F:pat.B)[r][c-colOff]:(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
     const headTop=pr>1&&r<pr/2;                 // top half pages are upside-down: heads to the middle
-    cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}" fill="#dbeafe" stroke="#9bbbe0" stroke-width="0.6"/>`;
     cells+=`<text x="${cx.toFixed(1)}" y="${(cy+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold"${headTop?` transform="rotate(180 ${cx.toFixed(1)} ${cy.toFixed(1)})"`:''}>${n}</text>`;
     cells+=`<text x="${cx.toFixed(1)}" y="${(headTop?y+ph-3:y+8).toFixed(1)}" font-size="6.5" text-anchor="middle" fill="#8a96a4">head</text>`;
   }
-  // FOLDS: bold middle line where the heads meet (the line sir asked for), spines inside each spread,
-  // zigzag/accordion folds between spreads.
-  let folds=""; const top=yOff, bot=yOff+pr*ph, left=sl, right=sl+pc*pw, midX=(left+right)/2;
+  // FOLDS: bold middle line where the heads meet, spines inside spreads, zigzag folds between spreads —
+  // all confined to the USED region; a grey ✂ cut line separates the unused strip.
+  let folds=""; const top=yOff, bot=yOff+pr*ph;
+  const fl=sl+colOff*pw, fr=sl+(colOff+usedC)*pw, midX=(fl+fr)/2;
   if(pr>1){ const y=yOff+(pr/2)*ph;
-    folds+=`<line x1="${left.toFixed(1)}" y1="${y.toFixed(1)}" x2="${right.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#c2410c" stroke-width="2" stroke-dasharray="8 3 2 3"/>`+
+    folds+=`<line x1="${fl.toFixed(1)}" y1="${y.toFixed(1)}" x2="${fr.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#c2410c" stroke-width="2" stroke-dasharray="8 3 2 3"/>`+
       `<rect x="${(midX-52).toFixed(1)}" y="${(y-6.5).toFixed(1)}" width="104" height="13" rx="3" fill="#c2410c"/>`+
       `<text x="${midX.toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8.5" text-anchor="middle" fill="#fff" font-weight="bold">FOLD — heads meet</text>`; }
-  for(let b=1;b<pc;b++){ const x=sl+b*pw, spine=splitH&&b%2===1;
+  for(let b=1;b<usedC;b++){ const x=fl+b*pw, spine=splitH&&b%2===1;
     folds+=`<line x1="${x.toFixed(1)}" y1="${top.toFixed(1)}" x2="${x.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="${spine?'#c2410c':'#e08a2e'}" stroke-width="${spine?1.6:1.1}" stroke-dasharray="${spine?'8 3 2 3':'5 4'}"/>`; }
   for(let b=1;b<pr;b++){ if(pr%2===0&&b===pr/2) continue; const y=yOff+b*ph, spine=!splitH&&b%2===1;
-    folds+=`<line x1="${left.toFixed(1)}" y1="${y.toFixed(1)}" x2="${right.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${spine?'#c2410c':'#e08a2e'}" stroke-width="${spine?1.6:1.1}" stroke-dasharray="${spine?'8 3 2 3':'5 4'}"/>`; }
+    folds+=`<line x1="${fl.toFixed(1)}" y1="${y.toFixed(1)}" x2="${fr.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${spine?'#c2410c':'#e08a2e'}" stroke-width="${spine?1.6:1.1}" stroke-dasharray="${spine?'8 3 2 3':'5 4'}"/>`; }
+  if(partial){ const cx2=colOff>0?fl:fr;
+    folds+=`<line x1="${cx2.toFixed(1)}" y1="${top.toFixed(1)}" x2="${cx2.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="#6b7480" stroke-width="1.6" stroke-dasharray="2 3"/>`+
+      `<text x="${cx2.toFixed(1)}" y="${(top-2<8?top+10:top-2).toFixed(1)}" font-size="9" text-anchor="middle" fill="#6b7480">✂ cut</text>`; }
   const uH=(H-g).toFixed(1);
   const sideR=`<rect x="0" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/><rect x="${(W-sl).toFixed(1)}" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/>`;
   const grip=`<rect x="0" y="${gripTop?0:(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
@@ -764,8 +778,9 @@ function diagramHTML(o){
   const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 form view</label>`:"";
   const useForm=dbl&&bookletMode;
   const splitH=useForm?((LASTINP.orientation==="portrait")===(o.orient!=="rotated")):true;
-  const patKey=useForm?`${o.sig}|${splitH?o.cols*2:o.cols}x${splitH?o.rows:o.rows*2}`:"";
-  const sigNote=useForm?` · <b>${o.sig}pp FORM</b>${IMPO[patKey]?" (section-sewing pattern)":""} · 1 of ${o.signatures} signature${o.signatures>1?'s':''}`:"";
+  const pc2=splitH?o.cols*2:o.cols, pr2=splitH?o.rows:o.rows*2;
+  const hasPat=useForm&&(IMPO[`${o.sig}|${pc2}x${pr2}`]||Object.keys(IMPO).some(k=>{const[s,d]=k.split("|");const[c2,r2]=d.split("x").map(Number);return +s===o.sig&&r2===pr2&&c2<=pc2;}));
+  const sigNote=useForm?` · <b>${o.sig}pp FORM</b>${hasPat?" (section-sewing pattern)":""} · 1 of ${o.signatures} signature${o.signatures>1?'s':''}`:"";
   const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${useForm?'&nbsp;<span style="color:#c2410c">┄</span>fold/spine&nbsp;<span style="color:#e08a2e">┄</span>zigzag':''}${toggle}</div>`;
   const gripTopBack = work==="tumble";                       // tumble moves the gripper to the opposite edge on the back
   const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${useForm?buildFormSVG(o,"front",false):buildSVG(o,numFn(o,"front"),false,false)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${useForm?buildFormSVG(o,"back",gripTopBack):buildSVG(o,numFn(o,"back"),gripTopBack,false)}</div></div>`:buildSVG(o,numFn(o,"front"),false,false);
