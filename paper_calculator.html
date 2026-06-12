@@ -256,6 +256,7 @@
           <div class="rh-sub" id="m_sub"></div>
         </div>
         <div id="diagram" style="margin-top:12px"></div>
+        <div id="calcExplain"></div>
         <div id="machine"></div>
         <div class="pbox">
           <div class="ptitle">💰 Colour · plate · impression · price</div>
@@ -621,9 +622,49 @@ function showSheet(o){
   } else {
     $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.total_wt} kg`;
   }
+  $("calcExplain").innerHTML=explainHTML(o);
   drawInto("diagram",o); renderMachine(o); showPrice();
 }
 function drawIdx(i){ if(RESULT&&RESULT.options[i]&&RESULT.options[i].ups) showSheet(RESULT.options[i]); }
+/* ---- FULL CALCULATION EXPLANATION (NKK sir: show how every number is made) ---- */
+function explainHTML(o){
+  if(!o||!o.ups||!LASTINP||!RESULT) return "";
+  const I=LASTINP, R=RESULT, inr=n=>n.toLocaleString("en-IN");
+  const areaM2=(o.sw*MM/1000)*(o.sh*MM/1000);
+  const rows=[];
+  const step=(t,f,r2)=>rows.push(`<tr><th style="white-space:nowrap">${t}</th><td>${f}</td><td style="text-align:right;white-space:nowrap"><b>${r2}</b></td></tr>`);
+  if(I.isSig){
+    step("Open spread",`closed ${I.W}×${I.H} in, ${I.orientation} → one fold opens it`,`${R.openW}×${R.openH} in`);
+    step("Imposition (ups)",`usable sheet (${o.sw}×${o.sh} minus gripper/side-lay/trims) ÷ spread ${R.cellW}×${R.cellH} mm → ${o.cols}×${o.rows}`,`${o.ups} spreads/side`);
+    step("Signature (form)",`each spread = 4 pages front+back → max form 4×${o.ups}=${4*o.ups}pp; largest ×4 ≤ ${I.sigAuto?"auto":I.sigPages+"pp target"}`,`${o.sig}pp`);
+    step("Signatures / book",`⌈ ${I.pages}pp text ÷ ${o.sig}pp ⌉`,`${o.signatures}`);
+    step("Good sheets",`${o.signatures} signatures × ${inr(I.copies)} copies`,inr(o.good));
+    step("Formes (printed sides)",`${o.signatures} signatures × ${I.sides} side${I.sides>1?"s":""}`,`${o.formes}`);
+    step("Make-readies",I.work==="back"?`work &amp; back → one per forme`:`work &amp; ${I.work} → one per signature (front+back share a forme)`,`${o.formesMR}`);
+    step("Running waste",`${o.formes} formes × ${inr(I.copies)} copies × ${I.running}%`,inr(o.run));
+    step("Make-ready waste",`${o.formesMR} make-readies × ${I.setup} sheets`,inr(o.setupWaste));
+    step("SHEETS (total)",`${inr(o.good)} good + ${inr(o.run)} running + ${inr(o.setupWaste)} make-ready`,inr(o.total));
+  } else {
+    step("Finished size",`${I.W}×${I.H} in (${I.orientation})`,`${R.openW}×${R.openH} in`);
+    step("Imposition (ups)",`usable sheet ÷ piece ${R.cellW}×${R.cellH} mm → ${o.cols}×${o.rows}`,`${o.ups}-up`);
+    step("Base run",`⌈ ${inr(I.copies)} qty ÷ ${o.ups}-up ⌉ × extent ${I.extent||1}`,inr(o.good));
+    step("Formes (printed sides)",`${I.sides} side${I.sides>1?"s":""}`,`${o.formes}`);
+    step("Make-readies",I.work==="back"?"one per forme":"shared forme (work &amp; "+I.work+")",`${o.formesMR}`);
+    step("Running waste",`${o.formes} × ${inr(o.perForme)} × ${I.running}%`,inr(o.run));
+    step("Make-ready waste",`${o.formesMR} × ${I.setup} sheets`,inr(o.setupWaste));
+    step("SHEETS (total)",`${inr(o.good)} + ${inr(o.run)} + ${inr(o.setupWaste)}`,inr(o.total));
+  }
+  step("Reams",`${inr(o.total)} sheets ÷ 500/ream`,o.reams);
+  step("Weight / sheet",`${o.sw}×${o.sh} in = ${areaM2.toFixed(4)} m² × ${I.gsm} gsm ÷ 1000`,`${o.wt_sheet} kg`);
+  step("WEIGHT (total)",`${o.wt_sheet} kg × ${inr(o.total)} sheets`,`${o.total_wt} kg`);
+  if(I.isSig)
+    step("Waste %",`100 − (${o.sig}pp used × spread area) ÷ (4 pages/spread × sheet area) × 100`,`${o.waste}%`);
+  else
+    step("Waste %",`100 − (${o.ups} pieces × piece area) ÷ sheet area × 100`,`${o.waste}%`);
+  return `<details class="pbox" style="margin-top:12px"><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 How these numbers are calculated — ${o.sw}×${o.sh} (click to open)</summary>`+
+    `<table style="font-size:12px;margin-top:8px"><thead><tr><th>Step</th><th>Formula (live values)</th><th style="text-align:right">Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`+
+    `<div class="hint" style="margin-top:6px">Inputs: ${I.isSig?`${I.pages}pp text · `:""}${inr(I.copies)} qty · ${I.gsm} gsm · make-ready ${I.setup}/forme · running ${I.running}%/forme · ${I.sides}-side (${I.work==="back"?"work &amp; back":"work &amp; "+I.work}). Change any input and this table recalculates.</div></details>`;
+}
 
 /* ---------- diagram ---------- */
 function buildSVG(o,numFn,gripTop,showFolds){
