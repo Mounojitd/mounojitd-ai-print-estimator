@@ -113,6 +113,27 @@ gloss aqua 0.12/800 · matt aqua 0.25/1000 · drip-off 0.55/3500.
 
 ---
 
+## 6f. Sir review round 3 (2026-06-12, voice + hand-folded form PDFs) ★
+
+1. **Forms are ANY multiple of 4** — `sig = floor(min(target, 4×ups)/4)×4`. Sir: "3-up is right,
+   8pp is wrong" → 3 spreads/side = **12pp form** (he drew the 12-page form). OVERRIDES the old
+   {4,8,16,32}-only rule. Verified vs his example: 204pp ÷ 12 = 17 forms × 65 = **1105 sheets**
+   (app previously said 1875). Signature select now offers 4/8/12/16/24/32 + Auto.
+2. **Separate cover does NOT subtract 4 from text pages** — cover is EXTRA (own 4pp, own stock).
+   Pages field = text/inside pages, relabeled.
+3. **Paper TYPE dropdowns** (text + cover) filter the grade list; auto-by-GSM respects the type.
+4. **Machine selection Auto / Manual** — manual lists every press in the master; non-fitting picks
+   get a loud warning ("cut the paper down to the machine size").
+5. **Form drawings rebuilt from sir's hand-folded PDFs** (`4-P form`, `8 pp Ss form`, `12 page from`,
+   `16 pF`): classic section-sewing patterns — 4pp F[4,1]/B[2,3]; 8pp F[8,5/1,4]/B[6,7/3,2];
+   12pp F[8,9,12/5,4,1]/B[11,10,7/2,3,6]; 16pp F[5,12,9,8/4,13,16,1]/B[7,10,11,6/2,15,14,3].
+   Top half rotated 180° (heads to the middle), bold "FOLD — heads meet" middle line, red spine
+   folds inside spreads, orange zigzag folds between spreads. Leaf pairing (n/n+1, odd front)
+   verified for all four patterns. Old cell-boundary FOLD marks (sir: "this is not the folding
+   mark") removed.
+- 🟡 Still pending sir: printing impression tables / minimums / plate prices; digital-process
+  branch (qty < 200 → ask offset/digital; digital presses 13×19 + banner) — noted, not yet built.
+
 ## 6e. PER-FORME costing (2026-06-11, NKK sir review of live estimator) ★ major correction
 
 Sir's findings, all fixed:
