@@ -160,8 +160,8 @@
 
       <div id="bookletFields">
         <div class="row3">
-          <div class="fld"><label>Extent (total pages)</label><input id="pages" type="number" placeholder="e.g. 80" /></div>
-          <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>16</option><option>32</option></select></div>
+          <div class="fld"><label>Extent (text pages)</label><input id="pages" type="number" placeholder="e.g. 80" /><div class="hint">Inside pages only — a separate cover is +4pp extra.</div></div>
+          <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select></div>
           <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" /></div>
         </div>
         <div class="fld"><label>Cover type</label>
@@ -174,15 +174,16 @@
         <div id="coverFields" class="pbox" style="margin:0 0 10px">
           <div class="ptitle">Cover component</div>
           <div class="row3">
+            <div class="fld"><label>Cover paper type</label><select id="coverTypeSel" onchange="onCoverTypeChange()"><option value="">All types</option></select></div>
             <div class="fld"><label>Cover paper (price list)</label><select id="coverGrade" onchange="onCoverPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual</option></select></div>
             <div class="fld"><label>Cover GSM</label><select id="coverGsmSel" onchange="onCoverPick()"><option value="">—</option></select></div>
-            <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="100" oninput="showPrice()" /></div>
           </div>
           <div class="row3">
             <div class="fld"><label>Cover GSM (used)</label><input id="coverGsm" type="number" value="300" oninput="showPrice()" /></div>
             <div class="fld"><label>Cover paper ₹/sheet</label><input id="coverPaperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onCoverRateEdit()" /></div>
-            <div class="fld" style="align-self:end;font-size:11px;color:#6b7480" id="coverRateNote">Manual rate.</div>
+            <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="100" oninput="showPrice()" /></div>
           </div>
+          <div class="hint" id="coverRateNote" style="margin:-4px 0 8px">Auto rate.</div>
           <div class="row3">
             <div class="fld"><label>Cover colours front</label><input id="coverCf" type="number" value="4" oninput="showPrice()" /></div>
             <div class="fld"><label>Cover colours back</label><input id="coverCb" type="number" value="4" oninput="showPrice()" /></div>
@@ -251,6 +252,7 @@
             <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
           </div>
           <div class="prow">
+            <span><label>Paper type</label><select id="paperTypeSel" onchange="onPaperTypeChange()"><option value="">All types</option></select></span>
             <span style="flex:2"><label>Paper (price list)</label><select id="paperGrade" onchange="onPaperPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual rate</option></select></span>
             <span><label>Paper GSM</label><select id="paperGsmSel" onchange="onPaperPick()"><option value="">—</option></select></span>
           </div>
@@ -349,11 +351,22 @@ function onCoverChange(){
 /* ---------- PAPER PRICE AUTO-PICKUP (from embedded PAPER_DB) ---------- */
 let PAPER_AUTO=false;
 function paperKey(o){return o.t+" — "+o.g;}
-function buildPaperPickers(){
-  const sel=$("paperGrade"); if(!sel)return;
-  const keys=[...new Set(PAPER_DB.map(paperKey))].sort();
+function fillGradeList(selId,type){            // rebuild a grade <select>, keeping its first two static options (Auto / Manual)
+  const sel=$(selId); if(!sel)return;
+  while(sel.options.length>2) sel.remove(2);
+  const keys=[...new Set(PAPER_DB.filter(o=>!type||o.t===type).map(paperKey))].sort();
   for(const k of keys){ const op=document.createElement("option"); op.value=k; op.textContent=k; sel.appendChild(op); }
 }
+function buildTypeList(selId){
+  const sel=$(selId); if(!sel)return;
+  const types=[...new Set(PAPER_DB.map(o=>o.t))].sort();
+  for(const t of types){ const op=document.createElement("option"); op.value=t; op.textContent=t; sel.appendChild(op); }
+}
+function buildPaperPickers(){
+  buildTypeList("paperTypeSel"); fillGradeList("paperGrade","");
+}
+function onPaperTypeChange(){ fillGradeList("paperGrade",$("paperTypeSel").value); $("paperGrade").value="__auto"; onPaperPick(); }
+function onCoverTypeChange(){ fillGradeList("coverGrade",$("coverTypeSel").value); $("coverGrade").value="__auto"; onCoverPick(); }
 function fillGsmOptions(){
   const key=$("paperGrade").value, gs=$("paperGsmSel");
   gs.innerHTML="";
@@ -375,12 +388,14 @@ function lookupPaperRate(key,gsm,w,h){
   let best=null,bd=1e9; for(const o of cands){const d=Math.abs(o.w*o.h-w*h);if(d<bd){bd=d;best=o;}}
   return{rate:+(best.r*(w*h)/(best.w*best.h)).toFixed(2),via:`scaled from ${best.w}×${best.h}`};
 }
-// AUTO: best-priced paper for a given GSM at a sheet size (prefers exact-size list price, then cheapest)
-function lookupByGsm(gsm,w,h){
+// AUTO: best-priced paper for a given GSM at a sheet size (prefers exact-size list price, then cheapest);
+// optional paper-type filter (NKK sir: choose the TYPE, then auto-pick within it)
+function lookupByGsm(gsm,w,h,type){
   if(!(gsm>0))return null;
-  let cands=PAPER_DB.filter(o=>o.gsm===gsm&&o.r>0);
-  if(!cands.length){ let nd=1e9; for(const o of PAPER_DB) if(o.r>0) nd=Math.min(nd,Math.abs(o.gsm-gsm));
-    if(nd>15)return null; cands=PAPER_DB.filter(o=>o.r>0&&Math.abs(o.gsm-gsm)===nd); }
+  const POOL=type?PAPER_DB.filter(o=>o.t===type):PAPER_DB;
+  let cands=POOL.filter(o=>o.gsm===gsm&&o.r>0);
+  if(!cands.length){ let nd=1e9; for(const o of POOL) if(o.r>0) nd=Math.min(nd,Math.abs(o.gsm-gsm));
+    if(nd>15)return null; cands=POOL.filter(o=>o.r>0&&Math.abs(o.gsm-gsm)===nd); }
   const exact=cands.filter(o=>(Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6));
   const pool=exact.length?exact:cands;
   let pick=null;
@@ -402,9 +417,10 @@ function autoPaperRate(){
   const grade=$("paperGrade").value;
   if(grade==="") return;                                // Manual: leave typed value
   if(grade==="__auto"){
-    const gsm=num("gsm",0), hit=lookupByGsm(gsm,CHOSEN.sw,CHOSEN.sh);
-    if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto @ ${gsm}gsm, ${CHOSEN.sw}×${CHOSEN.sh}: ${hit.grade} — ₹${hit.rate}/sheet (best price, ${hit.via}).`; }
-    else $("paperRateNote").textContent=`No ${gsm||"?"}gsm paper in the price list — choose a grade or enter the rate manually.`;
+    const gsm=num("gsm",0), typ=$("paperTypeSel")?$("paperTypeSel").value:"";
+    const hit=lookupByGsm(gsm,CHOSEN.sw,CHOSEN.sh,typ);
+    if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto @ ${gsm}gsm${typ?" · "+typ:""}, ${CHOSEN.sw}×${CHOSEN.sh}: ${hit.grade} — ₹${hit.rate}/sheet (best price, ${hit.via}).`; }
+    else $("paperRateNote").textContent=`No ${gsm||"?"}gsm ${typ||"paper"} in the price list — choose a grade or enter the rate manually.`;
     return;
   }
   const gsm=parseFloat($("paperGsmSel").value), hit=isFinite(gsm)?lookupPaperRate(grade,gsm,CHOSEN.sw,CHOSEN.sh):null;
@@ -414,9 +430,7 @@ function autoPaperRate(){
 /* ---- COVER paper auto-pickup (same DB) ---- */
 let COVER_AUTO=false;
 function buildCoverPickers(){
-  const sel=$("coverGrade"); if(!sel)return;
-  const keys=[...new Set(PAPER_DB.map(paperKey))].sort();
-  for(const k of keys){ const op=document.createElement("option"); op.value=k; op.textContent=k; sel.appendChild(op); }
+  buildTypeList("coverTypeSel"); fillGradeList("coverGrade","");
 }
 function fillCoverGsm(){
   const key=$("coverGrade").value, gs=$("coverGsmSel"); gs.innerHTML="";
@@ -439,7 +453,7 @@ function coverRateFor(w,h){
   const grade=$("coverGrade").value;
   if(grade==="") return num("coverPaperRate",0);                  // manual
   let hit;
-  if(grade==="__auto"){ hit=lookupByGsm(num("coverGsm",0),w,h); }
+  if(grade==="__auto"){ hit=lookupByGsm(num("coverGsm",0),w,h,$("coverTypeSel")?$("coverTypeSel").value:""); }
   else { const gsm=parseFloat($("coverGsmSel").value); hit=isFinite(gsm)?lookupPaperRate(grade,gsm,w,h):null; }
   if(hit){ $("coverPaperRate").value=hit.rate; $("coverRateNote").textContent=`Auto ₹${hit.rate}/sheet @ ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).`; return hit.rate; }
   $("coverRateNote").textContent=`No list price @ ${w}×${h} — manual.`; return num("coverPaperRate",0);
@@ -457,7 +471,6 @@ function computePaper(inp){
   const cellW=o.w*MM+2*m.bleed, cellH=o.h*MM+2*m.bleed;   // mm imaged size
   const orients=inp.rotate?["upright","rotated"]:["upright"];
   const target=inp.sigPages;                   // your chosen signature (NKK sir's input)
-  const STD=[4,8,16,32];                        // standard folds; a sheet holds up to 4×(spreads that fit)
   const options=inp.sizes.map(([wi,hi])=>{
     const w=wi*MM,h=hi*MM, long=Math.max(w,h), short=Math.min(w,h);
     const usableLong=long-2*m.sidelay-2*m.paperTrim;        // side-lay both sides + stock trim
@@ -470,8 +483,10 @@ function computePaper(inp){
     if(ups<=0){ opt.shortfall=+Math.max(cellW-usableLong, cellH-usableShort).toFixed(1); return opt; }
     let sig=4, signatures=1, good, spc, sigDropped=false;
     if(inp.isSig){
-      const cap=Math.min(target, 4*ups);        // largest signature that can FOLD from this sheet (4 × spreads/side)
-      for(const x of STD){ if(x<=cap) sig=x; }
+      // Largest multiple-of-4 form the sheet can fold (NKK sir: 3 spreads/side = 12pp FORM, not 8pp).
+      // Forms are any ×4: 4, 8, 12, 16, 20, 24… capped by 4×spreads-per-side and the chosen target.
+      const cap=Math.min(target, 4*ups);
+      sig=Math.max(4, Math.floor(cap/4)*4);
       sigDropped = !inp.sigAuto && sig<target;   // only a "drop" if user manually picked a bigger signature
       signatures=Math.max(1,Math.ceil(inp.pages/sig));
       good=signatures*inp.copies; spc=signatures;
@@ -543,10 +558,8 @@ function run(){
   if(!inp.trimmed){ inp.margins.bleed=0; inp.margins.paperTrim=0; }   // no-trim: drop bleed + paper-trim allowances
 
   inp.separateCover=booklet&&$("separateCover").checked;
-  if(inp.separateCover){
-    if(inp.totalPages<=4){ $("err").textContent="A separate cover needs more than 4 total pages."; return; }
-    inp.pages=inp.totalPages-4;
-  }
+  // NKK sir: a separate cover is EXTRA (its own 4pp on its own stock). The pages entered are the
+  // TEXT/inside pages — do NOT subtract 4 from them.
   LASTINP=inp;
   const r=computePaper(inp);
   if(!r.options.some(o=>o.ups>0)){
@@ -563,7 +576,7 @@ let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=true;
 function render(r){
   RESULT=r; $("placeholder").style.display="none"; $("results").style.display="block";
   const opensize = LASTINP.isSig
-    ? `Open spread: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${LASTINP.totalPages}pp${LASTINP.separateCover?` = ${LASTINP.pages}pp text + 4pp cover`:""} · signature <b>${LASTINP.sigAuto?"Auto (best fit per sheet)":r.maxSig+"pp"}</b>${LASTINP.sigAuto?"":" (drops per sheet if it won't fold)"}`
+    ? `Open spread: <b>${r.openW} × ${r.openH} in</b> (closed ${LASTINP.W}×${LASTINP.H}, ${LASTINP.orientation}) · ${LASTINP.pages}pp text${LASTINP.separateCover?" + 4pp separate cover (extra)":""} · signature<b>${LASTINP.sigAuto?"Auto (best fit per sheet)":r.maxSig+"pp"}</b>${LASTINP.sigAuto?"":" (drops per sheet if it won't fold)"}`
     : `Finished size: <b>${r.openW} × ${r.openH} in</b>`;
   $("opensize").innerHTML=opensize;
   const bp=r.best, bw=r.bestWaste;
@@ -651,14 +664,57 @@ function numFn(o,side){
 }
 function workLabel(){ const w=$("workStyle")?$("workStyle").value:"back";
   return w==="turn"?"work &amp; turn — flip L⇄R":w==="tumble"?"work &amp; tumble — flip T⇅B":"work &amp; back — sheetwise (separate forme)"; }
+/* ---- SECTION-SEWING FORM PATTERNS (NKK sir's hand-folded forms) — heads to the middle fold line.
+   Grids are PAGES per printed side; top-half numbers print upside-down (heads point to the middle). */
+const IMPO={
+  "4|2x1" :{F:[[4,1]],B:[[2,3]]},
+  "8|2x2" :{F:[[8,5],[1,4]],B:[[6,7],[3,2]]},
+  "12|3x2":{F:[[8,9,12],[5,4,1]],B:[[11,10,7],[2,3,6]]},
+  "16|4x2":{F:[[5,12,9,8],[4,13,16,1]],B:[[7,10,11,6],[2,15,14,3]]}
+};
+function buildFormSVG(o,side,gripTop){
+  const long=Math.max(o.sw,o.sh), W=360, sc=W/long, H=Math.round(Math.min(o.sw,o.sh)*sc);
+  const g=o.gripper*sc, sl=o.sidelay*sc, cw=o.cell_used_w*sc, ch=o.cell_used_h*sc;
+  const portrait=LASTINP.orientation==="portrait";
+  const pc=portrait?o.cols*2:o.cols, pr=portrait?o.rows:o.rows*2;   // PAGE grid (a spread = 2 pages)
+  const pw=portrait?cw/2:cw, ph=portrait?ch:ch/2;
+  const yOff=gripTop?g:0;
+  const pat=IMPO[`${o.sig}|${pc}x${pr}`];
+  const fs=Math.max(8,Math.min(14,pw/2.2));
+  let cells="";
+  for(let r=0;r<pr;r++)for(let c=0;c<pc;c++){
+    const x=sl+c*pw, y=yOff+r*ph, cx=x+pw/2, cy=y+ph/2;
+    const n=pat?(side==="front"?pat.F:pat.B)[r][c]:(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
+    const headTop=pr>1&&r<pr/2;                 // top half pages are upside-down: heads to the middle
+    cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}" fill="#dbeafe" stroke="#9bbbe0" stroke-width="0.6"/>`;
+    cells+=`<text x="${cx.toFixed(1)}" y="${(cy+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold"${headTop?` transform="rotate(180 ${cx.toFixed(1)} ${cy.toFixed(1)})"`:''}>${n}</text>`;
+    cells+=`<text x="${cx.toFixed(1)}" y="${(headTop?y+ph-3:y+8).toFixed(1)}" font-size="6.5" text-anchor="middle" fill="#8a96a4">head</text>`;
+  }
+  // FOLDS: bold middle line where the heads meet (the line sir asked for), spines inside each spread,
+  // zigzag/accordion folds between spreads.
+  let folds=""; const top=yOff, bot=yOff+pr*ph, left=sl, right=sl+pc*pw, midX=(left+right)/2;
+  if(pr>1){ const y=yOff+(pr/2)*ph;
+    folds+=`<line x1="${left.toFixed(1)}" y1="${y.toFixed(1)}" x2="${right.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#c2410c" stroke-width="2" stroke-dasharray="8 3 2 3"/>`+
+      `<rect x="${(midX-52).toFixed(1)}" y="${(y-6.5).toFixed(1)}" width="104" height="13" rx="3" fill="#c2410c"/>`+
+      `<text x="${midX.toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8.5" text-anchor="middle" fill="#fff" font-weight="bold">FOLD — heads meet</text>`; }
+  for(let b=1;b<pc;b++){ const x=sl+b*pw, spine=portrait&&b%2===1;
+    folds+=`<line x1="${x.toFixed(1)}" y1="${top.toFixed(1)}" x2="${x.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="${spine?'#c2410c':'#e08a2e'}" stroke-width="${spine?1.6:1.1}" stroke-dasharray="${spine?'8 3 2 3':'5 4'}"/>`; }
+  for(let b=1;b<pr;b++){ if(pr%2===0&&b===pr/2) continue; const y=yOff+b*ph, spine=!portrait&&b%2===1;
+    folds+=`<line x1="${left.toFixed(1)}" y1="${y.toFixed(1)}" x2="${right.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${spine?'#c2410c':'#e08a2e'}" stroke-width="${spine?1.6:1.1}" stroke-dasharray="${spine?'8 3 2 3':'5 4'}"/>`; }
+  const uH=(H-g).toFixed(1);
+  const sideR=`<rect x="0" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/><rect x="${(W-sl).toFixed(1)}" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/>`;
+  const grip=`<rect x="0" y="${gripTop?0:(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${sideR}${grip}${cells}${folds}</svg>`;
+}
 function diagramHTML(o){
   const dbl=LASTINP&&LASTINP.isSig, work=($("workStyle")?$("workStyle").value:"back");
-  const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 page order</label>`:"";
-  const sigNote=dbl&&bookletMode&&o.sig>=4?` · <b>1 of ${o.signatures}</b> signature${o.signatures>1?'s':''} (${o.sig}pp shown; pages 1–${o.sig})`:"";
-  const showFolds=dbl&&(o.cols>1||o.rows>1);                 // signature products fold; show fold positions
-  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${showFolds?'&nbsp;<span style="color:#c2410c">┄</span>fold':''}${toggle}</div>`;
+  const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 form view</label>`:"";
+  const useForm=dbl&&bookletMode;
+  const patKey=useForm?`${o.sig}|${LASTINP.orientation==="portrait"?o.cols*2:o.cols}x${LASTINP.orientation==="portrait"?o.rows:o.rows*2}`:"";
+  const sigNote=useForm?` · <b>${o.sig}pp FORM</b>${IMPO[patKey]?" (section-sewing pattern)":""} · 1 of ${o.signatures} signature${o.signatures>1?'s':''}`:"";
+  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${useForm?'&nbsp;<span style="color:#c2410c">┄</span>fold/spine&nbsp;<span style="color:#e08a2e">┄</span>zigzag':''}${toggle}</div>`;
   const gripTopBack = work==="tumble";                       // tumble moves the gripper to the opposite edge on the back
-  const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"),false,showFolds)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildSVG(o,numFn(o,"back"),gripTopBack,showFolds)}</div></div>`:buildSVG(o,numFn(o,"front"),false,false);
+  const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${useForm?buildFormSVG(o,"front",false):buildSVG(o,numFn(o,"front"),false,false)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${useForm?buildFormSVG(o,"back",gripTopBack):buildSVG(o,numFn(o,"back"),gripTopBack,false)}</div></div>`:buildSVG(o,numFn(o,"front"),false,false);
   return head+svgs;
 }
 function drawInto(boxId,o){ const box=$(boxId); if(!o||!o.ups){box.innerHTML="";return;} box.innerHTML=diagramHTML(o); }
@@ -695,23 +751,28 @@ function machineFit(m,sw,sh){
 function machinesFor(sw,sh,need){ return MACHINES.filter(m=>machineFit(m,sw,sh)==="fits" && m.col>=need).sort((a,b)=>b.speed-a.speed); }
 // press-dependent cost (printing + plates) for the current job on a given press — for comparison
 function pressPrintCost(machine){ try{ const q=priceJob(CHOSEN,currentPriceParams(),machine); return q.printing+q.plates; }catch(e){ return Infinity; } }
-function selectMachine(name){ SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE; showPrice(); }
+function selectMachine(name){ SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE; if(MACHINE_MODE==="manual"&&CHOSEN)renderMachine(CHOSEN); showPrice(); }
+let MACHINE_MODE="auto";                       // NKK sir: machine must be auto OR manually selectable
+function setMachineMode(v){ MACHINE_MODE=v; if(CHOSEN){renderMachine(CHOSEN); showPrice();} }
 function renderMachine(o){
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
   const ok=machinesFor(o.sw,o.sh,need), box=$("machine");
-  if(!ok.length){
+  if(MACHINE_MODE==="auto"&&!ok.length){
     SELECTED_MACHINE=null;
     const biggest=MACHINES.slice().sort((a,b)=>Math.max(...b.max)-Math.max(...a.max))[0];
     box.innerHTML=`<div class="pbox" style="border-color:#f3c0a0;background:#fff5ef"><div class="ptitle" style="color:#b9770a">🖨 Machine</div>`+
       `⚠ A <b>${o.sw}×${o.sh}</b> sheet needs ${need} colours and won't run on any press (largest is ${biggest.name} ${biggest.max[0]}×${biggest.max[1]}). `+
-      `<b>Cut the sheet down</b> to ≤ ${biggest.max[0]}×${biggest.max[1]}, drop colours, or add a larger press.</div>`;
+      `<b>Cut the sheet down</b> to ≤ ${biggest.max[0]}×${biggest.max[1]}, drop colours, or add a larger press, or switch the press selection to Manual.</div>`;
     return;
   }
-  if(!SELECTED_MACHINE || !ok.includes(SELECTED_MACHINE)) SELECTED_MACHINE=ok[0];
+  if(MACHINE_MODE==="auto"){ if(!SELECTED_MACHINE || !ok.includes(SELECTED_MACHINE)) SELECTED_MACHINE=ok[0]; }
+  else if(!SELECTED_MACHINE) SELECTED_MACHINE=ok[0]||MACHINES[0];
   const m=SELECTED_MACHINE, hrs=o.total/m.speed, mp=maxPrint(m);
+  const mFit=machineFit(m,o.sw,o.sh), mBad=mFit!=="fits"||m.col<need;   // manual pick may not fit — warn loudly
   const img=Math.max(o.sw,o.sh), imgS=Math.min(o.sw,o.sh);
   const tightPrint = img>mp[0]||imgS>mp[1];     // sheet fits feed but exceeds printable area (gripper)
-  const opts=ok.map(x=>`<option ${x===m?'selected':''}>${x.name}</option>`).join("");
+  const list=(MACHINE_MODE==="manual")?MACHINES:ok;                 // manual: pick ANY press from the master
+  const opts=list.map(x=>`<option ${x===m?'selected':''}>${x.name}</option>`).join("");
   const cheapest=ok.map(x=>({m:x,c:pressPrintCost(x)})).sort((a,b)=>a.c-b.c)[0];
   // FULL machine master — every press from Process master, with fit status (runnable ones priced + clickable)
   const rowsHtml=MACHINES.map(x=>{
@@ -722,20 +783,22 @@ function renderMachine(o){
     else if(fit==="too_big"){ status='<span style="color:#c0392b">sheet too big</span>'; cls="nofit"; }
     else if(fit==="too_small"){ status='<span style="color:#a9761a">sheet too small</span>'; cls="nofit"; }
     else { status=`<span style="color:#a9761a">${x.col}-col only (need ${need})</span>`; cls="nofit"; }
-    const click=runnable?`data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" style="cursor:pointer"`:'style="opacity:.6"';
+    const clickable=runnable||MACHINE_MODE==="manual";
+    const click=clickable?`data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" style="cursor:pointer${runnable?'':';opacity:.7'}"`:'style="opacity:.6"';
     return `<tr ${click} class="${sel?'best':''} ${cls}">`+
       `<td>${x.name}${best?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${sel?'<span class="pill">SELECTED</span>':''}</td>`+
       `<td>${x.vendor||""}</td><td>${x.max[0]}×${x.max[1]}</td><td>${x.col}c</td><td>${x.grip}mm</td>`+
       `<td>${runnable?'~'+(o.total/x.speed).toFixed(1)+'h':'—'}</td><td>${status}</td><td>${cost}</td></tr>`;
   }).join("");
   box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine — full press master (${MACHINES.length} presses), fit &amp; price</div>`+
-    `<div class="prow"><span><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
-    `<span><label>Speed</label><input value="${m.speed.toLocaleString('en-IN')}/hr" disabled></span>`+
-    `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr" disabled></span></div>`+
+    `<div class="prow"><span><label>Press selection</label><select onchange="setMachineMode(this.value)"><option value="auto" ${MACHINE_MODE==="auto"?"selected":""}>Auto (best fit)</option><option value="manual" ${MACHINE_MODE==="manual"?"selected":""}>Manual (choose any)</option></select></span>`+
+    `<span style="flex:2"><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
+    `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr @ ${m.speed.toLocaleString('en-IN')}/hr" disabled></span></div>`+
     `<div style="font-size:11.5px;color:#6b7480;margin:2px 0 8px"><b>${m.vendor||""}</b>${m.loc?" · "+m.loc:""} · Max paper <b>${m.max[0]}×${m.max[1]}</b> · max print <b>${mp[0]}×${mp[1]}</b> (gripper ${m.grip}mm) · min <b>${m.min[0]}×${m.min[1]}</b> · ${m.col}-col`+
     `${tightPrint?` · <span style="color:#a9761a">⚠ sheet ${o.sw}×${o.sh} exceeds printable area — image must clear the ${m.grip}mm gripper</span>`:""}</div>`+
+    `${mBad?`<div class="suggest">⚠ Manually selected press <b>${m.name}</b> ${mFit==="too_big"?`cannot feed a ${o.sw}×${o.sh} sheet (max ${m.max[0]}×${m.max[1]}) — cut the paper down to the machine size`:mFit==="too_small"?`needs a bigger sheet (min ${m.min[0]}×${m.min[1]})`:`has only ${m.col} colours (job needs ${need})`}.</div>`:""}`+
     `<table style="font-size:12px"><thead><tr><th>Press</th><th>Vendor</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Status</th><th>Print+plates</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
-    `<div style="font-size:11px;color:#6b7480;margin-top:6px">Only presses that fit the ${o.sw}×${o.sh} sheet with ${need}+ colours are selectable. Cheapest runnable: <b>${cheapest?cheapest.m.name:"—"}</b> · click a green row to switch.</div></div>`;
+    `<div style="font-size:11px;color:#6b7480;margin-top:6px">${MACHINE_MODE==="auto"?`Auto: only presses that fit the ${o.sw}×${o.sh} sheet with ${need}+ colours are selectable.`:`Manual: any press can be chosen — non-fitting picks show a warning.`} Cheapest runnable: <b>${cheapest?cheapest.m.name:"—"}</b> · click a row to switch.</div></div>`;
 }
 
 /* ---------- PRICE (Naba Mudran / Anderson default + vendor sources) ---------- */
