@@ -806,6 +806,11 @@ const MACHINES=[
   {name:"Heidelberg SM102 · Darpan",     id:"M007", vendor:"Darpan",     loc:"Bantala",  max:[28.3,40.2], print:[28.0,40.2], min:[13.4,18.9], col:4, speed:13000, grip:12},
   {name:"Heidelberg SM74 · Darpan",      id:"M008", vendor:"Darpan",     loc:"Bantala",  max:[20.9,29.1], print:[20.1,29.1], min:[8.3,11.0],  col:4, speed:12000, grip:10},
   {name:"Mitsubishi Daiya 18×25 · Florence", id:"FLR1", vendor:"Florence", loc:"Esplanade", max:[18.0,25.0], print:[17.7,24.4], min:[7.1,9.8], col:1, speed:8000, grip:12},
+  // DIGITAL production presses (Digital_Production_Presses.xlsx) — 13" web, long/banner sheets; no plates
+  {name:"Ricoh Pro C9500",            id:"M-DP-001", vendor:"Digital", loc:"—", max:[13.0,19.2], print:[12.8,19.0], min:[5.5,8.3], col:4, speed:4000, grip:4, digital:true},
+  {name:"Xerox Iridesse",             id:"M-DP-002", vendor:"Digital", loc:"—", max:[13.0,47.2], print:[12.8,47.0], min:[5.5,8.3], col:4, speed:3600, grip:4, digital:true},
+  {name:"Konica AccurioPress C14000", id:"M-DP-003", vendor:"Digital", loc:"—", max:[13.0,51.0], print:[12.8,50.8], min:[5.5,8.3], col:4, speed:4200, grip:4, digital:true},
+  {name:"Canon imagePRESS V1350",     id:"M-DP-004", vendor:"Digital", loc:"—", max:[13.0,51.2], print:[12.8,51.0], min:[5.5,8.3], col:4, speed:4000, grip:4, digital:true},
 ];
 let SELECTED_MACHINE=null;
 function machineBand(m){ const lo=Math.max(...m.max), sh=Math.min(...m.max); return (lo>=34&&sh>=22)?"big":"small"; }
@@ -855,7 +860,7 @@ function renderMachine(o){
     const clickable=runnable||MACHINE_MODE==="manual";
     const click=clickable?`data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" style="cursor:pointer${runnable?'':';opacity:.7'}"`:'style="opacity:.6"';
     return `<tr ${click} class="${sel?'best':''} ${cls}">`+
-      `<td>${x.name}${best?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${sel?'<span class="pill">SELECTED</span>':''}</td>`+
+      `<td>${x.name}${x.digital?'<span class="pill" style="background:#7c3aed">DIGITAL</span>':''}${best?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${sel?'<span class="pill">SELECTED</span>':''}</td>`+
       `<td>${x.vendor||""}</td><td>${x.max[0]}×${x.max[1]}</td><td>${x.col}c</td><td>${x.grip}mm</td>`+
       `<td>${runnable?'~'+(o.total/x.speed).toFixed(1)+'h':'—'}</td><td>${status}</td><td>${cost}</td></tr>`;
   }).join("");
@@ -864,7 +869,9 @@ function renderMachine(o){
     `<span style="flex:2"><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
     `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr @ ${m.speed.toLocaleString('en-IN')}/hr" disabled></span></div>`+
     `<div style="font-size:11.5px;color:#6b7480;margin:2px 0 8px"><b>${m.vendor||""}</b>${m.loc?" · "+m.loc:""} · Max paper <b>${m.max[0]}×${m.max[1]}</b> · max print <b>${mp[0]}×${mp[1]}</b> (gripper ${m.grip}mm) · min <b>${m.min[0]}×${m.min[1]}</b> · ${m.col}-col`+
-    `${tightPrint?` · <span style="color:#a9761a">⚠ sheet ${o.sw}×${o.sh} exceeds printable area — image must clear the ${m.grip}mm gripper</span>`:""}</div>`+
+    `${tightPrint?` · <span style="color:#a9761a">⚠ sheet ${o.sw}×${o.sh} exceeds printable area — image must clear the ${m.grip}mm gripper</span>`:""}`+
+    `${m.digital?` · <span style="color:#7c3aed"><b>DIGITAL</b> — no plates; click-rate card pending</span>`:""}`+
+    `${LASTINP&&LASTINP.copies<200&&!m.digital?` · <span style="color:#7c3aed">qty ${LASTINP.copies} &lt; 200 → consider a DIGITAL press (switch to Manual)</span>`:""}</div>`+
     `${mBad?`<div class="suggest">⚠ Manually selected press <b>${m.name}</b> ${mFit==="too_big"?`cannot feed a ${o.sw}×${o.sh} sheet (max ${m.max[0]}×${m.max[1]}) — cut the paper down to the machine size`:mFit==="too_small"?`needs a bigger sheet (min ${m.min[0]}×${m.min[1]})`:`has only ${m.col} colours (job needs ${need})`}.</div>`:""}`+
     `<table style="font-size:12px"><thead><tr><th>Press</th><th>Vendor</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Status</th><th>Print+plates</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
     `<div style="font-size:11px;color:#6b7480;margin-top:6px">${MACHINE_MODE==="auto"?`Auto: only presses that fit the ${o.sw}×${o.sh} sheet with ${need}+ colours are selectable.`:`Manual: any press can be chosen — non-fitting picks show a warning.`} Cheapest runnable: <b>${cheapest?cheapest.m.name:"—"}</b> · click a row to switch.</div></div>`;
@@ -920,7 +927,7 @@ function priceJob(o,p,machine){
   // Work style: work-and-back = separate front+back plates; work-and-turn/tumble share one plate set (both sides imaged together)
   const work=p.work||"back";
   const platesPerForme=(work==="back")?(Math.max(0,p.cf)+Math.max(0,p.cb)):Math.max(Math.max(0,p.cf),Math.max(0,p.cb));
-  const plateCount=platesPerForme*sigs;
+  const plateCount=(press&&press.digital)?0:platesPerForme*sigs;   // digital presses use no plates
   const plates=plateCount*plateRate(src,band);
   const impressions=formes*formeRun;
   const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
