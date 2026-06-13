@@ -266,8 +266,8 @@
             <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
           </div>
           <div class="prow">
-            <span><label>Coating</label><select id="lam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></span>
-            <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="cover" selected>Cover only</option><option value="all">All sheets</option></select></span>
+            <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></span>
+            <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
             <span></span>
           </div>
           <div class="prow">
@@ -355,7 +355,10 @@ function onCoverChange(){
   if($("separateCover")) $("separateCover").checked=sep;        // keep legacy flag in sync
   const b=isSig($("product").value)&&sep;
   $("coverFields").style.display=b?"block":"none";
-  $("lam").disabled=b; $("coatArea").disabled=b;
+  // separate cover → main coating becomes the INSIDE/text coating (client's choice), always on all text sheets
+  $("lam").disabled=false;
+  if($("lamLabel")) $("lamLabel").textContent=b?"Inside / text coating":"Coating";
+  if($("coatArea")){ $("coatArea").disabled=b; if(b) $("coatArea").value="all"; }
   if(RESULT)run();
 }
 
@@ -958,7 +961,9 @@ function coverPlan(){
 }
 function combinedPrice(){
   const p=currentPriceParams(), textP=Object.assign({},p), cp=coverPlan();
-  if(LASTINP&&LASTINP.separateCover) textP.lam="none";
+  // Coating is the CLIENT's choice (NKK sir): the cover has its own coating; the inside/text coating is
+  // separate — set it to None for a cover-only job, or pick a coating to also coat all the inside sheets.
+  if(LASTINP&&LASTINP.separateCover) textP.coatArea="all";   // inside coating (if any) covers all text sheets
   const tq=priceJob(CHOSEN,textP);
   const binding=p.binding==="none"?0:Math.max(p.bindingRate*p.books,p.bindingMin);
   if(!cp||!cp.option){
@@ -995,7 +1000,8 @@ function showPrice(){
       [`Printing — text (${x.text.formes} formes × ~${x.text.formeRun.toLocaleString("en-IN")} sheets)`, x.text.printing],
       [`Printing — cover (${x.cover.formes} formes × ~${x.cover.formeRun.toLocaleString("en-IN")} sheets)`, x.cover.printing],
       [`Plates (${q.plateCount}, ${wlabel})`, q.plates],
-      ["Coating (cover)", q.lam]
+      [`Coating — cover${$("coverLam").value!=="none"?" ("+coatingName($("coverLam").value)+")":""}`, x.cover.lam],
+      [`Coating — inside${$("lam").value!=="none"?" ("+coatingName($("lam").value)+", all text sheets)":" (none — cover-only job)"}`, x.text.lam]
     ];
   } else {
     rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.formes} formes × ~${q.formeRun.toLocaleString("en-IN")} sheets)`,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
