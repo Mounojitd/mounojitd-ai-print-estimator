@@ -509,8 +509,11 @@ function computePaper(inp){
     let formes, formesMR, perForme;
     if(inp.isSig){ formes=signatures*sides; formesMR=(inp.work==="back")?formes:signatures; perForme=inp.copies; }
     else        { formes=sides;            formesMR=(inp.work==="back")?formes:1;          perForme=good; }
-    const runWaste=Math.ceil(formes*perForme*inp.running/100);   // running % applied per forme
-    const setupWaste=formesMR*inp.setup;                          // make-ready sheets per forme
+    const runWaste=Math.ceil(formes*perForme*inp.running/100);   // running % per forme (each pass spoils sheets)
+    // Make-ready PAPER is per FORM (signature), not per printing-side: both sides reuse the SAME physical
+    // sheets, so the stock is set up once per form. (NKK sir's hand calc: 17 forms × 65 = 1105, not 1275.)
+    const mrForms=inp.isSig?signatures:1;
+    const setupWaste=mrForms*inp.setup;
     const total=good+runWaste+setupWaste, run=runWaste;
     const reams=+(total/500).toFixed(1);
     const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000;
@@ -617,7 +620,7 @@ function showSheet(o){
   $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":isBR?"Lowest-wastage runnable sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
   $("m_size").textContent=`${o.sw} × ${o.sh} in`;
   if(LASTINP.isSig){
-    $("m_sub").innerHTML=`${o.sig}pp signature → ${o.signatures}/book · <b>${o.formes} formes / ${o.formesMR} make-readies</b> · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
+    $("m_sub").innerHTML=`${o.sig}pp form → ${o.signatures} form${o.signatures>1?'s':''}/book · <b>${o.formes} printing formes</b> · ${o.total.toLocaleString("en-IN")} sheets (~${Math.round(o.total/o.signatures)}/form · ${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
       (o.sigDropped?`<div style="margin-top:5px;color:#ffd9a8">⚠ Your ${RESULT.maxSig}pp signature won't fold from this sheet — using ${o.sig}pp (= ${o.signatures} signatures, more sheets).</div>`:"");
   } else {
     $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.total_wt} kg`;
@@ -638,20 +641,18 @@ function explainHTML(o){
     step("Imposition (ups)",`usable sheet (${o.sw}×${o.sh} minus gripper/side-lay/trims) ÷ spread ${R.cellW}×${R.cellH} mm → ${o.cols}×${o.rows}`,`${o.ups} spreads/side`);
     step("Signature (form)",`each spread = 4 pages front+back → max form 4×${o.ups}=${4*o.ups}pp; largest ×4 ≤ ${I.sigAuto?"auto":I.sigPages+"pp target"}`,`${o.sig}pp`);
     step("Signatures / book",`⌈ ${I.pages}pp text ÷ ${o.sig}pp ⌉`,`${o.signatures}`);
-    step("Good sheets",`${o.signatures} signatures × ${inr(I.copies)} copies`,inr(o.good));
-    step("Formes (printed sides)",`${o.signatures} signatures × ${I.sides} side${I.sides>1?"s":""}`,`${o.formes}`);
-    step("Make-readies",I.work==="back"?`work &amp; back → one per forme`:`work &amp; ${I.work} → one per signature (front+back share a forme)`,`${o.formesMR}`);
-    step("Running waste",`${o.formes} formes × ${inr(I.copies)} copies × ${I.running}%`,inr(o.run));
-    step("Make-ready waste",`${o.formesMR} make-readies × ${I.setup} sheets`,inr(o.setupWaste));
-    step("SHEETS (total)",`${inr(o.good)} good + ${inr(o.run)} running + ${inr(o.setupWaste)} make-ready`,inr(o.total));
+    step("Good sheets",`${o.signatures} forms × ${inr(I.copies)} copies`,inr(o.good));
+    step("Printing formes (sides)",`${o.signatures} forms × ${I.sides} side${I.sides>1?"s":""} → separate press runs`,`${o.formes}`);
+    step("Running waste",`${o.formes} formes × ${inr(I.copies)} copies × ${I.running}% (each pass spoils)`,inr(o.run));
+    step("Make-ready paper",`${o.signatures} forms × ${I.setup} sheets (both sides reuse the same stock)`,inr(o.setupWaste));
+    step("SHEETS (total)",`${inr(o.good)} good + ${inr(o.run)} running + ${inr(o.setupWaste)} make-ready = ${o.signatures} forms × ~${Math.round(o.total/o.signatures)}/form`,inr(o.total));
   } else {
     step("Finished size",`${I.W}×${I.H} in (${I.orientation})`,`${R.openW}×${R.openH} in`);
     step("Imposition (ups)",`usable sheet ÷ piece ${R.cellW}×${R.cellH} mm → ${o.cols}×${o.rows}`,`${o.ups}-up`);
     step("Base run",`⌈ ${inr(I.copies)} qty ÷ ${o.ups}-up ⌉ × extent ${I.extent||1}`,inr(o.good));
-    step("Formes (printed sides)",`${I.sides} side${I.sides>1?"s":""}`,`${o.formes}`);
-    step("Make-readies",I.work==="back"?"one per forme":"shared forme (work &amp; "+I.work+")",`${o.formesMR}`);
-    step("Running waste",`${o.formes} × ${inr(o.perForme)} × ${I.running}%`,inr(o.run));
-    step("Make-ready waste",`${o.formesMR} × ${I.setup} sheets`,inr(o.setupWaste));
+    step("Printing formes (sides)",`${I.sides} side${I.sides>1?"s":""}`,`${o.formes}`);
+    step("Running waste",`${o.formes} formes × ${inr(o.perForme)} × ${I.running}%`,inr(o.run));
+    step("Make-ready paper",`1 form × ${I.setup} sheets`,inr(o.setupWaste));
     step("SHEETS (total)",`${inr(o.good)} + ${inr(o.run)} + ${inr(o.setupWaste)}`,inr(o.total));
   }
   step("Reams",`${inr(o.total)} sheets ÷ 500/ream`,o.reams);
@@ -1070,7 +1071,7 @@ function specsTable(p,q,internal){
     ["Paper",`${LASTINP.gsm} GSM; ${CHOSEN.sw} x ${CHOSEN.sh} in`],["Colours",`${p.cf}+${p.cb}`],
     ["Coating",LASTINP.separateCover?"Separate cover component":coatingName(p.lam)],["Signature / layout",sig]];
   if(internal) rows.push(["Machine",SELECTED_MACHINE?SELECTED_MACHINE.name:"No compatible press"],["Sheets",CHOSEN.total.toLocaleString("en-IN")],
-    ["Formes / make-readies",`${CHOSEN.formes} / ${CHOSEN.formesMR}`],
+    ["Forms / printing formes",`${CHOSEN.signatures} / ${CHOSEN.formes}`],
     ["Good + make-ready + running waste",`${CHOSEN.good.toLocaleString("en-IN")} + ${(CHOSEN.setupWaste||CHOSEN.setup).toLocaleString("en-IN")} + ${CHOSEN.run.toLocaleString("en-IN")}`],
     ["Plates / impressions",`${q.plateCount} / ${q.impressions.toLocaleString("en-IN")}`],["Paper weight / layout waste",`${CHOSEN.total_wt} kg / ${CHOSEN.waste}%`]);
   return `<table>${rows.map(x=>`<tr><th>${esc(x[0])}</th><td>${esc(x[1])}</td></tr>`).join("")}</table>`;
