@@ -176,12 +176,12 @@
           <div class="row3">
             <div class="fld"><label>Cover paper type</label><select id="coverTypeSel" onchange="onCoverTypeChange()"><option value="">All types</option></select></div>
             <div class="fld"><label>Cover paper (price list)</label><select id="coverGrade" onchange="onCoverPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual</option></select></div>
-            <div class="fld"><label>Cover GSM</label><select id="coverGsmSel" onchange="onCoverPick()"><option value="">—</option></select></div>
+            <div class="fld"><label>Cover GSM</label><input id="coverGsm" type="number" value="300" oninput="if(RESULT)run()" /></div>
           </div>
           <div class="row3">
-            <div class="fld"><label>Cover GSM (used)</label><input id="coverGsm" type="number" value="300" oninput="showPrice()" /></div>
             <div class="fld"><label>Cover paper ₹/sheet</label><input id="coverPaperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onCoverRateEdit()" /></div>
-            <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="100" oninput="showPrice()" /></div>
+            <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="150" oninput="showPrice()" /></div>
+            <div class="fld"></div>
           </div>
           <div class="hint" id="coverRateNote" style="margin:-4px 0 8px">Auto rate.</div>
           <div class="row3">
@@ -203,11 +203,11 @@
         <div class="row3">
           <div class="fld"><label id="paperTypeLabel">Text paper type</label><select id="paperTypeSel" onchange="onPaperTypeChange()"><option value="">All types</option></select></div>
           <div class="fld"><label id="paperGradeLabel">Text paper (price list)</label><select id="paperGrade" onchange="onPaperPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual rate</option></select></div>
-          <div class="fld"><label>List GSM</label><select id="paperGsmSel" onchange="onPaperPick()"><option value="">—</option></select></div>
+          <div class="fld"><label id="gsmLabel">Text paper GSM</label><input id="gsm" type="number" placeholder="e.g. 130" oninput="if(RESULT)run()" /></div>
         </div>
         <div class="row3">
-          <div class="fld"><label id="gsmLabel">Text paper GSM</label><input id="gsm" type="number" placeholder="e.g. 130" /></div>
           <div class="fld"><label id="paperRateLabel">Text paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onPaperRateEdit()" /></div>
+          <div class="fld"></div>
           <div class="fld"></div>
         </div>
         <div class="hint" id="paperRateNote">Auto rate from the price list after you run.</div>
@@ -317,7 +317,7 @@
         <div id="suggest"></div>
         <h2 style="margin-top:18px;margin-bottom:4px">All sheet sizes <span style="text-transform:none;font-weight:400;color:#6b7480">(click a row to switch)</span></h2>
         <table>
-          <thead><tr><th>Sheet</th><th>Signature</th><th>Sheets</th><th>Reams</th><th>Weight</th><th>Waste %</th></tr></thead>
+          <thead><tr><th>Sheet</th><th>Signature</th><th>Sheets</th><th>Reams</th><th>Weight</th><th>Cover paper</th><th>Waste %</th></tr></thead>
           <tbody id="tb"></tbody>
         </table>
       </div>
@@ -381,26 +381,21 @@ function buildPaperPickers(){
 }
 function onPaperTypeChange(){ fillGradeList("paperGrade",$("paperTypeSel").value); $("paperGrade").value="__auto"; onPaperPick(); }
 function onCoverTypeChange(){ fillGradeList("coverGrade",$("coverTypeSel").value); $("coverGrade").value="__auto"; onCoverPick(); }
-function fillGsmOptions(){
-  const key=$("paperGrade").value, gs=$("paperGsmSel");
-  gs.innerHTML="";
-  if(!key){ gs.innerHTML='<option value="">—</option>'; return; }
-  const gsms=[...new Set(PAPER_DB.filter(o=>paperKey(o)===key).map(o=>o.gsm))].sort((a,b)=>a-b);
-  for(const g of gsms){ const op=document.createElement("option"); op.value=g; op.textContent=g+" gsm"; gs.appendChild(op); }
-}
 // ₹/sheet for one DB row at a target sheet size (orientation-agnostic; area-scaled if size not exact)
 function sizeRate(o,w,h){
   if((Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6)) return {rate:o.r,via:`${o.w}×${o.h} list`};
   return {rate:+(o.r*(w*h)/(o.w*o.h)).toFixed(2),via:`scaled from ${o.w}×${o.h}`};
 }
-// rate for a chosen grade+gsm at a sheet size
+// rate for a chosen grade at the given GSM + sheet size (nearest GSM if exact not stocked)
 function lookupPaperRate(key,gsm,w,h){
-  const cands=PAPER_DB.filter(o=>paperKey(o)===key&&o.gsm===gsm&&o.r>0);
-  if(!cands.length)return null;
+  let cands=PAPER_DB.filter(o=>paperKey(o)===key&&o.gsm===gsm&&o.r>0);
+  if(!cands.length){ const all=PAPER_DB.filter(o=>paperKey(o)===key&&o.r>0);   // nearest GSM for this grade
+    if(!all.length)return null; let nd=1e9; for(const o of all) nd=Math.min(nd,Math.abs(o.gsm-gsm));
+    cands=all.filter(o=>Math.abs(o.gsm-gsm)===nd); }
   const exact=cands.find(o=>(Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6));
-  if(exact)return{rate:exact.r,via:`${exact.w}×${exact.h} list`};
+  if(exact)return{rate:exact.r,via:`${exact.gsm}gsm ${exact.w}×${exact.h} list`};
   let best=null,bd=1e9; for(const o of cands){const d=Math.abs(o.w*o.h-w*h);if(d<bd){bd=d;best=o;}}
-  return{rate:+(best.r*(w*h)/(best.w*best.h)).toFixed(2),via:`scaled from ${best.w}×${best.h}`};
+  return{rate:+(best.r*(w*h)/(best.w*best.h)).toFixed(2),via:`scaled from ${best.gsm}gsm ${best.w}×${best.h}`};
 }
 // AUTO: best-priced paper for a given GSM at a sheet size (prefers exact-size list price, then cheapest);
 // optional paper-type filter (NKK sir: choose the TYPE, then auto-pick within it)
@@ -417,13 +412,9 @@ function lookupByGsm(gsm,w,h,type){
   return pick;
 }
 function onPaperPick(){
-  const grade=$("paperGrade").value, specific=grade!=="__auto"&&grade!=="";
-  $("paperGsmSel").disabled=!specific;
-  if(specific&&grade!==onPaperPick._lastKey) fillGsmOptions();
-  onPaperPick._lastKey=grade;
+  const grade=$("paperGrade").value;
   $("paperRate").readOnly=(grade!=="");                 // editable only in Manual mode
-  if(specific){ const g=parseFloat($("paperGsmSel").value); if(isFinite(g)&&LASTINP){ $("gsm").value=g; run(); return; } }
-  showPrice();
+  if(LASTINP) run(); else showPrice();                   // single GSM field drives the lookup
 }
 function onPaperRateEdit(){ $("paperGrade").value=""; $("paperRate").readOnly=false; $("paperRateNote").textContent="Manual rate."; showPrice(); }
 function autoPaperRate(){
@@ -437,40 +428,28 @@ function autoPaperRate(){
     else $("paperRateNote").textContent=`No ${gsm||"?"}gsm ${typ||"paper"} in the price list — choose a grade or enter the rate manually.`;
     return;
   }
-  const gsm=parseFloat($("paperGsmSel").value), hit=isFinite(gsm)?lookupPaperRate(grade,gsm,CHOSEN.sw,CHOSEN.sh):null;
-  if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${grade} ${gsm}gsm @ ${CHOSEN.sw}×${CHOSEN.sh} = ₹${hit.rate}/sheet (${hit.via}).`; }
-  else $("paperRateNote").textContent=`No list price for ${grade} ${gsm}gsm at ${CHOSEN.sw}×${CHOSEN.sh} — enter manually.`;
+  const gsm=num("gsm",0), hit=gsm>0?lookupPaperRate(grade,gsm,CHOSEN.sw,CHOSEN.sh):null;
+  if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${grade} @ ${gsm}gsm, ${CHOSEN.sw}×${CHOSEN.sh} = ₹${hit.rate}/sheet (${hit.via}).`; }
+  else $("paperRateNote").textContent=`Enter a GSM, or no list price for ${grade} at ${CHOSEN.sw}×${CHOSEN.sh} — type the rate manually.`;
 }
 /* ---- COVER paper auto-pickup (same DB) ---- */
 let COVER_AUTO=false;
 function buildCoverPickers(){
   buildTypeList("coverTypeSel"); fillGradeList("coverGrade","");
 }
-function fillCoverGsm(){
-  const key=$("coverGrade").value, gs=$("coverGsmSel"); gs.innerHTML="";
-  if(!key){ gs.innerHTML='<option value="">—</option>'; return; }
-  const gsms=[...new Set(PAPER_DB.filter(o=>paperKey(o)===key).map(o=>o.gsm))].sort((a,b)=>a-b);
-  for(const g of gsms){ const op=document.createElement("option"); op.value=g; op.textContent=g+" gsm"; gs.appendChild(op); }
-}
 function onCoverPick(){
-  const grade=$("coverGrade").value, specific=grade!=="__auto"&&grade!=="";
-  $("coverGsmSel").disabled=!specific;
-  if(specific&&grade!==onCoverPick._lastKey) fillCoverGsm();
-  onCoverPick._lastKey=grade;
-  $("coverPaperRate").readOnly=(grade!=="");
-  if(specific){ const g=parseFloat($("coverGsmSel").value); if(isFinite(g)) $("coverGsm").value=g; }  // drives cover weight
-  showPrice();
+  $("coverPaperRate").readOnly=($("coverGrade").value!=="");
+  if(RESULT) run(); else showPrice();                   // single cover GSM drives the lookup
 }
 function onCoverRateEdit(){ $("coverGrade").value=""; $("coverPaperRate").readOnly=false; $("coverRateNote").textContent="Manual rate."; showPrice(); }
 // cover ₹/sheet for a given cover sheet size (auto from DB by grade or by GSM, else manual input)
 function coverRateFor(w,h){
-  const grade=$("coverGrade").value;
+  const grade=$("coverGrade").value, gsm=num("coverGsm",0);
   if(grade==="") return num("coverPaperRate",0);                  // manual
-  let hit;
-  if(grade==="__auto"){ hit=lookupByGsm(num("coverGsm",0),w,h,$("coverTypeSel")?$("coverTypeSel").value:""); }
-  else { const gsm=parseFloat($("coverGsmSel").value); hit=isFinite(gsm)?lookupPaperRate(grade,gsm,w,h):null; }
-  if(hit){ $("coverPaperRate").value=hit.rate; $("coverRateNote").textContent=`Auto ₹${hit.rate}/sheet @ ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).`; return hit.rate; }
-  $("coverRateNote").textContent=`No list price @ ${w}×${h} — manual.`; return num("coverPaperRate",0);
+  const hit=grade==="__auto"?lookupByGsm(gsm,w,h,$("coverTypeSel")?$("coverTypeSel").value:"")
+                            :(gsm>0?lookupPaperRate(grade,gsm,w,h):null);
+  if(hit){ $("coverPaperRate").value=hit.rate; $("coverRateNote").textContent=`Auto ₹${hit.rate}/sheet @ ${gsm}gsm ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).`; return hit.rate; }
+  $("coverRateNote").textContent=`No list price @ ${gsm}gsm ${w}×${h} — manual.`; return num("coverPaperRate",0);
 }
 
 /* ---------- PURE CALCULATION (NKK sir corrected logic) ---------- */
@@ -495,35 +474,35 @@ function computePaper(inp){
       if(cc*rr>ups){ups=cc*rr;orient=nm;cols=cc;rows=rr;ua=a;ub=b;} }
     const opt={sw:wi,sh:hi,ups,orient,cols,rows};
     if(ups<=0){ opt.shortfall=+Math.max(cellW-usableLong, cellH-usableShort).toFixed(1); return opt; }
-    let sig=4, signatures=1, good, spc, sigDropped=false;
+    let sig=4, signatures=1, formsPerSheet=1, layouts=1, good, spc, sigDropped=false;
     if(inp.isSig){
       // Largest multiple-of-4 form the sheet can fold (NKK sir: 3 spreads/side = 12pp FORM, not 8pp).
-      // Forms are any ×4: 4, 8, 12, 16, 20, 24… capped by 4×spreads-per-side and the chosen target.
       const cap=Math.min(target, 4*ups);
       sig=Math.max(4, Math.floor(cap/4)*4);
-      sigDropped = !inp.sigAuto && sig<target;   // only a "drop" if user manually picked a bigger signature
-      signatures=Math.max(1,Math.ceil(inp.pages/sig));
-      good=signatures*inp.copies; spc=signatures;
-    } else { const ext=Math.max(1,inp.extent||1); good=Math.ceil(inp.copies/ups)*ext; spc=ext/ups; }   // extent multiplies paper (no signatures)
-    // PER-FORME wastage (NKK sir): every printed side (forme) gets its OWN make-ready sheets + running-waste %.
-    // formes = printing passes; make-readies = formes for work&back (separate forme each side),
-    // = one per signature for work&turn/tumble (front+back share one forme).
+      sigDropped = !inp.sigAuto && sig<target;
+      signatures=Math.max(1,Math.ceil(inp.pages/sig));            // folding forms per book
+      // GANG / REUSE THE CUT PART (NKK sir): if the sheet holds more pages than one form, different forms
+      // print side-by-side on the same sheet and are cut apart — so one printed sheet yields several forms.
+      formsPerSheet=Math.max(1, Math.floor((4*ups)/sig));
+      formsPerSheet=Math.min(formsPerSheet, signatures);          // don't gang more forms than the book has
+      layouts=Math.ceil(signatures/formsPerSheet);                // distinct printed sheet-forms (= paper forms)
+      good=layouts*inp.copies; spc=layouts;
+    } else { const ext=Math.max(1,inp.extent||1); good=Math.ceil(inp.copies/ups)*ext; spc=ext/ups; }
+    // PER-FORME wastage: every printed side (forme) gets its own running-waste; make-ready PAPER is per
+    // printed FORM (layout) — both sides reuse the same stock. (NKK sir's hand calc + reuse logic.)
     const sides=inp.sides||2;
     let formes, formesMR, perForme;
-    if(inp.isSig){ formes=signatures*sides; formesMR=(inp.work==="back")?formes:signatures; perForme=inp.copies; }
-    else        { formes=sides;            formesMR=(inp.work==="back")?formes:1;          perForme=good; }
-    const runWaste=Math.ceil(formes*perForme*inp.running/100);   // running % per forme (each pass spoils sheets)
-    // Make-ready PAPER is per FORM (signature), not per printing-side: both sides reuse the SAME physical
-    // sheets, so the stock is set up once per form. (NKK sir's hand calc: 17 forms × 65 = 1105, not 1275.)
-    const mrForms=inp.isSig?signatures:1;
+    if(inp.isSig){ formes=layouts*sides; formesMR=(inp.work==="back")?formes:layouts; perForme=inp.copies; }
+    else        { formes=sides;          formesMR=(inp.work==="back")?formes:1;        perForme=good; }
+    const runWaste=Math.ceil(formes*perForme*inp.running/100);
+    const mrForms=inp.isSig?layouts:1;
     const setupWaste=mrForms*inp.setup;
     const total=good+runWaste+setupWaste, run=runWaste;
     const reams=+(total/500).toFixed(1);
     const areaM2=(w/1000)*(h/1000), wt=areaM2*inp.gsm/1000;
-    // TRUE utilisation (Bug #1 fix): a signature uses `sig` of the sheet's 4×ups page capacity, so waste must
-    // reflect the chosen fold — not the full geometric packing. cell = open spread (2 pages). Flats use `ups` pieces.
-    const eff = inp.isSig ? 100*sig*cellW*cellH/(4*w*h) : 100*ups*cellW*cellH/(w*h);
-    Object.assign(opt,{sig,signatures,sigDropped,sheets_per_copy:spc,good,setup:inp.setup,run,total,reams,
+    // Utilisation now counts ALL ganged forms on the sheet (the reused cut part is real production).
+    const eff = inp.isSig ? 100*formsPerSheet*sig*cellW*cellH/(4*w*h) : 100*ups*cellW*cellH/(w*h);
+    Object.assign(opt,{sig,signatures,formsPerSheet,layouts,sigDropped,sheets_per_copy:spc,good,setup:inp.setup,run,total,reams,
       formes,formesMR,perForme,setupWaste,
       total_wt:+(wt*total).toFixed(2), wt_sheet:+wt.toFixed(4), eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1),
       cell_used_w:ua/MM, cell_used_h:ub/MM,
@@ -598,14 +577,19 @@ function render(r){
   $("opensize").innerHTML=opensize;
   const bp=r.best, bw=r.bestWaste;
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
+  // cover paper breakup (separate cover) — same for every text-sheet row; computed once
+  let coverCell='<span style="color:#aab2bd">—</span>';
+  if(LASTINP.separateCover){ const cp=coverPlan();
+    if(cp&&cp.option) coverCell=`${cp.option.total.toLocaleString("en-IN")} sh<div style="font-size:10px;color:#8a96a4;font-weight:400">${cp.option.total_wt} kg · ${cp.option.sw}×${cp.option.sh}</div>`;
+    else coverCell='<span style="color:#c0392b">no fit</span>'; }
   $("tb").innerHTML=r.options.map((o,idx)=>{
-    if(!o.ups) return `<tr class="nofit"><td>${o.sw}×${o.sh}</td><td colspan="5" style="text-align:left">won't fit · reduce ~${Math.ceil(o.shortfall)}mm</td></tr>`;
+    if(!o.ups) return `<tr class="nofit"><td>${o.sw}×${o.sh}</td><td colspan="6" style="text-align:left">won't fit · reduce ~${Math.ceil(o.shortfall)}mm</td></tr>`;
     const isW=bw&&o.sw===bw.sw&&o.sh===bw.sh, isP=bp&&o.sw===bp.sw&&o.sh===bp.sh;
     const noPress = !machinesFor(o.sw,o.sh,need).length;
     const sigCell = LASTINP.isSig
-      ? `${o.sig}pp (${o.ups}up)${o.sigDropped?' <span class="pill" style="background:#b9770a">↓</span>':''}` : `${o.ups} (${o.orient})`;
+      ? `${o.sig}pp (${o.ups}up${(o.formsPerSheet||1)>1?`, ×${o.formsPerSheet}`:""})${o.sigDropped?' <span class="pill" style="background:#b9770a">↓</span>':''}` : `${o.ups} (${o.orient})`;
     return `<tr data-click onclick="drawIdx(${idx})" class="${isW||isP?'best':''}"><td>${o.sw}×${o.sh}${isW?'<span class="pill">LOWEST WASTE</span>':''}${noPress?'<span class="pill" style="background:#c0392b">no press</span>':''}</td>`+
-      `<td>${sigCell}</td><td>${o.total.toLocaleString("en-IN")}<div style="font-size:10px;color:#8a96a4;font-weight:400">${o.good.toLocaleString("en-IN")}+${o.run.toLocaleString("en-IN")}w+${o.setupWaste.toLocaleString("en-IN")}mr</div></td><td>${o.reams}</td><td>${o.total_wt} kg<div style="font-size:10px;color:#8a96a4;font-weight:400">${o.wt_sheet} kg/sh</div></td><td>${o.waste}%</td></tr>`;
+      `<td>${sigCell}</td><td>${o.total.toLocaleString("en-IN")}<div style="font-size:10px;color:#8a96a4;font-weight:400">${o.good.toLocaleString("en-IN")}+${o.run.toLocaleString("en-IN")}w+${o.setupWaste.toLocaleString("en-IN")}mr</div></td><td>${o.reams}</td><td>${o.total_wt} kg<div style="font-size:10px;color:#8a96a4;font-weight:400">${o.wt_sheet} kg/sh</div></td><td>${coverCell}</td><td>${o.waste}%</td></tr>`;
   }).join("");
   // suggestions for non-fitting sheets
   const nofit=r.options.filter(o=>!o.ups);
@@ -623,7 +607,7 @@ function showSheet(o){
   $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":isBR?"Lowest-wastage runnable sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
   $("m_size").textContent=`${o.sw} × ${o.sh} in`;
   if(LASTINP.isSig){
-    $("m_sub").innerHTML=`${o.sig}pp form → ${o.signatures} form${o.signatures>1?'s':''}/book · <b>${o.formes} printing formes</b> · ${o.total.toLocaleString("en-IN")} sheets (~${Math.round(o.total/o.signatures)}/form · ${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
+    $("m_sub").innerHTML=`${o.sig}pp form → ${o.signatures}/book${(o.formsPerSheet||1)>1?` · <b>${o.formsPerSheet} ganged/sheet</b>`:""} → ${o.layouts} layout${o.layouts>1?'s':''} · ${o.formes} formes · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
       (o.sigDropped?`<div style="margin-top:5px;color:#ffd9a8">⚠ Your ${RESULT.maxSig}pp signature won't fold from this sheet — using ${o.sig}pp (= ${o.signatures} signatures, more sheets).</div>`:"");
   } else {
     $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.total_wt} kg`;
@@ -643,12 +627,14 @@ function explainHTML(o){
     step("Open spread",`closed ${I.W}×${I.H} in, ${I.orientation} → one fold opens it`,`${R.openW}×${R.openH} in`);
     step("Imposition (ups)",`usable sheet (${o.sw}×${o.sh} minus gripper/side-lay/trims) ÷ spread ${R.cellW}×${R.cellH} mm → ${o.cols}×${o.rows}`,`${o.ups} spreads/side`);
     step("Signature (form)",`each spread = 4 pages front+back → max form 4×${o.ups}=${4*o.ups}pp; largest ×4 ≤ ${I.sigAuto?"auto":I.sigPages+"pp target"}`,`${o.sig}pp`);
-    step("Signatures / book",`⌈ ${I.pages}pp text ÷ ${o.sig}pp ⌉`,`${o.signatures}`);
-    step("Good sheets",`${o.signatures} forms × ${inr(I.copies)} copies`,inr(o.good));
-    step("Printing formes (sides)",`${o.signatures} forms × ${I.sides} side${I.sides>1?"s":""} → separate press runs`,`${o.formes}`);
+    step("Forms / book",`⌈ ${I.pages}pp text ÷ ${o.sig}pp ⌉`,`${o.signatures}`);
+    step("Gang per sheet",`sheet holds ${4*o.ups}pp ÷ ${o.sig}pp form → forms cut &amp; reused from one sheet`,`${o.formsPerSheet}`);
+    step("Printed layouts",`⌈ ${o.signatures} forms ÷ ${o.formsPerSheet} ganged ⌉`,`${o.layouts}`);
+    step("Good sheets",`${o.layouts} layouts × ${inr(I.copies)} copies`,inr(o.good));
+    step("Printing formes (sides)",`${o.layouts} layouts × ${I.sides} side${I.sides>1?"s":""} → separate press runs`,`${o.formes}`);
     step("Running waste",`${o.formes} formes × ${inr(I.copies)} copies × ${I.running}% (each pass spoils)`,inr(o.run));
-    step("Make-ready paper",`${o.signatures} forms × ${I.setup} sheets (both sides reuse the same stock)`,inr(o.setupWaste));
-    step("SHEETS (total)",`${inr(o.good)} good + ${inr(o.run)} running + ${inr(o.setupWaste)} make-ready = ${o.signatures} forms × ~${Math.round(o.total/o.signatures)}/form`,inr(o.total));
+    step("Make-ready paper",`${o.layouts} layouts × ${I.setup} sheets (both sides reuse the same stock)`,inr(o.setupWaste));
+    step("SHEETS (total)",`${inr(o.good)} good + ${inr(o.run)} running + ${inr(o.setupWaste)} make-ready = ${o.layouts} layouts × ~${Math.round(o.total/o.layouts)}/layout`,inr(o.total));
   } else {
     step("Finished size",`${I.W}×${I.H} in (${I.orientation})`,`${R.openW}×${R.openH} in`);
     step("Imposition (ups)",`usable sheet ÷ piece ${R.cellW}×${R.cellH} mm → ${o.cols}×${o.rows}`,`${o.ups}-up`);
@@ -736,42 +722,42 @@ function buildFormSVG(o,side,gripTop){
   const pc=splitH?o.cols*2:o.cols, pr=splitH?o.rows:o.rows*2;       // PAGE grid (a spread = 2 pages)
   const pw=splitH?cw/2:cw, ph=splitH?ch:ch/2;
   const yOff=gripTop?g:0;
-  // exact pattern for the placed grid, else fit a smaller named form INSIDE the grid (partial form):
-  // used pages get the pattern, the leftover strip is greyed as UNUSED with a cut line.
+  // find the per-form pattern (patC page-columns), then GANG several forms across the sheet (reuse cut part):
+  // form 0 = pages 1..sig, form 1 = sig+1..2·sig, etc., cut apart between blocks.
   let pat=IMPO[`${o.sig}|${pc}x${pr}`], patC=pc;
   if(!pat){ for(const k in IMPO){ const [s,dim]=k.split("|"); if(+s!==o.sig) continue;
       const [c2,r2]=dim.split("x").map(Number);
       if(r2===pr&&c2<=pc){ pat=IMPO[k]; patC=c2; break; } } }
-  const usedC=pat?patC:pc, partial=pat&&patC<pc;
+  const nForms=pat?Math.min(o.formsPerSheet||1, Math.floor(pc/patC)):1;
+  const usedC=pat?nForms*patC:pc, leftover=pc-usedC;
   const work=($("workStyle")?$("workStyle").value:"back");
-  const colOff=(partial&&side==="back"&&work!=="tumble")?(pc-patC):0;   // flipped sheet: unused strip lands left on the back view
-  const fs=Math.max(8,Math.min(14,pw/2.2));
+  const fs=Math.max(8,Math.min(13,pw/2.3));
   let cells="";
   for(let r=0;r<pr;r++)for(let c=0;c<pc;c++){
     const x=sl+c*pw, y=yOff+r*ph, cx=x+pw/2, cy=y+ph/2;
-    const used=!partial||(c>=colOff&&c<colOff+patC);
-    cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}" fill="${used?'#dbeafe':'#eef1f5'}" stroke="#9bbbe0" stroke-width="0.6"/>`;
-    if(!used){ cells+=`<text x="${cx.toFixed(1)}" y="${(cy+3).toFixed(1)}" font-size="8" text-anchor="middle" fill="#aab2bd">unused</text>`; continue; }
-    const n=pat?(side==="front"?pat.F:pat.B)[r][c-colOff]:(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
-    const headTop=pr>1&&r<pr/2;                 // top half pages are upside-down: heads to the middle
+    const inUsed=c<usedC, f=Math.floor(c/patC), cc=c-f*patC;
+    cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}" fill="${inUsed?'#dbeafe':'#eef1f5'}" stroke="#9bbbe0" stroke-width="0.6"/>`;
+    if(!inUsed){ cells+=`<text x="${cx.toFixed(1)}" y="${(cy+3).toFixed(1)}" font-size="8" text-anchor="middle" fill="#aab2bd">trim</text>`; continue; }
+    // front: block f, pages +f·sig.  back: sheet flips L→R so block order reverses, within-block uses pat.B
+    const blk=(side==="front")?f:(nForms-1-f);
+    const n=pat?((side==="front"?pat.F:pat.B)[r][cc]+blk*o.sig):(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
+    const headTop=pr>1&&r<pr/2;
     cells+=`<text x="${cx.toFixed(1)}" y="${(cy+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold"${headTop?` transform="rotate(180 ${cx.toFixed(1)} ${cy.toFixed(1)})"`:''}>${n}</text>`;
-    cells+=`<text x="${cx.toFixed(1)}" y="${(headTop?y+ph-3:y+8).toFixed(1)}" font-size="6.5" text-anchor="middle" fill="#8a96a4">head</text>`;
+    if(nForms>1) cells+=`<text x="${cx.toFixed(1)}" y="${(headTop?y+ph-3:y+8).toFixed(1)}" font-size="6" text-anchor="middle" fill="#8a96a4">form ${(side==="front"?f:nForms-1-f)+1}</text>`;
+    else cells+=`<text x="${cx.toFixed(1)}" y="${(headTop?y+ph-3:y+8).toFixed(1)}" font-size="6.5" text-anchor="middle" fill="#8a96a4">head</text>`;
   }
-  // FOLDS: bold middle line where the heads meet, spines inside spreads, zigzag folds between spreads —
-  // all confined to the USED region; a grey ✂ cut line separates the unused strip.
-  let folds=""; const top=yOff, bot=yOff+pr*ph;
-  const fl=sl+colOff*pw, fr=sl+(colOff+usedC)*pw, midX=(fl+fr)/2;
-  if(pr>1){ const y=yOff+(pr/2)*ph;
+  let folds=""; const top=yOff, bot=yOff+pr*ph, fl=sl, fr=sl+usedC*pw, midX=(fl+fr)/2;
+  if(pr>1){ const y=yOff+(pr/2)*ph;                                  // heads-meet fold across the used width
     folds+=`<line x1="${fl.toFixed(1)}" y1="${y.toFixed(1)}" x2="${fr.toFixed(1)}" y2="${y.toFixed(1)}" stroke="#c2410c" stroke-width="2" stroke-dasharray="8 3 2 3"/>`+
       `<rect x="${(midX-52).toFixed(1)}" y="${(y-6.5).toFixed(1)}" width="104" height="13" rx="3" fill="#c2410c"/>`+
       `<text x="${midX.toFixed(1)}" y="${(y+3.5).toFixed(1)}" font-size="8.5" text-anchor="middle" fill="#fff" font-weight="bold">FOLD — heads meet</text>`; }
-  for(let b=1;b<usedC;b++){ const x=fl+b*pw, spine=splitH&&b%2===1;
-    folds+=`<line x1="${x.toFixed(1)}" y1="${top.toFixed(1)}" x2="${x.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="${spine?'#c2410c':'#e08a2e'}" stroke-width="${spine?1.6:1.1}" stroke-dasharray="${spine?'8 3 2 3':'5 4'}"/>`; }
+  for(let b=1;b<usedC;b++){ const x=fl+b*pw, between=patC>0&&b%patC===0, spine=splitH&&!between&&((b%patC)%2===1);
+    if(between){ folds+=`<line x1="${x.toFixed(1)}" y1="${top.toFixed(1)}" x2="${x.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="#6b7480" stroke-width="1.6" stroke-dasharray="2 3"/>`+
+        `<text x="${x.toFixed(1)}" y="${(top+9).toFixed(1)}" font-size="8" text-anchor="middle" fill="#6b7480">✂</text>`; }
+    else folds+=`<line x1="${x.toFixed(1)}" y1="${top.toFixed(1)}" x2="${x.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="${spine?'#c2410c':'#e08a2e'}" stroke-width="${spine?1.6:1.1}" stroke-dasharray="${spine?'8 3 2 3':'5 4'}"/>`; }
   for(let b=1;b<pr;b++){ if(pr%2===0&&b===pr/2) continue; const y=yOff+b*ph, spine=!splitH&&b%2===1;
     folds+=`<line x1="${fl.toFixed(1)}" y1="${y.toFixed(1)}" x2="${fr.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${spine?'#c2410c':'#e08a2e'}" stroke-width="${spine?1.6:1.1}" stroke-dasharray="${spine?'8 3 2 3':'5 4'}"/>`; }
-  if(partial){ const cx2=colOff>0?fl:fr;
-    folds+=`<line x1="${cx2.toFixed(1)}" y1="${top.toFixed(1)}" x2="${cx2.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="#6b7480" stroke-width="1.6" stroke-dasharray="2 3"/>`+
-      `<text x="${cx2.toFixed(1)}" y="${(top-2<8?top+10:top-2).toFixed(1)}" font-size="9" text-anchor="middle" fill="#6b7480">✂ cut</text>`; }
+  if(leftover>0){ const x=fr; folds+=`<line x1="${x.toFixed(1)}" y1="${top.toFixed(1)}" x2="${x.toFixed(1)}" y2="${bot.toFixed(1)}" stroke="#6b7480" stroke-width="1.4" stroke-dasharray="2 3"/><text x="${x.toFixed(1)}" y="${(top+9).toFixed(1)}" font-size="8" text-anchor="middle" fill="#6b7480">✂ trim</text>`; }
   const uH=(H-g).toFixed(1);
   const sideR=`<rect x="0" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/><rect x="${(W-sl).toFixed(1)}" y="${yOff.toFixed(1)}" width="${sl.toFixed(1)}" height="${uH}" fill="#fdf0cf"/>`;
   const grip=`<rect x="0" y="${gripTop?0:(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
@@ -784,8 +770,9 @@ function diagramHTML(o){
   const splitH=useForm?((LASTINP.orientation==="portrait")===(o.orient!=="rotated")):true;
   const pc2=splitH?o.cols*2:o.cols, pr2=splitH?o.rows:o.rows*2;
   const hasPat=useForm&&(IMPO[`${o.sig}|${pc2}x${pr2}`]||Object.keys(IMPO).some(k=>{const[s,d]=k.split("|");const[c2,r2]=d.split("x").map(Number);return +s===o.sig&&r2===pr2&&c2<=pc2;}));
-  const sigNote=useForm?` · <b>${o.sig}pp FORM</b>${hasPat?" (section-sewing pattern)":""} · 1 of ${o.signatures} signature${o.signatures>1?'s':''}`:"";
-  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${useForm?'&nbsp;<span style="color:#c2410c">┄</span>fold/spine&nbsp;<span style="color:#e08a2e">┄</span>zigzag':''}${toggle}</div>`;
+  const gang=(o.formsPerSheet||1)>1?` · <b>${o.formsPerSheet} forms ganged/sheet</b> (cut &amp; reused)`:"";
+  const sigNote=useForm?` · <b>${o.sig}pp FORM</b>${hasPat?" (section-sewing pattern)":""}${gang} · ${o.signatures} form${o.signatures>1?'s':''}/book → ${o.layouts} printed layout${o.layouts>1?'s':''}`:"";
+  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${useForm?'&nbsp;<span style="color:#c2410c">┄</span>fold/spine&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut':''}${toggle}</div>`;
   const gripTopBack = work==="tumble";                       // tumble moves the gripper to the opposite edge on the back
   const svgs=dbl?`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${useForm?buildFormSVG(o,"front",false):buildSVG(o,numFn(o,"front"),false,false)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${useForm?buildFormSVG(o,"back",gripTopBack):buildSVG(o,numFn(o,"back"),gripTopBack,false)}</div></div>`:buildSVG(o,numFn(o,"front"),false,false);
   return head+svgs;
@@ -922,16 +909,15 @@ function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
   const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
   const src=activePrint();
-  const sigs=o.signatures||1;
-  // PER-FORME printing (NKK sir): each printed side of each signature is a SEPARATE press run with its
-  // own lot/minimum. 18 text sides + 2 cover sides = 20 printing prices, not one.
+  const sigs=o.layouts||o.signatures||1;     // printed sheet-forms (ganged) drive printing & plates
+  // PER-FORME printing (NKK sir): each printed side of each LAYOUT is a SEPARATE press run with its own
+  // lot/minimum. Ganged forms share a layout (and its plates), so the cut part is not double-charged.
   const formeRun=Math.max(1,Math.round(sheets/sigs));            // sheets passing the press per forme
   const fFront=p.cf>0?sigs:0, fBack=p.cb>0?sigs:0, formes=fFront+fBack;
   const printing=fFront*sideCost(src,band,p.cf,formeRun)+fBack*sideCost(src,band,p.cb,formeRun);
-  // Work style: work-and-back = separate front+back plates; work-and-turn/tumble share one plate set (both sides imaged together)
   const work=p.work||"back";
   const platesPerForme=(work==="back")?(Math.max(0,p.cf)+Math.max(0,p.cb)):Math.max(Math.max(0,p.cf),Math.max(0,p.cb));
-  const plateCount=(press&&press.digital)?0:platesPerForme*sigs;   // digital presses use no plates
+  const plateCount=(press&&press.digital)?0:platesPerForme*sigs;   // plates per printed layout; digital = none
   const plates=plateCount*plateRate(src,band);
   const impressions=formes*formeRun;
   const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
@@ -1077,7 +1063,7 @@ function specsTable(p,q,internal){
     ["Paper",`${LASTINP.gsm} GSM; ${CHOSEN.sw} x ${CHOSEN.sh} in`],["Colours",`${p.cf}+${p.cb}`],
     ["Coating",LASTINP.separateCover?"Separate cover component":coatingName(p.lam)],["Signature / layout",sig]];
   if(internal) rows.push(["Machine",SELECTED_MACHINE?SELECTED_MACHINE.name:"No compatible press"],["Sheets",CHOSEN.total.toLocaleString("en-IN")],
-    ["Forms / printing formes",`${CHOSEN.signatures} / ${CHOSEN.formes}`],
+    ["Forms/book · ganged · layouts",`${CHOSEN.signatures} · ×${CHOSEN.formsPerSheet||1}/sheet · ${CHOSEN.layouts} printed (${CHOSEN.formes} formes)`],
     ["Good + make-ready + running waste",`${CHOSEN.good.toLocaleString("en-IN")} + ${(CHOSEN.setupWaste||CHOSEN.setup).toLocaleString("en-IN")} + ${CHOSEN.run.toLocaleString("en-IN")}`],
     ["Plates / impressions",`${q.plateCount} / ${q.impressions.toLocaleString("en-IN")}`],["Paper weight / layout waste",`${CHOSEN.total_wt} kg / ${CHOSEN.waste}%`]);
   return `<table>${rows.map(x=>`<tr><th>${esc(x[0])}</th><td>${esc(x[1])}</td></tr>`).join("")}</table>`;
