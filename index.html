@@ -181,7 +181,7 @@
           <div class="row3">
             <div class="fld"><label>Cover paper ₹/sheet</label><input id="coverPaperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onCoverRateEdit()" /></div>
             <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="150" oninput="showPrice()" /></div>
-            <div class="fld"></div>
+            <div class="fld"><label>Spine (mm)</label><input id="spineMM" type="number" step="0.5" placeholder="auto" oninput="spineEdited=true;if(RESULT)run()" /><div class="hint">Auto = (text pages ÷ 2) × paper caliper</div></div>
           </div>
           <div class="hint" id="coverRateNote" style="margin:-4px 0 8px">Auto rate.</div>
           <div class="row3">
@@ -554,8 +554,12 @@ function run(){
   if(!inp.trimmed){ inp.margins.bleed=0; inp.margins.paperTrim=0; }   // no-trim: drop bleed + paper-trim allowances
 
   inp.separateCover=booklet&&$("separateCover").checked;
-  // NKK sir: a separate cover is EXTRA (its own 4pp on its own stock). The pages entered are the
-  // TEXT/inside pages — do NOT subtract 4 from them.
+  // SPINE (NKK sir): book thickness = (text pages ÷ 2 leaves) × paper caliper. Caliper ≈ GSM/1000 mm/sheet
+  // (bulk ~1.0). Auto-calculated, editable. The cover wraps front + spine + back.
+  inp.caliper=inp.gsm/1000;
+  const spineAuto=+((inp.pages/2)*inp.caliper).toFixed(1);
+  inp.spineMM = (spineEdited && num("spineMM",NaN)>=0 && $("spineMM").value!=="") ? num("spineMM",spineAuto) : spineAuto;
+  if(!spineEdited) $("spineMM").value=inp.spineMM;
   LASTINP=inp;
   const r=computePaper(inp);
   if(!r.options.some(o=>o.ups>0)){
@@ -568,7 +572,7 @@ function run(){
 }
 
 /* ---------- render ---------- */
-let RESULT=null, LASTINP=null, CHOSEN=null, bookletMode=true;
+let RESULT=null, LASTINP=null, CHOSEN=null, CHOSEN_BASE=null, bookletMode=true, spineEdited=false;
 function render(r){
   RESULT=r; $("placeholder").style.display="none"; $("results").style.display="block";
   const opensize = LASTINP.isSig
@@ -600,20 +604,36 @@ function render(r){
   r.bestRunnable=runnable||null;
   showSheet(runnable||bw||bp||r.options.find(o=>o.ups));
 }
+// MACHINE CUT (NKK sir): a manually-chosen smaller press → cut the purchased sheet down to the machine
+// size and recompute the imposition on the cut sheet.
+function applyMachineCut(base,m){
+  if(!base||!m||!LASTINP) return base;
+  const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
+  if(machineFit(m,base.sw,base.sh)==="fits"&&m.col>=need) return base;     // press already fits → no cut
+  const mp=maxPrint(m), cw=Math.floor(mp[0]), ch=Math.floor(mp[1]);
+  if(cw<2||ch<2) return base;
+  const r=computePaper(Object.assign({},LASTINP,{sizes:[[cw,ch]],rotate:true}));
+  const co=r.options&&r.options[0];
+  if(co&&co.ups>0){ co.cutFrom=`${base.sw}×${base.sh}`; co.cutTo=`${cw}×${ch}`; co.cutMachine=m.name; return co; }
+  return base;
+}
+function sheetSummary(o){
+  const cut=o.cutMachine?`<div style="margin-top:5px;color:#7c3aed">✂ Cut down to <b>${o.cutTo}</b> for ${o.cutMachine} (from ${o.cutFrom}) — recomputed below.</div>`:"";
+  if(LASTINP.isSig) return `${o.sig}pp form → ${o.signatures}/book${(o.formsPerSheet||1)>1?` · <b>${o.formsPerSheet} ganged/sheet</b>`:""} → ${o.layouts} layout${o.layouts>1?'s':''} · ${o.formes} formes · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
+    (o.sigDropped?`<div style="margin-top:5px;color:#ffd9a8">⚠ ${RESULT.maxSig}pp won't fold here — using ${o.sig}pp.</div>`:"")+cut;
+  return `${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.total_wt} kg`+cut;
+}
 function showSheet(o){
-  if(!o||!o.ups)return; CHOSEN=o;
+  if(!o||!o.ups)return; CHOSEN_BASE=o; CHOSEN=o;
   const isBW=RESULT&&RESULT.bestWaste&&o.sw===RESULT.bestWaste.sw&&o.sh===RESULT.bestWaste.sh;
   const isBR=RESULT&&RESULT.bestRunnable&&o.sw===RESULT.bestRunnable.sw&&o.sh===RESULT.bestRunnable.sh;
   $("m_lbl").textContent=(isBW?"♻️ Lowest-wastage sheet":isBR?"Lowest-wastage runnable sheet":"Selected sheet")+(LASTINP.product_name?" · "+LASTINP.product_name:"");
-  $("m_size").textContent=`${o.sw} × ${o.sh} in`;
-  if(LASTINP.isSig){
-    $("m_sub").innerHTML=`${o.sig}pp form → ${o.signatures}/book${(o.formsPerSheet||1)>1?` · <b>${o.formsPerSheet} ganged/sheet</b>`:""} → ${o.layouts} layout${o.layouts>1?'s':''} · ${o.formes} formes · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.waste}% wasted · ${o.total_wt} kg`+
-      (o.sigDropped?`<div style="margin-top:5px;color:#ffd9a8">⚠ Your ${RESULT.maxSig}pp signature won't fold from this sheet — using ${o.sig}pp (= ${o.signatures} signatures, more sheets).</div>`:"");
-  } else {
-    $("m_sub").textContent=`${o.ups}-up · ${o.waste}% wasted · ${o.total.toLocaleString("en-IN")} sheets (${o.reams} reams) · ${o.total_wt} kg`;
-  }
-  $("calcExplain").innerHTML=explainHTML(o);
-  drawInto("diagram",o); renderMachine(o); showPrice();
+  renderMachine(o);                                       // pick press for the purchased sheet
+  const eff=applyMachineCut(o,SELECTED_MACHINE); CHOSEN=eff;
+  $("m_size").textContent=`${eff.sw} × ${eff.sh} in`;
+  $("m_sub").innerHTML=sheetSummary(eff);
+  $("calcExplain").innerHTML=explainHTML(eff);
+  drawInto("diagram",eff); showPrice();
 }
 function drawIdx(i){ if(RESULT&&RESULT.options[i]&&RESULT.options[i].ups) showSheet(RESULT.options[i]); }
 /* ---- FULL CALCULATION EXPLANATION (NKK sir: show how every number is made) ---- */
@@ -654,6 +674,48 @@ function explainHTML(o){
   return `<details class="pbox" style="margin-top:12px"><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 How these numbers are calculated — ${o.sw}×${o.sh} (click to open)</summary>`+
     `<table style="font-size:12px;margin-top:8px"><thead><tr><th>Step</th><th>Formula (live values)</th><th style="text-align:right">Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`+
     `<div class="hint" style="margin-top:6px">Inputs: ${I.isSig?`${I.pages}pp text · `:""}${inr(I.copies)} qty · ${I.gsm} gsm · make-ready ${I.setup}/forme · running ${I.running}%/forme · ${I.sides}-side (${I.work==="back"?"work &amp; back":"work &amp; "+I.work}). Change any input and this table recalculates.</div></details>`;
+}
+// COVER back-calculation + schematic (NKK sir: show the cover paper calc + spine)
+function coverSchematic(cp){
+  const m=cp.meta||cp.option, W=360, scale=W/Math.max(m.coverW,1), H=Math.round(m.coverH*scale);
+  const pw=m.portrait?m.pageW*scale:m.coverW*scale, sp=m.spineIn*scale;
+  let svg=`<svg viewBox="0 0 ${W} ${Math.max(H,40)}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${Math.max(H,40)}" fill="#fff"/>`;
+  if(m.portrait){
+    svg+=`<rect x="0" y="0" width="${pw.toFixed(1)}" height="${H}" fill="#dbeafe" stroke="#2c6fb3"/>`+
+      `<rect x="${pw.toFixed(1)}" y="0" width="${sp.toFixed(1)}" height="${H}" fill="#fde8c8" stroke="#c2410c"/>`+
+      `<rect x="${(pw+sp).toFixed(1)}" y="0" width="${pw.toFixed(1)}" height="${H}" fill="#dbeafe" stroke="#2c6fb3"/>`+
+      `<text x="${(pw/2).toFixed(1)}" y="${(H/2).toFixed(1)}" font-size="11" text-anchor="middle" fill="#1f4e78" font-weight="bold">BACK</text>`+
+      `<text x="${(pw+sp/2).toFixed(1)}" y="${(H/2).toFixed(1)}" font-size="7" text-anchor="middle" fill="#c2410c" transform="rotate(90 ${(pw+sp/2).toFixed(1)} ${(H/2).toFixed(1)})">SPINE ${m.spineMM}mm</text>`+
+      `<text x="${(pw+sp+pw/2).toFixed(1)}" y="${(H/2).toFixed(1)}" font-size="11" text-anchor="middle" fill="#1f4e78" font-weight="bold">FRONT</text>`;
+  } else {
+    const ph=m.pageH*scale;
+    svg+=`<rect x="0" y="0" width="${W}" height="${ph.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3"/>`+
+      `<rect x="0" y="${ph.toFixed(1)}" width="${W}" height="${sp.toFixed(1)}" fill="#fde8c8" stroke="#c2410c"/>`+
+      `<rect x="0" y="${(ph+sp).toFixed(1)}" width="${W}" height="${ph.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3"/>`+
+      `<text x="${(W/2)}" y="${(ph/2).toFixed(1)}" font-size="11" text-anchor="middle" fill="#1f4e78" font-weight="bold">BACK</text>`+
+      `<text x="${(W/2)}" y="${(ph+sp/2+3).toFixed(1)}" font-size="7" text-anchor="middle" fill="#c2410c">SPINE ${m.spineMM}mm</text>`+
+      `<text x="${(W/2)}" y="${(ph+sp+ph/2).toFixed(1)}" font-size="11" text-anchor="middle" fill="#1f4e78" font-weight="bold">FRONT</text>`;
+  }
+  return svg+`</svg>`;
+}
+function coverExplainHTML(cp,cq){
+  const o=cp.option, m=cp.meta, I=LASTINP, inr=n=>n.toLocaleString("en-IN");
+  const areaM2=(o.sw*MM/1000)*(o.sh*MM/1000), gsm=num("coverGsm",300);
+  const rows=[];
+  const step=(t,f,r)=>rows.push(`<tr><th style="white-space:nowrap">${t}</th><td>${f}</td><td style="text-align:right;white-space:nowrap"><b>${r}</b></td></tr>`);
+  step("Spine",`(${I.pages}pp text ÷ 2 leaves) × ${(I.caliper||0).toFixed(3)} mm/sheet caliper`,`${m.spineMM} mm`);
+  step("Cover piece",`back + spine + front = 2 × ${m.pageW} in + ${m.spineIn} in spine`,`${m.coverW} × ${m.coverH} in`);
+  step("Sheet / up",`buy ${o.sw}×${o.sh} → ${o.ups}-up (${o.cols}×${o.rows})`,`${o.ups}-up`);
+  step("Good sheets",`⌈ ${inr(I.copies)} copies ÷ ${o.ups}-up ⌉`,inr(o.good));
+  step("Make-ready + running",`1 form × ${num("coverSetup",150)} + ${o.formes} formes × ${I.running}%`,`${inr(o.setupWaste)} + ${inr(o.run)}`);
+  step("Cover SHEETS",`${inr(o.good)} + ${inr(o.run)} + ${inr(o.setupWaste)}`,inr(o.total));
+  step("Weight / sheet",`${o.sw}×${o.sh} = ${areaM2.toFixed(4)} m² × ${gsm} gsm ÷ 1000`,`${o.wt_sheet} kg`);
+  step("Cover weight",`${o.wt_sheet} × ${inr(o.total)} sheets`,`${o.total_wt} kg`);
+  step("Cover ₹/sheet · cost",`${num("coverPaperRate",0)} ₹/sheet × ${inr(o.total)}`,cq?"₹"+Math.round(cq.paper).toLocaleString("en-IN"):"—");
+  return `<details class="pbox" style="margin-top:12px;border-color:#efd9a6"><summary style="cursor:pointer;font-weight:700;color:#b9770a;font-size:12.5px">📕 Cover paper — back-calculation &amp; spine (click to open)</summary>`+
+    `<div style="margin-top:8px">${coverSchematic(cp)}</div>`+
+    `<table style="font-size:12px;margin-top:8px"><thead><tr><th>Step</th><th>Formula (live values)</th><th style="text-align:right">Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`+
+    `<div class="hint" style="margin-top:6px">Cover = one flat piece (front + spine + back), ${gsm} gsm, ${Math.round(num("coverCf",4))}+${Math.round(num("coverCb",4))}, on press ${cp.machine?cp.machine.name:"—"}.</div></details>`;
 }
 
 /* ---------- diagram ---------- */
@@ -816,7 +878,14 @@ function machineFit(m,sw,sh){
 function machinesFor(sw,sh,need){ return MACHINES.filter(m=>machineFit(m,sw,sh)==="fits" && m.col>=need).sort((a,b)=>b.speed-a.speed); }
 // press-dependent cost (printing + plates) for the current job on a given press — for comparison
 function pressPrintCost(machine){ try{ const q=priceJob(CHOSEN,currentPriceParams(),machine); return q.printing+q.plates; }catch(e){ return Infinity; } }
-function selectMachine(name){ SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE; if(MACHINE_MODE==="manual"&&CHOSEN)renderMachine(CHOSEN); showPrice(); }
+function selectMachine(name){
+  SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE;
+  const base=CHOSEN_BASE||CHOSEN, eff=applyMachineCut(base,SELECTED_MACHINE); CHOSEN=eff;
+  if(MACHINE_MODE==="manual"&&base) renderMachine(base);
+  if(eff){ $("m_size").textContent=`${eff.sw} × ${eff.sh} in`; $("m_sub").innerHTML=sheetSummary(eff);
+    $("calcExplain").innerHTML=explainHTML(eff); drawInto("diagram",eff); }
+  showPrice();
+}
 let MACHINE_MODE="auto";                       // NKK sir: machine must be auto OR manually selectable
 function setMachineMode(v){ MACHINE_MODE=v; if(CHOSEN){renderMachine(CHOSEN); showPrice();} }
 function renderMachine(o){
@@ -938,12 +1007,20 @@ function currentPriceParams(){
 }
 function coverPlan(){
   if(!LASTINP||!LASTINP.separateCover)return null;
-  const inp=Object.assign({},LASTINP,{pages:4,totalPages:4,sigPages:4,gsm:num("coverGsm",300),setup:Math.round(num("coverSetup",100)),separateCover:false,
+  // Cover is ONE flat piece wrapping front + spine + back (perfect/hardcase). It is NOT a folded signature.
+  const W=LASTINP.W, H=LASTINP.H, spineIn=(LASTINP.spineMM||0)/MM;
+  const portrait=LASTINP.orientation==="portrait";
+  const coverW = portrait ? (2*W+spineIn) : W;       // bound on the long edge → spine adds to the width
+  const coverH = portrait ? H : (2*H+spineIn);
+  const inp=Object.assign({},LASTINP,{product:"cover_wrap",isSig:false,extent:1,
+    W:coverW, H:coverH, gsm:num("coverGsm",300), setup:Math.round(num("coverSetup",150)),separateCover:false,
     sides:Math.max(1,(Math.round(num("coverCf",4))>0?1:0)+(Math.round(num("coverCb",4))>0?1:0))});
   const r=computePaper(inp), need=Math.max(Math.round(num("coverCf",4)),Math.round(num("coverCb",4)));
   const o=r.options.filter(x=>x.ups&&machinesFor(x.sw,x.sh,need).length).sort((a,b)=>a.waste-b.waste||a.total-b.total)[0];
-  if(!o)return {result:r,option:null,machine:null};
-  return {result:r,option:o,machine:machinesFor(o.sw,o.sh,need)[0]};
+  const meta={coverW:+coverW.toFixed(2),coverH:+coverH.toFixed(2),spineIn:+spineIn.toFixed(2),spineMM:LASTINP.spineMM,pageW:W,pageH:H,portrait};
+  if(o) Object.assign(o,meta);
+  if(!o)return {result:r,option:null,machine:null,meta};
+  return {result:r,option:o,machine:machinesFor(o.sw,o.sh,need)[0],meta};
 }
 function combinedPrice(){
   const p=currentPriceParams(), textP=Object.assign({},p), cp=coverPlan();
@@ -1002,7 +1079,7 @@ function showPrice(){
   h+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
   h+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
   h+=`<div style="font-size:11px;color:#6b7480;margin-top:6px">Printing band: ${q.band} · rates from Naba Mudran agreement</div>`;
-  if(x.coverPlan&&x.coverPlan.option) h+=`<div class="suggest"><b>Separate cover:</b> ${x.coverPlan.option.sw}×${x.coverPlan.option.sh} in · ${x.coverPlan.option.total.toLocaleString("en-IN")} sheets · ${x.coverPlan.machine.name} · ${num("coverGsm",300)} GSM · ${Math.round(num("coverCf",4))}+${Math.round(num("coverCb",4))}</div>`;
+  if(x.coverPlan&&x.coverPlan.option) h+=coverExplainHTML(x.coverPlan,x.cover);
   if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter paper ₹/sheet rates for the full price.</div>';
   $("m_price").innerHTML=h;
 }
