@@ -806,7 +806,9 @@ function buildFormSVG(o,side,gripTop,layoutIndex){
     const exists=inUsed&&foldForm<totalForms;
     cells+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${pw.toFixed(1)}" height="${ph.toFixed(1)}" fill="${exists?'#dbeafe':'#eef1f5'}" stroke="#9bbbe0" stroke-width="0.6"/>`;
     if(!exists){ cells+=`<text x="${cx.toFixed(1)}" y="${(cy+3).toFixed(1)}" font-size="8" text-anchor="middle" fill="#aab2bd">${inUsed?'spare':'trim'}</text>`; continue; }
-    const base=pat?((side==="front"?pat.F:pat.B)[r][cc]+foldForm*o.sig):(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
+    // page = pattern position (or sequential fallback) within the form, OFFSET by which form this is
+    const within=pat?(side==="front"?pat.F:pat.B)[r][cc]:(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
+    const base=within+foldForm*o.sig;                           // ← offset per form (fixes identical diagrams)
     const n=base<=totalPages?base:"·";                          // last form may be partial
     const headTop=pr>1&&r<pr/2;
     cells+=`<text x="${cx.toFixed(1)}" y="${(cy+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold"${headTop?` transform="rotate(180 ${cx.toFixed(1)} ${cy.toFixed(1)})"`:''}>${n}</text>`;
