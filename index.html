@@ -476,9 +476,11 @@ function computePaper(inp){
     if(ups<=0){ opt.shortfall=+Math.max(cellW-usableLong, cellH-usableShort).toFixed(1); return opt; }
     let sig=4, signatures=1, formsPerSheet=1, layouts=1, good, spc, sigDropped=false;
     if(inp.isSig){
-      // Largest multiple-of-4 form the sheet can fold (NKK sir: 3 spreads/side = 12pp FORM, not 8pp).
+      // Largest STANDARD foldable signature the sheet allows (NKK sir: 4/8/12/16/24/32 — a 20pp or
+      // 28pp single fold does not exist, so cap=20→16, cap=28→24). 3 spreads/side = 12pp form.
       const cap=Math.min(target, 4*ups);
-      sig=Math.max(4, Math.floor(cap/4)*4);
+      const STD_FOLDS=[4,8,12,16,24,32];
+      sig=4; for(const x of STD_FOLDS){ if(x<=cap) sig=x; }
       sigDropped = !inp.sigAuto && sig<target;
       signatures=Math.max(1,Math.ceil(inp.pages/sig));            // folding forms per book
       // GANG / REUSE THE CUT PART (NKK sir): if the sheet holds more pages than one form, different forms
