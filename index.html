@@ -888,9 +888,16 @@ function buildFormSVG(o,side,gripTop,layoutIndex){
     const within=pat?(side==="front"?pat.F:pat.B)[r][cc]:(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
     const base=within+foldForm*o.sig;                           // ← offset per form (fixes identical diagrams)
     const n=base<=totalPages?base:"·";                          // last form may be partial
-    const headTop=pr>1&&r<pr/2;
-    cells+=`<text x="${cx.toFixed(1)}" y="${(cy+fs/3).toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold"${headTop?` transform="rotate(180 ${cx.toFixed(1)} ${cy.toFixed(1)})"`:''}>${n}</text>`;
-    cells+=`<text x="${cx.toFixed(1)}" y="${(headTop?y+ph-3:y+8).toFixed(1)}" font-size="6" text-anchor="middle" fill="#8a96a4">${nForms>1?'form '+(foldForm+1):'head'}</text>`;
+    const headTop=pr>1&&r<pr/2;     // top half: page head points DOWN to the fold; bottom half: head points UP
+    // HEAD-DIRECTION ARROW (NKK sir): each page shows an arrow toward the centre fold (head direction)
+    if(pr>1){ const alen=Math.min(ph*0.4,30), at=cy-alen/2, ab=cy+alen/2, AX=cx.toFixed(1);
+      cells+=`<line x1="${AX}" y1="${at.toFixed(1)}" x2="${AX}" y2="${ab.toFixed(1)}" stroke="#1f4e78" stroke-width="1.5"/>`+
+        (headTop?`<path d="M${(cx-4).toFixed(1)} ${(ab-5).toFixed(1)} L${AX} ${ab.toFixed(1)} L${(cx+4).toFixed(1)} ${(ab-5).toFixed(1)}" fill="none" stroke="#1f4e78" stroke-width="1.5"/>`
+                :`<path d="M${(cx-4).toFixed(1)} ${(at+5).toFixed(1)} L${AX} ${at.toFixed(1)} L${(cx+4).toFixed(1)} ${(at+5).toFixed(1)}" fill="none" stroke="#1f4e78" stroke-width="1.5"/>`); }
+    // page number near the OUTER edge (away from the fold), rotated so its head faces the fold
+    const ny = headTop ? (y+fs*0.9+2) : (y+ph-4);
+    cells+=`<text x="${cx.toFixed(1)}" y="${ny.toFixed(1)}" font-size="${fs.toFixed(1)}" text-anchor="middle" fill="#1f4e78" font-weight="bold"${headTop?` transform="rotate(180 ${cx.toFixed(1)} ${ny.toFixed(1)})"`:''}>${n}</text>`;
+    if(nForms>1) cells+=`<text x="${(x+3).toFixed(1)}" y="${(y+8).toFixed(1)}" font-size="6" text-anchor="start" fill="#aab2bd">f${foldForm+1}</text>`;
   }
   let folds=""; const top=yOff, bot=yOff+pr*ph, fl=sl, fr=sl+usedC*pw, midX=(fl+fr)/2;
   if(pr>1){ const y=yOff+(pr/2)*ph;                                  // heads-meet fold across the used width
@@ -954,7 +961,7 @@ function renderDiagram(){
     return `<button onclick="drawIdx(${idx})" class="mbtn ${sel?'p':'s'}" style="padding:5px 10px;font-size:12px;margin:0 6px 6px 0">${opt.sw}×${opt.sh}${sel?' ★':''}</button>`;
   }).join("");
   const chipRow=`<div style="margin-bottom:8px"><span style="font-size:11px;color:#6b7480">Sheet:</span> ${chips}</div>`;
-  const legend=`<div style="font-size:11px;color:#6b7480;margin-bottom:8px"><span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut':''}${o.cutMachine?`&nbsp;·&nbsp;<span style="color:#7c3aed">✂ cut to ${o.cutTo} for ${o.cutMachine}</span>`:''}</div>`;
+  const legend=`<div style="font-size:11px;color:#6b7480;margin-bottom:8px"><span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut&nbsp;<span style="color:#1f4e78">↕</span>head direction':''}${o.cutMachine?`&nbsp;·&nbsp;<span style="color:#7c3aed">✂ cut to ${o.cutTo} for ${o.cutMachine}</span>`:''}</div>`;
   if(!dbl){ box.innerHTML=chipRow+legend+sheetPicture(o); return; }
   const L=Math.max(1,o.layouts||1);
   let forms;
