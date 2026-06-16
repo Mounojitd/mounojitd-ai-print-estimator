@@ -16,7 +16,7 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `c2efffe` (cover head arrows up).
+**Latest commit at save:** `52a7eb1` (bold head-direction arrows on forms+cover).
 
 **Workflow:** NKK sir sends WhatsApp audio transcripts (Bengali/Hindi) + hand-drawn PDFs, reviews the LIVE
 app, finds real bugs. Match his hand numbers exactly. Decode → fix → node-verify → publish → he refreshes.
