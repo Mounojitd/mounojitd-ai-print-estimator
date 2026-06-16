@@ -2,7 +2,35 @@
 
 > Single source of truth for resuming work. Keep this updated. A brand-new session
 > should be able to continue from this file alone.
-> Last updated: 2026-06-09
+> Last updated: 2026-06-16
+
+---
+
+## ▶ SESSION RESUME (read this first)
+
+**Product = the offline single-file `paper_calculator.html`** (HTML+CSS+JS, no server). All work is here.
+**Live:** https://mounojitd.github.io/mounojitd-ai-print-estimator/ — GitHub Pages, repo
+`Mounojitd/mounojitd-ai-print-estimator` (branch `main`, git creds cached, push works).
+**Publish after edit:** copy `paper_calculator.html` → `index.html` + `backend/app/static/` + Desktop +
+Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1 min.
+**Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
+vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
+
+**Latest commit at save:** `c2efffe` (cover head arrows up).
+
+**Workflow:** NKK sir sends WhatsApp audio transcripts (Bengali/Hindi) + hand-drawn PDFs, reviews the LIVE
+app, finds real bugs. Match his hand numbers exactly. Decode → fix → node-verify → publish → he refreshes.
+
+**Verified core logic (don't regress):** standard folds {4,8,12,16,24,32} only; forms/book=⌈pages÷form⌉;
+ganging reuse-cut-part (layouts=⌈forms÷formsPerSheet⌉, good=layouts×copies); running waste per FORME +
+make-ready paper per FORM(layout); PARENT-sheet purchasing when machine-cut (buy parent not cut, cost/wt on
+parent); two weights (consumption vs finished); cover = separate wrap (front+spine+back), spine=(pages÷2)×
+(gsm/1000)mm; coating client-driven; per-forme printing; live auto-recalc.
+
+**OPEN / PENDING:** ① the head-direction ARROWS — sir wants exact direction per panel from his drawing
+(currently form top=↓/bottom=↑ toward fold, cover=↑); NEEDS sir to specify each. ② Digital click-rate
+card (digital still uses offset rate — wrong). ③ Req5 machine hard-reject, Req10 Audit Mode, spoilage line.
+④ Printing/impression/plate/coating rate tables pending sir's verification. See §6f and below.
 
 ---
 
