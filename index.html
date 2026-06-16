@@ -712,10 +712,10 @@ function coverSchematic(cp){
       `<rect x="${L(cw)}" y="${L(y)}" width="${L(sp)}" height="${rowH}" fill="#fde8c8" stroke="#c2410c"/>`+
       `<rect x="${L(cw+sp)}" y="${L(y)}" width="${L(cw)}" height="${rowH}" fill="#dbeafe" stroke="#2c6fb3"/>`+
       `<text x="${L(cw/2)}" y="${L(y+rowH/2-4)}" font-size="9.5" text-anchor="middle" fill="#1f4e78" font-weight="bold">${labs[0]}</text>`+
-      arrow(cw/2,y+rowH/2+6,false)+
+      arrow(cw/2,y+rowH/2+8,true)+
       `<text x="${L(cw+sp/2)}" y="${L(y+rowH/2)}" font-size="6" text-anchor="middle" fill="#c2410c" transform="rotate(90 ${L(cw+sp/2)} ${L(y+rowH/2)})">SPINE ${m.spineMM}mm</text>`+
       `<text x="${L(cw+sp+cw/2)}" y="${L(y+rowH/2-4)}" font-size="9.5" text-anchor="middle" fill="#1f4e78" font-weight="bold">${labs[1]}</text>`+
-      arrow(cw+sp+cw/2,y+rowH/2+6,false);
+      arrow(cw+sp+cw/2,y+rowH/2+8,true);
   }
   let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>`;
   svg+=`<text x="2" y="9" font-size="8" fill="#6b7480">OUTSIDE</text>`+row(12,["BACK","FRONT"]);
