@@ -1210,19 +1210,29 @@ function specsTable(p,q,internal){
     ["Plates / impressions",`${q.plateCount} / ${q.impressions.toLocaleString("en-IN")}`],["Paper weight / layout waste",`${CHOSEN.total_wt} kg / ${CHOSEN.waste}%`]);
   return `<table>${rows.map(x=>`<tr><th>${esc(x[0])}</th><td>${esc(x[1])}</td></tr>`).join("")}</table>`;
 }
-function componentTables(x){
-  if(!x.cover||!x.coverPlan||!x.coverPlan.option)return "";
-  const o=x.coverPlan.option,c=x.cover;
-  return `<div class="cols"><div><h2>Text component</h2><table>
-    <tr><th>Pages / stock</th><td>${LASTINP.pages}pp / ${LASTINP.gsm} GSM</td></tr>
-    <tr><th>Sheet / press</th><td>${CHOSEN.sw} x ${CHOSEN.sh} in / ${SELECTED_MACHINE.name}</td></tr>
-    <tr><th>Signatures / sheets</th><td>${CHOSEN.signatures} / ${CHOSEN.total.toLocaleString("en-IN")}</td></tr>
-    <tr><th>Plates / impressions</th><td>${x.text.plateCount} / ${x.text.impressions.toLocaleString("en-IN")}</td></tr></table></div>
-    <div><h2>Cover component</h2><table>
-    <tr><th>Pages / stock</th><td>4pp / ${num("coverGsm",300)} GSM</td></tr>
-    <tr><th>Sheet / press</th><td>${o.sw} x ${o.sh} in / ${x.coverPlan.machine.name}</td></tr>
-    <tr><th>Sheets / colours</th><td>${o.total.toLocaleString("en-IN")} / ${Math.round(num("coverCf",4))}+${Math.round(num("coverCb",4))}</td></tr>
-    <tr><th>Plates / coating</th><td>${c.plateCount} / ${esc(coatingName($("coverLam").value))}</td></tr></table></div></div>`;
+// Text + Cover paper details for the printed documents (the "side")
+function paperDetailsHTML(x){
+  const t=CHOSEN, I=LASTINP, tq=x.text||x.q, inr=n=>n.toLocaleString("en-IN");
+  const grade=$("paperGrade")&&$("paperGrade").value&&$("paperGrade").value!=="__auto"&&$("paperGrade").value!==""?" · "+esc($("paperGrade").value):"";
+  let html=`<div class="cols"><div><h2>Text paper</h2><table>`+
+    `<tr><th>Stock</th><td>${I.gsm} GSM${grade}</td></tr>`+
+    `<tr><th>Sheet size / press</th><td>${t.sw} x ${t.sh} in / ${SELECTED_MACHINE?esc(SELECTED_MACHINE.name):"—"}</td></tr>`+
+    (I.isSig?`<tr><th>Form / forms / layouts</th><td>${t.sig}pp · ${t.signatures} forms${(t.formsPerSheet||1)>1?` (×${t.formsPerSheet}/sheet)`:""} · ${t.layouts} printed</td></tr>`:`<tr><th>Imposition</th><td>${t.ups}-up</td></tr>`)+
+    `<tr><th>Sheets / reams</th><td>${inr(t.total)} / ${t.reams}</td></tr>`+
+    `<tr><th>Weight</th><td>${t.total_wt} kg (${t.wt_sheet} kg/sheet)</td></tr>`+
+    `<tr><th>Rate / paper cost</th><td>Rs.${num("paperRate",0)}/sheet · ${money(tq.paper)}</td></tr></table></div>`;
+  if(x.cover&&x.coverPlan&&x.coverPlan.option){
+    const o=x.coverPlan.option, m=x.coverPlan.meta||{};
+    html+=`<div><h2>Cover paper</h2><table>`+
+      `<tr><th>Stock</th><td>${num("coverGsm",300)} GSM</td></tr>`+
+      `<tr><th>Spine</th><td>${m.spineMM!=null?m.spineMM+" mm":"—"}</td></tr>`+
+      `<tr><th>Cover piece</th><td>${m.coverW} x ${m.coverH} in (front+spine+back)</td></tr>`+
+      `<tr><th>Sheet size / press</th><td>${o.sw} x ${o.sh} in / ${x.coverPlan.machine?esc(x.coverPlan.machine.name):"—"}</td></tr>`+
+      `<tr><th>Sheets / reams</th><td>${inr(o.total)} / ${o.reams}</td></tr>`+
+      `<tr><th>Weight</th><td>${o.total_wt} kg</td></tr>`+
+      `<tr><th>Rate / cover cost</th><td>Rs.${num("coverPaperRate",0)}/sheet · ${money(x.cover.paper)}</td></tr></table></div>`;
+  } else html+=`<div><h2>Cover paper</h2><div class="box">No separate cover (self / none).</div></div>`;
+  return html+`</div>`;
 }
 function openPrintDocument(title,body){
   const w=window.open("","_blank","width=980,height=760");
@@ -1242,7 +1252,8 @@ function printQuotation(){
   const x=combinedPrice(),p=x.p,q=x.q,m=quoteMeta();
   const body=docHeader("QUOTATION",m)+`<div class="box"><b>Prepared for</b><br>${esc(m.customer)}</div>
     <h2>Job specification</h2>${specsTable(p,q,false)}
-    ${LASTINP.isSig?`<div class="box"><b>Binding:</b> ${esc($("binding").selectedOptions[0].text)}${LASTINP.separateCover?" · Separate 4pp cover and text production":""}</div>`:""}
+    <h2>Paper details</h2>${paperDetailsHTML(x)}
+    ${LASTINP.isSig?`<div class="box"><b>Binding:</b> ${esc($("binding").selectedOptions[0].text)}${LASTINP.separateCover?" · Separate cover and text production":""}</div>`:""}
     <h2>Commercial summary</h2><table>
       <tr><td>Production estimate</td><td class="num">${money(q.pretax)}</td></tr>
       <tr><td>GST (${p.gst}%)</td><td class="num">${money(q.gst)}</td></tr>
@@ -1261,8 +1272,8 @@ function printJobSheet(){
   const body=docHeader("INTERNAL JOB SHEET",m)+`<div class="box"><b>Customer:</b> ${esc(m.customer)} &nbsp; <b>Job:</b> ${esc(LASTINP.product_name||"Untitled job")}</div>
     <div class="cols"><div><h2>Production specification</h2>${specsTable(p,q,true)}</div>
     <div><h2>Internal costing</h2><table>${costs.map((x,i)=>`<tr class="${i===costs.length-1?"total":""}"><td>${esc(x[0])}</td><td class="num">${money(x[1])}</td></tr>`).join("")}</table></div></div>
-    ${componentTables(x)}
-    <h2>Layout / cut sheet</h2>${diagramHTML(CHOSEN)}
+    <h2>Paper details</h2>${paperDetailsHTML(x)}
+    <h2>Layout / cut sheet</h2>${sheetPicture(CHOSEN)}
     ${m.notes?`<h2>Instructions</h2><div class="box">${esc(m.notes)}</div>`:""}
     <div class="sign"><span>Pre-press checked</span><span>Production approved</span><span>Dispatch checked</span></div>`;
   openPrintDocument(m.no+" job sheet",body);
