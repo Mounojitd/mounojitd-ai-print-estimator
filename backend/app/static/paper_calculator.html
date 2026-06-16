@@ -831,40 +831,43 @@ function buildFormSVG(o,side,gripTop,layoutIndex){
   const grip=`<rect x="0" y="${gripTop?0:(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${sideR}${grip}${cells}${folds}</svg>`;
 }
-function diagramHTML(o){
-  const dbl=LASTINP&&LASTINP.isSig, work=($("workStyle")?$("workStyle").value:"back");
-  const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:6px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;if(CHOSEN)drawInto('diagram',CHOSEN)" style="width:auto"> 📖 form view</label>`:"";
+// One folding/imposition picture for ONE sheet size (front + back, representative form 1).
+function sheetPicture(o){
+  const dbl=LASTINP&&LASTINP.isSig, work=($("workStyle")?$("workStyle").value:"back"), gripTopBack=work==="tumble";
   const useForm=dbl&&bookletMode;
-  const splitH=useForm?((LASTINP.orientation==="portrait")===(o.orient!=="rotated")):true;
-  const pc2=splitH?o.cols*2:o.cols, pr2=splitH?o.rows:o.rows*2;
-  const hasPat=useForm&&(IMPO[`${o.sig}|${pc2}x${pr2}`]||Object.keys(IMPO).some(k=>{const[s,d]=k.split("|");const[c2,r2]=d.split("x").map(Number);return +s===o.sig&&r2===pr2&&c2<=pc2;}));
-  const gang=(o.formsPerSheet||1)>1?` · <b>${o.formsPerSheet} forms ganged/sheet</b> (cut &amp; reused)`:"";
-  const sigNote=useForm?` · <b>${o.sig}pp FORM</b>${hasPat?" (section-sewing pattern)":""}${gang} · ${o.signatures} form${o.signatures>1?'s':''}/book → ${o.layouts} printed layout${o.layouts>1?'s':''}`:"";
-  const head=`<div style="font-size:12px;color:#6b7480;margin-bottom:6px">Layout — <b>${o.sw}×${o.sh} in</b> · ${o.cols}×${o.rows} = ${o.ups}-up (${o.orient}) · ${o.waste}% wasted${sigNote} &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${useForm?'&nbsp;<span style="color:#c2410c">┄</span>fold/spine&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut':''}${toggle}</div>`;
-  const gripTopBack = work==="tumble";                       // tumble moves the gripper to the opposite edge on the back
-  let svgs;
-  if(useForm){
-    // ALL printed forms (NKK sir): one front+back pair per printed layout, numbered with its PDF/form no.
-    const L=Math.max(1,o.layouts||1), fps=o.formsPerSheet||1, blocks=[];
-    for(let i=0;i<L;i++){
-      const lo=i*fps+1, hiForm=Math.min((i+1)*fps,o.signatures||1);
-      const p1=(lo-1)*o.sig+1, p2=Math.min(hiForm*o.sig,(LASTINP&&LASTINP.pages)||hiForm*o.sig);
-      const fl=fps>1?`Forms ${lo}–${hiForm}`:`Form ${lo}`;
-      blocks.push(`<div style="border:1px solid #e3e7ee;border-radius:10px;padding:8px;margin-bottom:10px;background:#fafbfd">`+
-        `<div style="font-size:12px;font-weight:700;color:var(--brand);margin-bottom:5px">🖨 Press form ${i+1} of ${L} · <span style="color:#c2410c">PDF #${i+1}</span> · ${fl} · pages ${p1}–${p2} · on ${o.sw}×${o.sh} sheet</div>`+
-        `<div style="display:flex;gap:12px;flex-wrap:wrap">`+
-          `<div style="flex:1;min-width:160px"><div style="font-size:11px;color:#6b7480">▶ FRONT</div>${buildFormSVG(o,"front",false,i)}</div>`+
-          `<div style="flex:1;min-width:160px"><div style="font-size:11px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildFormSVG(o,"back",gripTopBack,i)}</div>`+
-        `</div></div>`);
-    }
-    const many=L>1?`<div class="hint" style="margin-bottom:6px">All <b>${L}</b> press forms of this <b>${o.signatures}-form ${LASTINP.pages}pp</b> book on the selected <b>${o.sw}×${o.sh}</b> sheet (PDF #1–${L}, each front &amp; back). <i>These are the book's forms — not the sheet-size list above.</i></div>`:"";
-    svgs=many+blocks.join("");
-  } else if(dbl){
-    svgs=`<div style="display:flex;gap:14px;flex-wrap:wrap"><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"),false,false)}</div><div style="flex:1;min-width:170px"><div style="font-size:12px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildSVG(o,numFn(o,"back"),gripTopBack,false)}</div></div>`;
-  } else svgs=buildSVG(o,numFn(o,"front"),false,false);
-  return head+svgs;
+  if(useForm) return `<div style="display:flex;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:150px"><div style="font-size:10px;color:#6b7480">▶ FRONT</div>${buildFormSVG(o,"front",false,0)}</div><div style="flex:1;min-width:150px"><div style="font-size:10px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildFormSVG(o,"back",gripTopBack,0)}</div></div>`;
+  if(dbl) return `<div style="display:flex;gap:10px;flex-wrap:wrap"><div style="flex:1;min-width:150px"><div style="font-size:10px;color:#6b7480">▶ FRONT</div>${buildSVG(o,numFn(o,"front"),false,false)}</div><div style="flex:1;min-width:150px"><div style="font-size:10px;color:#6b7480">◀ BACK</div>${buildSVG(o,numFn(o,"back"),gripTopBack,false)}</div></div>`;
+  return buildSVG(o,numFn(o,"front"),false,false);
 }
-function drawInto(boxId,o){ const box=$(boxId); if(!o||!o.ups){box.innerHTML="";return;} box.innerHTML=diagramHTML(o); }
+function sheetBlock(o,idx,isSel){
+  const dbl=LASTINP&&LASTINP.isSig;
+  const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
+  const noPress=!machinesFor(o.sw,o.sh,need).length;
+  const cut=o.cutMachine?` · <span style="color:#7c3aed">✂ cut to ${o.cutTo} for ${o.cutMachine}</span>`:"";
+  const info=dbl
+    ? `${o.cols}×${o.rows}=${o.ups}up · <b>${o.sig}pp form</b> · ${o.signatures} forms${(o.formsPerSheet||1)>1?` (×${o.formsPerSheet}/sheet)`:""} · ${o.total.toLocaleString("en-IN")} sheets · ${o.waste}% waste`
+    : `${o.ups}-up · ${o.total.toLocaleString("en-IN")} sheets · ${o.waste}% waste`;
+  return `<div onclick="drawIdx(${idx})" style="cursor:pointer;border:2px solid ${isSel?'#1f7a4d':'#e3e7ee'};border-radius:10px;padding:8px;margin-bottom:10px;background:${isSel?'#eaf7f0':'#fff'}">`+
+    `<div style="font-size:12px;font-weight:700;color:${isSel?'#125e3c':'var(--brand)'};margin-bottom:5px">${isSel?'★ ':''}<b>${o.sw}×${o.sh} in</b> · ${info}${noPress?' <span style="color:#c0392b">(no press)</span>':''}${cut}</div>`+
+    sheetPicture(o)+`</div>`;
+}
+// THE FOLDING VIEW (NKK sir): one imposition picture PER SHEET SIZE, in the sheet-list order.
+// Click any to select it (recomputes); selecting a press re-cuts & redraws the chosen one.
+function renderDiagram(){
+  const box=$("diagram"); if(!box) return;
+  if(!RESULT||!CHOSEN_BASE){ box.innerHTML=""; return; }
+  const dbl=LASTINP&&LASTINP.isSig;
+  const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:8px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;renderDiagram()" style="width:auto"> 📖 fold/form view</label>`:"";
+  const legend=`<div style="font-size:12px;color:#6b7480;margin-bottom:8px">Folding layout — one picture <b>per sheet size</b> (click any to switch) &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut':''}${toggle}</div>`;
+  let html=legend;
+  RESULT.options.forEach((opt,idx)=>{
+    if(!opt.ups) return;
+    const isSel = CHOSEN_BASE && opt.sw===CHOSEN_BASE.sw && opt.sh===CHOSEN_BASE.sh;
+    html += sheetBlock(isSel?CHOSEN:opt, idx, isSel);   // selected shows the effective (machine-cut) picture
+  });
+  box.innerHTML=html;
+}
+function drawInto(boxId,o){ renderDiagram(); }   // kept for back-compat; always renders the per-sheet gallery
 function printSheet(){
   if(!CHOSEN)return; const w=window.open("","_blank","width=940,height=720");
   w.document.write(`<html><head><title>Cut sheet</title><style>body{font-family:Arial,sans-serif;padding:22px}svg{max-width:440px}</style></head><body>`+
