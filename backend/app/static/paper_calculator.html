@@ -421,16 +421,17 @@ function autoPaperRate(){
   if(!CHOSEN)return;
   const grade=$("paperGrade").value;
   if(grade==="") return;                                // Manual: leave typed value
+  const PW=CHOSEN.paperSheetW||CHOSEN.sw, PH=CHOSEN.paperSheetH||CHOSEN.sh;   // PARENT sheet you buy
   if(grade==="__auto"){
     const gsm=num("gsm",0), typ=$("paperTypeSel")?$("paperTypeSel").value:"";
-    const hit=lookupByGsm(gsm,CHOSEN.sw,CHOSEN.sh,typ);
-    if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto @ ${gsm}gsm${typ?" · "+typ:""}, ${CHOSEN.sw}×${CHOSEN.sh}: ${hit.grade} — ₹${hit.rate}/sheet (best price, ${hit.via}).`; }
+    const hit=lookupByGsm(gsm,PW,PH,typ);
+    if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto @ ${gsm}gsm${typ?" · "+typ:""}, ${PW}×${PH}: ${hit.grade} — ₹${hit.rate}/sheet (best price, ${hit.via}).`; }
     else $("paperRateNote").textContent=`No ${gsm||"?"}gsm ${typ||"paper"} in the price list — choose a grade or enter the rate manually.`;
     return;
   }
-  const gsm=num("gsm",0), hit=gsm>0?lookupPaperRate(grade,gsm,CHOSEN.sw,CHOSEN.sh):null;
-  if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${grade} @ ${gsm}gsm, ${CHOSEN.sw}×${CHOSEN.sh} = ₹${hit.rate}/sheet (${hit.via}).`; }
-  else $("paperRateNote").textContent=`Enter a GSM, or no list price for ${grade} at ${CHOSEN.sw}×${CHOSEN.sh} — type the rate manually.`;
+  const gsm=num("gsm",0), hit=gsm>0?lookupPaperRate(grade,gsm,PW,PH):null;
+  if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${grade} @ ${gsm}gsm, ${PW}×${PH} = ₹${hit.rate}/sheet (${hit.via}).`; }
+  else $("paperRateNote").textContent=`Enter a GSM, or no list price for ${grade} at ${PW}×${PH} — type the rate manually.`;
 }
 /* ---- COVER paper auto-pickup (same DB) ---- */
 let COVER_AUTO=false;
@@ -508,6 +509,10 @@ function computePaper(inp){
       formes,formesMR,perForme,setupWaste,
       total_wt:+(wt*total).toFixed(2), wt_sheet:+wt.toFixed(4), eff:+eff.toFixed(1), waste:+(100-eff).toFixed(1),
       cell_used_w:ua/MM, cell_used_h:ub/MM,
+      // PAPER PURCHASING (NKK sir Req6): default = buy this sheet as the parent. When a machine cuts the
+      // sheet down, applyMachineCut() overrides these with the PARENT sheet's qty/weight/size.
+      paperSheetW:wi, paperSheetH:hi, paperSheets:total, parentTotal:total, cutsPerParent:1,
+      paperWtSheet:+wt.toFixed(4), paperWeight:+(wt*total).toFixed(2),
       gripper:m.gripper/MM, sidelay:(m.sidelay+m.paperTrim)/MM, bleed:m.bleed/MM, gutter:0});
     return opt;
   });
@@ -617,7 +622,19 @@ function applyMachineCut(base,m){
   if(cw<2||ch<2) return base;
   const r=computePaper(Object.assign({},LASTINP,{sizes:[[cw,ch]],rotate:true}));
   const co=r.options&&r.options[0];
-  if(co&&co.ups>0){ co.cutFrom=`${base.sw}×${base.sh}`; co.cutTo=`${cw}×${ch}`; co.cutMachine=m.name; return co; }
+  if(co&&co.ups>0){
+    co.cutFrom=`${base.sw}×${base.sh}`; co.cutTo=`${cw}×${ch}`; co.cutMachine=m.name;
+    // PARENT-SHEET PURCHASING (NKK sir Req6): you print on the CUT sheet (machine size) but you BUY the
+    // full PARENT sheet and cut it. Paper qty/weight/cost are on the parent, not the cut.
+    const pL=Math.max(base.sw,base.sh), pS=Math.min(base.sw,base.sh), cL=Math.max(cw,ch), cS=Math.min(cw,ch);
+    const perParent=Math.max(1, Math.floor(pL/cL)*Math.floor(pS/cS));   // cut sheets per parent
+    const parentSheets=Math.ceil(co.total/perParent);
+    const pWt=(base.sw*MM/1000)*(base.sh*MM/1000)*LASTINP.gsm/1000;
+    co.cutsPerParent=perParent; co.parentTotal=parentSheets;
+    co.paperSheetW=base.sw; co.paperSheetH=base.sh; co.paperSheets=parentSheets;
+    co.paperWtSheet=+pWt.toFixed(4); co.paperWeight=+(pWt*parentSheets).toFixed(2);
+    return co;
+  }
   return base;
 }
 function sheetSummary(o){
@@ -711,14 +728,19 @@ function coverExplainHTML(cp,cq){
   step("Sheet / up",`buy ${o.sw}×${o.sh} → ${o.ups}-up (${o.cols}×${o.rows})`,`${o.ups}-up`);
   step("Good sheets",`⌈ ${inr(I.copies)} copies ÷ ${o.ups}-up ⌉`,inr(o.good));
   step("Make-ready + running",`1 form × ${num("coverSetup",150)} + ${o.formes} formes × ${I.running}%`,`${inr(o.setupWaste)} + ${inr(o.run)}`);
-  step("Cover SHEETS",`${inr(o.good)} + ${inr(o.run)} + ${inr(o.setupWaste)}`,inr(o.total));
-  step("Weight / sheet",`${o.sw}×${o.sh} = ${areaM2.toFixed(4)} m² × ${gsm} gsm ÷ 1000`,`${o.wt_sheet} kg`);
-  step("Cover weight",`${o.wt_sheet} × ${inr(o.total)} sheets`,`${o.total_wt} kg`);
-  step("Cover ₹/sheet · cost",`${num("coverPaperRate",0)} ₹/sheet × ${inr(o.total)}`,cq?"₹"+Math.round(cq.paper).toLocaleString("en-IN"):"—");
+  step("Cover PRINT SHEETS",`${inr(o.good)} good + ${inr(o.run)} running + ${inr(o.setupWaste)} make-ready`,inr(o.total));
+  const crate=num("coverPaperRate",0), cperKg=o.wt_sheet>0?(crate/o.wt_sheet):0, cfinW=finishedWeight(true);
+  step("Paper bought · reams",`${o.sw}×${o.sh} parent · ${inr(o.total)} ÷ 500`,`${inr(o.total)} · ${(o.total/500).toFixed(1)}`);
+  step("Weight / sheet",`${o.sw}×${o.sh} × ${gsm} gsm ÷ 1000`,`${o.wt_sheet} kg`);
+  step("① Paper consumption wt",`${o.wt_sheet} × ${inr(o.total)} sheets (incl. waste)`,`${o.total_wt} kg`);
+  step("② Finished product wt",`${inr(I.copies)} covers × cover-piece`,`${cfinW} kg`);
+  step("Rate · ₹/kg (database)",`₹${crate}/sheet ÷ ${o.wt_sheet} kg`,`₹${cperKg.toFixed(2)}/kg`);
+  step("Cover cost",`₹${crate}/sheet × ${inr(o.total)} sheets`,cq?"₹"+Math.round(cq.paper).toLocaleString("en-IN"):"—");
+  const csrc=$("coverGrade").value==="__auto"?"auto-picked from price master":$("coverGrade").value===""?"manual rate":esc($("coverGrade").value)+" (price master)";
   return `<details class="pbox" style="margin-top:12px;border-color:#efd9a6"><summary style="cursor:pointer;font-weight:700;color:#b9770a;font-size:12.5px">📕 Cover paper — back-calculation &amp; spine (click to open)</summary>`+
     `<div style="margin-top:8px">${coverSchematic(cp)}</div>`+
     `<table style="font-size:12px;margin-top:8px"><thead><tr><th>Step</th><th>Formula (live values)</th><th style="text-align:right">Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`+
-    `<div class="hint" style="margin-top:6px">Cover = one flat piece (front + spine + back), ${gsm} gsm, ${Math.round(num("coverCf",4))}+${Math.round(num("coverCb",4))}, on press ${cp.machine?cp.machine.name:"—"}.</div></details>`;
+    `<div class="hint" style="margin-top:6px">Cover = one flat piece (front+spine+back), ${gsm} gsm, ${Math.round(num("coverCf",4))}+${Math.round(num("coverCb",4))}, parent ${o.sw}×${o.sh} on ${cp.machine?cp.machine.name:"—"} · <b>rate source: ${csrc}</b>.</div></details>`;
 }
 
 // TEXT paper back-calculation (mirrors the cover panel) — shows the inside/text paper calc in the price area
@@ -742,14 +764,36 @@ function textExplainHTML(tq){
     step("Good sheets",`⌈ ${inr(I.copies)} ÷ ${o.ups}-up ⌉ × extent ${I.extent||1}`,inr(o.good));
     step("Make-ready + running",`1 form × ${I.setup} + ${o.formes} formes × ${I.running}%`,`${inr(o.setupWaste)} + ${inr(o.run)}`);
   }
-  step("TEXT SHEETS",`${inr(o.good)} + ${inr(o.run)} + ${inr(o.setupWaste)}`,inr(o.total));
-  step("Reams",`${inr(o.total)} ÷ 500`,o.reams);
-  step("Weight / sheet",`${o.sw}×${o.sh} = ${areaM2.toFixed(4)} m² × ${I.gsm} gsm ÷ 1000`,`${o.wt_sheet} kg`);
-  step("Text weight",`${o.wt_sheet} × ${inr(o.total)} sheets`,`${o.total_wt} kg`);
-  step("Text ₹/sheet · cost",`${num("paperRate",0)} ₹/sheet × ${inr(o.total)}`,tq?"₹"+Math.round(tq.paper).toLocaleString("en-IN"):"—");
+  step("PRINT SHEETS (on press)",`${inr(o.good)} good + ${inr(o.run)} running + ${inr(o.setupWaste)} make-ready`,inr(o.total));
+  // PARENT-SHEET purchasing (sir Req6): if the press cut the parent, paper is bought as parent sheets.
+  if(o.cutMachine){
+    step("Cut from parent",`${o.cutFrom} parent → ${o.cutsPerParent} cut sheets/parent (press ${o.cutTo})`,`${o.cutsPerParent}/parent`);
+    step("PARENT SHEETS (buy)",`⌈ ${inr(o.total)} print sheets ÷ ${o.cutsPerParent} ⌉`,inr(o.paperSheets));
+  }
+  const rate=num("paperRate",0), perKg=o.paperWtSheet>0?(rate/o.paperWtSheet):0, finW=finishedWeight(false);
+  step("Paper bought · reams",`${o.paperSheetW}×${o.paperSheetH} parent · ${inr(o.paperSheets)} ÷ 500`,`${inr(o.paperSheets)} · ${(o.paperSheets/500).toFixed(1)}`);
+  step("Weight / sheet",`${o.paperSheetW}×${o.paperSheetH} × ${I.gsm} gsm ÷ 1000`,`${o.paperWtSheet} kg`);
+  step("① Paper consumption wt",`${o.paperWtSheet} × ${inr(o.paperSheets)} sheets (incl. waste)`,`${o.paperWeight} kg`);
+  step("② Finished product wt",`${inr(I.copies)} books × text leaves`,`${finW} kg`);
+  step("Rate · ₹/kg (database)",`₹${rate}/sheet ÷ ${o.paperWtSheet} kg`,`₹${perKg.toFixed(2)}/kg`);
+  step("Paper cost",`₹${rate}/sheet × ${inr(o.paperSheets)} parent sheets`,tq?"₹"+Math.round(tq.paper).toLocaleString("en-IN"):"—");
+  const src=$("paperGrade").value==="__auto"?"auto-picked from price master":$("paperGrade").value===""?"manual rate":esc($("paperGrade").value)+" (price master)";
   return `<details class="pbox" style="margin-top:12px;border-color:#cbd8e5"><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📘 Text paper — back-calculation (click to open)</summary>`+
     `<table style="font-size:12px;margin-top:8px"><thead><tr><th>Step</th><th>Formula (live values)</th><th style="text-align:right">Result</th></tr></thead><tbody>${rows.join("")}</tbody></table>`+
-    `<div class="hint" style="margin-top:6px">Text/inside = ${I.gsm} gsm, ${Math.round(num("cf",4))}+${Math.round(num("cb",4))}, ${o.sw}×${o.sh} on press ${SELECTED_MACHINE?SELECTED_MACHINE.name:"—"}.</div></details>`;
+    `<div class="hint" style="margin-top:6px">Stock: ${I.gsm} gsm · ${Math.round(num("cf",4))}+${Math.round(num("cb",4))} · parent ${o.paperSheetW}×${o.paperSheetH} on ${SELECTED_MACHINE?SELECTED_MACHINE.name:"—"} · <b>rate source: ${src}</b>.</div></details>`;
+}
+// FINISHED PRODUCT weight — only the delivered quantity's paper (no waste). cover=true → cover piece.
+function finishedWeight(cover){
+  const I=LASTINP; if(!I)return 0;
+  if(cover){
+    const cp=coverPlan(); if(!cp||!cp.meta)return 0; const m=cp.meta;
+    const a=(m.coverW*0.0254)*(m.coverH*0.0254);  // cover piece m²
+    return +(I.copies*a*num("coverGsm",300)/1000).toFixed(2);
+  }
+  if(I.isSig){ const leafA=(I.W*0.0254)*(I.H*0.0254); // one leaf = closed page area, holds 2 pages
+    return +(I.copies*(I.pages/2)*leafA*I.gsm/1000).toFixed(2); }
+  const a=(I.W*0.0254)*(I.H*0.0254);
+  return +(I.copies*(I.extent||1)*a*I.gsm/1000).toFixed(2);
 }
 
 /* ---------- diagram ---------- */
@@ -887,19 +931,42 @@ function sheetBlock(o,idx,isSel){
 }
 // THE FOLDING VIEW (NKK sir): one imposition picture PER SHEET SIZE, in the sheet-list order.
 // Click any to select it (recomputes); selecting a press re-cuts & redraws the chosen one.
+let SHOW_ALL_FORMS=false;
+function toggleAllForms(){ SHOW_ALL_FORMS=!SHOW_ALL_FORMS; renderDiagram(); }
+function formBlock(o,i){
+  const work=$("workStyle")?$("workStyle").value:"back", gripTopBack=work==="tumble";
+  const fps=o.formsPerSheet||1, lo=i*fps+1, hi=Math.min((i+1)*fps,o.signatures||1);
+  const p1=(lo-1)*o.sig+1, p2=Math.min(hi*o.sig,(LASTINP&&LASTINP.pages)||hi*o.sig);
+  const printSize=o.cutMachine?`${o.cutTo} (cut from ${o.paperSheetW}×${o.paperSheetH})`:`${o.sw}×${o.sh}`;
+  const hd=`🖨 <b>Form ${lo}${hi>lo?'–'+hi:''}</b> of ${o.layouts} · PDF #${i+1} · pages ${p1}–${p2} · ${o.sig}pp signature · print ${printSize} · paper ${o.paperSheetW}×${o.paperSheetH} · ${SELECTED_MACHINE?esc(SELECTED_MACHINE.name):'—'}`;
+  return `<div style="border:1px solid #e3e7ee;border-radius:10px;padding:8px;margin-bottom:10px;background:#fafbfd">`+
+    `<div style="font-size:11.5px;font-weight:700;color:var(--brand);margin-bottom:5px">${hd}</div>`+
+    `<div style="display:flex;gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:155px"><div style="font-size:10px;color:#6b7480">▶ FRONT</div>${buildFormSVG(o,"front",false,i)}</div>`+
+    `<div style="flex:1;min-width:155px"><div style="font-size:10px;color:#6b7480">◀ BACK (${workLabel()})</div>${buildFormSVG(o,"back",gripTopBack,i)}</div></div></div>`;
+}
 function renderDiagram(){
   const box=$("diagram"); if(!box) return;
   if(!RESULT||!CHOSEN_BASE){ box.innerHTML=""; return; }
-  const dbl=LASTINP&&LASTINP.isSig;
-  const toggle=dbl?`<label style="font-size:12px;cursor:pointer;margin-left:8px"><input type="checkbox" ${bookletMode?'checked':''} onclick="bookletMode=this.checked;renderDiagram()" style="width:auto"> 📖 fold/form view</label>`:"";
-  const legend=`<div style="font-size:12px;color:#6b7480;margin-bottom:8px">Folding layout — one picture <b>per sheet size</b> (click any to switch) &nbsp;<span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut':''}${toggle}</div>`;
-  let html=legend;
-  RESULT.options.forEach((opt,idx)=>{
-    if(!opt.ups) return;
-    const isSel = CHOSEN_BASE && opt.sw===CHOSEN_BASE.sw && opt.sh===CHOSEN_BASE.sh;
-    html += sheetBlock(isSel?CHOSEN:opt, idx, isSel);   // selected shows the effective (machine-cut) picture
-  });
-  box.innerHTML=html;
+  const dbl=LASTINP&&LASTINP.isSig, o=CHOSEN;
+  // sheet-size chips (switch which stock to print on)
+  const chips=RESULT.options.map((opt,idx)=>{ if(!opt.ups)return"";
+    const sel=CHOSEN_BASE&&opt.sw===CHOSEN_BASE.sw&&opt.sh===CHOSEN_BASE.sh;
+    return `<button onclick="drawIdx(${idx})" class="mbtn ${sel?'p':'s'}" style="padding:5px 10px;font-size:12px;margin:0 6px 6px 0">${opt.sw}×${opt.sh}${sel?' ★':''}</button>`;
+  }).join("");
+  const chipRow=`<div style="margin-bottom:8px"><span style="font-size:11px;color:#6b7480">Sheet:</span> ${chips}</div>`;
+  const legend=`<div style="font-size:11px;color:#6b7480;margin-bottom:8px"><span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut':''}${o.cutMachine?`&nbsp;·&nbsp;<span style="color:#7c3aed">✂ cut to ${o.cutTo} for ${o.cutMachine}</span>`:''}</div>`;
+  if(!dbl){ box.innerHTML=chipRow+legend+sheetPicture(o); return; }
+  const L=Math.max(1,o.layouts||1);
+  let forms;
+  if(SHOW_ALL_FORMS||L<=2){
+    forms=""; for(let i=0;i<L;i++) forms+=formBlock(o,i);
+    if(L>2) forms+=`<button onclick="toggleAllForms()" class="mbtn s" style="margin-top:4px">▲ Show first &amp; last only</button>`;
+  } else {
+    forms=`<div class="hint" style="margin-bottom:6px"><b>${L} press forms</b> for this ${o.signatures}-form book — showing first &amp; last:</div>`+
+      formBlock(o,0)+formBlock(o,L-1)+
+      `<button onclick="toggleAllForms()" class="mbtn p" style="margin-top:2px">📑 View all ${L} forms</button>`;
+  }
+  box.innerHTML=chipRow+legend+forms;
 }
 function drawInto(boxId,o){ renderDiagram(); }   // kept for back-compat; always renders the per-sheet gallery
 function printSheet(){
@@ -1056,11 +1123,12 @@ function priceJob(o,p,machine){
   const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
   const coatSheets = (p.coatArea==="cover") ? Math.round(sheets/sigs) : sheets;   // cover = one signature's sheets
   const lam=p.lam==="none"?0:Math.max(c.r*(o.sw*o.sh/100)*coatSheets, c.min);
-  const paper=(p.paperRate||0)*sheets, wt=o.total_wt;
+  // PAPER bought as PARENT sheets (NKK sir Req6): cost & weight on the parent, not the cut/print sheet.
+  const buySheets=o.paperSheets||sheets, paper=(p.paperRate||0)*buySheets, wt=o.paperWeight||o.total_wt;
   const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+packing+freight, overhead=base*0.12, prod=base+overhead;
   const margin=prod*p.margin/100, pretax=prod+margin, gst=pretax*p.gst/100, grand=pretax+gst;
-  return {band,paper,printing,plates,plateCount,impressions,formes,formeRun,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
+  return {band,paper,buySheets,printing,plates,plateCount,impressions,formes,formeRun,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1)};
 }
 function currentPriceParams(){
   return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
@@ -1115,15 +1183,15 @@ function showPrice(){
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
   const x=combinedPrice(),p=x.p,q=x.q,inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
-  const totalWt=CHOSEN.total_wt+((x.coverPlan&&x.coverPlan.option)?x.coverPlan.option.total_wt:0);
+  const totalWt=(CHOSEN.paperWeight||CHOSEN.total_wt)+((x.coverPlan&&x.coverPlan.option)?x.coverPlan.option.total_wt:0);
   const perKg=totalWt>0?(q.paper/totalWt):0;
   const wlabel=p.work==="back"?"W&amp;back":"W&amp;"+p.work;
   let rows;
   if(x.cover){                                   // separate cover → itemise text vs cover so cover costing is explicit
-    const txtWt=CHOSEN.total_wt, cvWt=x.coverPlan.option.total_wt;
+    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt, cvWt=x.coverPlan.option.total_wt;
     rows=[
-      [`Text paper (${txtWt.toFixed(1)} kg)`, x.text.paper],
-      [`Cover paper (${cvWt.toFixed(1)} kg)`, x.cover.paper],
+      [`Text paper (${txtWt.toFixed(1)} kg consumed)`, x.text.paper],
+      [`Cover paper (${cvWt.toFixed(1)} kg consumed)`, x.cover.paper],
       [`Printing — text (${x.text.formes} formes × ~${x.text.formeRun.toLocaleString("en-IN")} sheets)`, x.text.printing],
       [`Printing — cover (${x.cover.formes} formes × ~${x.cover.formeRun.toLocaleString("en-IN")} sheets)`, x.cover.printing],
       [`Plates (${q.plateCount}, ${wlabel})`, q.plates],
