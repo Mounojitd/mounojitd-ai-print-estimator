@@ -893,11 +893,12 @@ function buildFormSVG(o,side,gripTop,layoutIndex){
     const within=pat?(side==="front"?pat.F:pat.B)[r][cc]:(side==="front"?r*pc+c+1:r*pc+(pc-1-c)+1);
     const base=within+foldForm*o.sig;                           // ← offset per form (fixes identical diagrams)
     const n=base<=totalPages?base:"·";                          // last form may be partial
-    const headTop=pr>1&&r<pr/2;     // top half: page head points DOWN to the fold; bottom half: head points UP
-    // HEAD-DIRECTION ARROW (NKK sir's S/S form): bold blue arrow toward the heads-meet fold (page head)
-    if(pr>1){ const alen=Math.min(ph*0.46,34), at=cy-alen/2, ab=cy+alen/2, AX=cx.toFixed(1), AH=5.5;
+    // HEAD-DIRECTION ARROW (NKK sir's S/S form): bold blue arrow = page head. Multi-row forms (8/12/16/24/32)
+    // point toward the heads-meet fold (top half ↓, bottom half ↑); single-row forms (4pp) point UP (head up).
+    const headTop=pr>1&&r<pr/2, headUp = pr<=1 || !headTop;   // headUp → arrowhead at top
+    { const alen=Math.min(ph*0.46,34), at=cy-alen/2, ab=cy+alen/2, AX=cx.toFixed(1), AH=5.5;
       cells+=`<line x1="${AX}" y1="${at.toFixed(1)}" x2="${AX}" y2="${ab.toFixed(1)}" stroke="#1530a8" stroke-width="2.1" stroke-linecap="round"/>`+
-        (headTop?`<path d="M${(cx-AH).toFixed(1)} ${(ab-AH-1).toFixed(1)} L${AX} ${ab.toFixed(1)} L${(cx+AH).toFixed(1)} ${(ab-AH-1).toFixed(1)}" fill="none" stroke="#1530a8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>`
+        (!headUp?`<path d="M${(cx-AH).toFixed(1)} ${(ab-AH-1).toFixed(1)} L${AX} ${ab.toFixed(1)} L${(cx+AH).toFixed(1)} ${(ab-AH-1).toFixed(1)}" fill="none" stroke="#1530a8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>`
                 :`<path d="M${(cx-AH).toFixed(1)} ${(at+AH+1).toFixed(1)} L${AX} ${at.toFixed(1)} L${(cx+AH).toFixed(1)} ${(at+AH+1).toFixed(1)}" fill="none" stroke="#1530a8" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>`); }
     // page number near the OUTER edge (away from the fold), rotated so its head faces the fold
     const ny = headTop ? (y+fs*0.9+2) : (y+ph-4);
