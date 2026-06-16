@@ -696,26 +696,31 @@ function explainHTML(o){
     `<div class="hint" style="margin-top:6px">Inputs: ${I.isSig?`${I.pages}pp text · `:""}${inr(I.copies)} qty · ${I.gsm} gsm · make-ready ${I.setup}/forme · running ${I.running}%/forme · ${I.sides}-side (${I.work==="back"?"work &amp; back":"work &amp; "+I.work}). Change any input and this table recalculates.</div></details>`;
 }
 // COVER back-calculation + schematic (NKK sir: show the cover paper calc + spine)
+// Cover open layout (NKK sir's drawing): two rows — OUTSIDE (back│spine│front) + INSIDE (IFC│spine│IBC),
+// each panel with a head-direction arrow.
 function coverSchematic(cp){
-  const m=cp.meta||cp.option, W=360, scale=W/Math.max(m.coverW,1), H=Math.round(m.coverH*scale);
-  const pw=m.portrait?m.pageW*scale:m.coverW*scale, sp=m.spineIn*scale;
-  let svg=`<svg viewBox="0 0 ${W} ${Math.max(H,40)}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${Math.max(H,40)}" fill="#fff"/>`;
-  if(m.portrait){
-    svg+=`<rect x="0" y="0" width="${pw.toFixed(1)}" height="${H}" fill="#dbeafe" stroke="#2c6fb3"/>`+
-      `<rect x="${pw.toFixed(1)}" y="0" width="${sp.toFixed(1)}" height="${H}" fill="#fde8c8" stroke="#c2410c"/>`+
-      `<rect x="${(pw+sp).toFixed(1)}" y="0" width="${pw.toFixed(1)}" height="${H}" fill="#dbeafe" stroke="#2c6fb3"/>`+
-      `<text x="${(pw/2).toFixed(1)}" y="${(H/2).toFixed(1)}" font-size="11" text-anchor="middle" fill="#1f4e78" font-weight="bold">BACK</text>`+
-      `<text x="${(pw+sp/2).toFixed(1)}" y="${(H/2).toFixed(1)}" font-size="7" text-anchor="middle" fill="#c2410c" transform="rotate(90 ${(pw+sp/2).toFixed(1)} ${(H/2).toFixed(1)})">SPINE ${m.spineMM}mm</text>`+
-      `<text x="${(pw+sp+pw/2).toFixed(1)}" y="${(H/2).toFixed(1)}" font-size="11" text-anchor="middle" fill="#1f4e78" font-weight="bold">FRONT</text>`;
-  } else {
-    const ph=m.pageH*scale;
-    svg+=`<rect x="0" y="0" width="${W}" height="${ph.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3"/>`+
-      `<rect x="0" y="${ph.toFixed(1)}" width="${W}" height="${sp.toFixed(1)}" fill="#fde8c8" stroke="#c2410c"/>`+
-      `<rect x="0" y="${(ph+sp).toFixed(1)}" width="${W}" height="${ph.toFixed(1)}" fill="#dbeafe" stroke="#2c6fb3"/>`+
-      `<text x="${(W/2)}" y="${(ph/2).toFixed(1)}" font-size="11" text-anchor="middle" fill="#1f4e78" font-weight="bold">BACK</text>`+
-      `<text x="${(W/2)}" y="${(ph+sp/2+3).toFixed(1)}" font-size="7" text-anchor="middle" fill="#c2410c">SPINE ${m.spineMM}mm</text>`+
-      `<text x="${(W/2)}" y="${(ph+sp+ph/2).toFixed(1)}" font-size="11" text-anchor="middle" fill="#1f4e78" font-weight="bold">FRONT</text>`;
+  const m=cp.meta||cp.option, W=360, scale=W/Math.max(m.coverW,1), rowH=Math.max(34,Math.round(m.coverH*scale*0.5));
+  const H=rowH*2+30, pw=m.portrait?m.pageW*scale:(m.coverW*scale-0), sp=Math.max(6,m.spineIn*scale);
+  const L=v=>v.toFixed(1);
+  // For portrait the cover splits L→R: back | spine | front. (Landscape handled the same horizontally for clarity.)
+  const cw=(W-sp)/2;
+  const arrow=(cx,cy,up)=>{const a=10; return `<line x1="${L(cx)}" y1="${L(cy-a)}" x2="${L(cx)}" y2="${L(cy+a)}" stroke="#1f4e78" stroke-width="1.4"/>`+
+    (up?`<path d="M${L(cx-3.5)} ${L(cy-a+4)} L${L(cx)} ${L(cy-a)} L${L(cx+3.5)} ${L(cy-a+4)}" fill="none" stroke="#1f4e78" stroke-width="1.4"/>`
+       :`<path d="M${L(cx-3.5)} ${L(cy+a-4)} L${L(cx)} ${L(cy+a)} L${L(cx+3.5)} ${L(cy+a-4)}" fill="none" stroke="#1f4e78" stroke-width="1.4"/>`);};
+  function row(y,labs){
+    return `<rect x="0" y="${L(y)}" width="${L(cw)}" height="${rowH}" fill="#dbeafe" stroke="#2c6fb3"/>`+
+      `<rect x="${L(cw)}" y="${L(y)}" width="${L(sp)}" height="${rowH}" fill="#fde8c8" stroke="#c2410c"/>`+
+      `<rect x="${L(cw+sp)}" y="${L(y)}" width="${L(cw)}" height="${rowH}" fill="#dbeafe" stroke="#2c6fb3"/>`+
+      `<text x="${L(cw/2)}" y="${L(y+rowH/2-4)}" font-size="9.5" text-anchor="middle" fill="#1f4e78" font-weight="bold">${labs[0]}</text>`+
+      arrow(cw/2,y+rowH/2+6,false)+
+      `<text x="${L(cw+sp/2)}" y="${L(y+rowH/2)}" font-size="6" text-anchor="middle" fill="#c2410c" transform="rotate(90 ${L(cw+sp/2)} ${L(y+rowH/2)})">SPINE ${m.spineMM}mm</text>`+
+      `<text x="${L(cw+sp+cw/2)}" y="${L(y+rowH/2-4)}" font-size="9.5" text-anchor="middle" fill="#1f4e78" font-weight="bold">${labs[1]}</text>`+
+      arrow(cw+sp+cw/2,y+rowH/2+6,false);
   }
+  let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>`;
+  svg+=`<text x="2" y="9" font-size="8" fill="#6b7480">OUTSIDE</text>`+row(12,["BACK","FRONT"]);
+  svg+=`<text x="2" y="${L(12+rowH+11)}" font-size="8" fill="#6b7480">INSIDE</text>`+row(12+rowH+14,["INSIDE BACK","INSIDE FRONT"]);
+  svg+=`<text x="${W/2}" y="${H-3}" font-size="8" text-anchor="middle" fill="#6b7480">Cover open ${m.coverW}×${m.coverH} in · spine ${m.spineMM}mm · arrows = head direction</text>`;
   return svg+`</svg>`;
 }
 function coverExplainHTML(cp,cq){
@@ -916,6 +921,62 @@ function buildFormSVG(o,side,gripTop,layoutIndex){
   const grip=`<rect x="0" y="${gripTop?0:(H-g).toFixed(1)}" width="${W}" height="${g.toFixed(1)}" fill="#f6d6d6"/>`;
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>${sideR}${grip}${cells}${folds}</svg>`;
 }
+// ===== SIZE HIERARCHY + MARGIN VISUALISATION (NKK sir's drawing: finished→folded→open→print→cut→parent) =====
+function sizesTable(o){
+  const I=LASTINP, R=RESULT, b=I.margins.bleed/MM;
+  const rows=[]; const r=(k,v)=>rows.push(`<tr><th style="white-space:nowrap">${k}</th><td style="text-align:right;white-space:nowrap">${v}</td></tr>`);
+  if(I.isSig){
+    r("Finished page (closed)", `${I.W} × ${I.H} in`);
+    r("Open size (text spread)", `${R.openW} × ${R.openH} in`);
+    r("Print size (+bleed)", `${(R.openW+2*b).toFixed(2)} × ${(R.openH+2*b).toFixed(2)} in`);
+  } else {
+    r("Finished size", `${I.W} × ${I.H} in`);
+    r("Print size (+bleed)", `${(I.W+2*b).toFixed(2)} × ${(I.H+2*b).toFixed(2)} in`);
+  }
+  r("Cut sheet (on press)", o.cutMachine?`${o.cutTo} in`:`${o.sw} × ${o.sh} in`);
+  r("<b>Parent sheet (buy)</b>", `<b>${o.paperSheetW} × ${o.paperSheetH} in</b>`);
+  r("Machine max sheet", SELECTED_MACHINE?`${SELECTED_MACHINE.max[0]} × ${SELECTED_MACHINE.max[1]} in`:"—");
+  if(I.separateCover){ const cp=coverPlan(); if(cp&&cp.meta){const m=cp.meta;
+    r("— Cover finished", `${m.pageW} × ${m.pageH} in`);
+    r("— Cover open (F+spine+B)", `${m.coverW} × ${m.coverH} in`);
+    r("— Spine width", `${m.spineMM} mm`);
+    if(cp.option) r("— Cover parent sheet", `${cp.option.sw} × ${cp.option.sh} in`); } }
+  return `<table style="font-size:12px;width:100%">${rows.join("")}</table>`;
+}
+// nested production diagram: parent sheet → gripper/side-lay → print area → finished page (bleed/trim/fold)
+function marginDiagramSVG(o){
+  const I=LASTINP, R=RESULT;
+  const parW=o.paperSheetW, parH=o.paperSheetH, longP=Math.max(parW,parH), shortP=Math.min(parW,parH);
+  const W=380, sc=W/longP, H=Math.round(shortP*sc), L=v=>v.toFixed(1);
+  const g=I.margins.gripper*sc, sl=(I.margins.sidelay+I.margins.paperTrim)*sc, bl=Math.max(2,I.margins.bleed*sc);
+  // cut sheet (press) sits inside the parent
+  const cutW=o.cutMachine?Math.max(...o.cutTo.split('×').map(Number)):o.sw>o.sh?o.sw:o.sh;
+  const isCut=!!o.cutMachine;
+  let s=`<svg viewBox="0 0 ${W} ${H+46}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H+46}" fill="#fff"/>`;
+  // 1) PARENT / FULL sheet (outer)
+  s+=`<rect x="1" y="1" width="${W-2}" height="${H-2}" fill="#fbfcfd" stroke="#13314f" stroke-width="1.5"/>`;
+  s+=`<text x="${W/2}" y="${H+12}" font-size="9" text-anchor="middle" fill="#13314f" font-weight="bold">Parent / full sheet ${parW}×${parH} in</text>`;
+  // 2) gripper (bottom) + side-lay (sides)
+  s+=`<rect x="0" y="${L(H-g)}" width="${W}" height="${L(g)}" fill="#f6d6d6"/><text x="${W/2}" y="${L(H-g/2+3)}" font-size="7.5" text-anchor="middle" fill="#a33">gripper ${I.margins.gripper}mm</text>`;
+  s+=`<rect x="1" y="1" width="${L(sl)}" height="${L(H-g)}" fill="#fdf0cf"/><rect x="${L(W-sl-1)}" y="1" width="${L(sl)}" height="${L(H-g)}" fill="#fdf0cf"/>`;
+  s+=`<text x="${L(sl/2)}" y="${L(H/2)}" font-size="7" text-anchor="middle" fill="#a8820f" transform="rotate(-90 ${L(sl/2)} ${L(H/2)})">side-lay</text>`;
+  // 3) print area (inside margins)
+  const px=sl, py=4, pw=W-2*sl, ph=H-g-py;
+  s+=`<rect x="${L(px)}" y="${L(py)}" width="${L(pw)}" height="${L(ph)}" fill="none" stroke="#2c6fb3" stroke-width="1" stroke-dasharray="4 2"/>`;
+  s+=`<text x="${L(px+4)}" y="${L(py+10)}" font-size="7.5" fill="#2c6fb3">print boundary</text>`;
+  // 4) one FINISHED page with bleed (dashed outside) + trim (solid) + fold line, centred in print area
+  const fpw=Math.min(pw*0.42,pw-8), fph=Math.min(ph*0.66,ph-8), fx=px+(pw-fpw)/2, fy=py+(ph-fph)/2;
+  s+=`<rect x="${L(fx-bl)}" y="${L(fy-bl)}" width="${L(fpw+2*bl)}" height="${L(fph+2*bl)}" fill="#eef6ff" stroke="#9bbbe0" stroke-dasharray="2 2"/>`;  // bleed
+  s+=`<rect x="${L(fx)}" y="${L(fy)}" width="${L(fpw)}" height="${L(fph)}" fill="#dbeafe" stroke="#1f4e78"/>`;                                       // trim/finished
+  s+=`<line x1="${L(fx+fpw/2)}" y1="${L(fy)}" x2="${L(fx+fpw/2)}" y2="${L(fy+fph)}" stroke="#c2410c" stroke-width="1.2" stroke-dasharray="6 2 2 2"/>`; // fold
+  s+=`<text x="${L(fx+fpw/2)}" y="${L(fy+fph/2)}" font-size="7.5" text-anchor="middle" fill="#1f4e78">finished ${I.isSig?I.W+"×"+I.H:I.W+"×"+I.H}</text>`;
+  s+=`<text x="${L(fx-bl-1)}" y="${L(fy-bl-2)}" font-size="6.5" fill="#9bbbe0">bleed ${I.margins.bleed}mm</text>`;
+  s+=`<text x="${L(fx+fpw/2)}" y="${L(fy-bl-9)}" font-size="6.5" text-anchor="middle" fill="#c2410c">fold</text>`;
+  // 5) parent→cut yield note
+  s+=`<text x="${W/2}" y="${H+25}" font-size="8.5" text-anchor="middle" fill="${isCut?'#7c3aed':'#6b7480'}">${isCut?`✂ cut to ${o.cutTo} (press) — ${o.cutsPerParent}/parent`:`prints full on ${o.sw}×${o.sh}`}</text>`;
+  s+=`<text x="${W/2}" y="${H+38}" font-size="8.5" text-anchor="middle" fill="#6b7480">Finished ${I.W}×${I.H} → Open ${I.isSig?R.openW+"×"+R.openH:I.W+"×"+I.H} → Print → Parent ${parW}×${parH}</text>`;
+  return s+`</svg>`;
+}
 // One folding/imposition picture for ONE sheet size (front + back, representative form 1).
 function sheetPicture(o){
   const dbl=LASTINP&&LASTINP.isSig, work=($("workStyle")?$("workStyle").value:"back"), gripTopBack=work==="tumble";
@@ -961,8 +1022,11 @@ function renderDiagram(){
     return `<button onclick="drawIdx(${idx})" class="mbtn ${sel?'p':'s'}" style="padding:5px 10px;font-size:12px;margin:0 6px 6px 0">${opt.sw}×${opt.sh}${sel?' ★':''}</button>`;
   }).join("");
   const chipRow=`<div style="margin-bottom:8px"><span style="font-size:11px;color:#6b7480">Sheet:</span> ${chips}</div>`;
+  // SIZE HIERARCHY + MARGIN diagram (sir's drawing) — open by default
+  const sizePanel=`<details class="pbox" style="margin-bottom:10px;border-color:#cbd8e5" open><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 Production sizes &amp; margins (finished → open → print → cut → parent)</summary>`+
+    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px"><div style="flex:1;min-width:170px">${marginDiagramSVG(o)}</div><div style="flex:1;min-width:160px">${sizesTable(o)}</div></div></details>`;
   const legend=`<div style="font-size:11px;color:#6b7480;margin-bottom:8px"><span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut&nbsp;<span style="color:#1f4e78">↕</span>head direction':''}${o.cutMachine?`&nbsp;·&nbsp;<span style="color:#7c3aed">✂ cut to ${o.cutTo} for ${o.cutMachine}</span>`:''}</div>`;
-  if(!dbl){ box.innerHTML=chipRow+legend+sheetPicture(o); return; }
+  if(!dbl){ box.innerHTML=chipRow+sizePanel+legend+sheetPicture(o); return; }
   const L=Math.max(1,o.layouts||1);
   let forms;
   if(SHOW_ALL_FORMS||L<=2){
@@ -973,7 +1037,7 @@ function renderDiagram(){
       formBlock(o,0)+formBlock(o,L-1)+
       `<button onclick="toggleAllForms()" class="mbtn p" style="margin-top:2px">📑 View all ${L} forms</button>`;
   }
-  box.innerHTML=chipRow+legend+forms;
+  box.innerHTML=chipRow+sizePanel+legend+forms;
 }
 function drawInto(boxId,o){ renderDiagram(); }   // kept for back-compat; always renders the per-sheet gallery
 function printSheet(){
