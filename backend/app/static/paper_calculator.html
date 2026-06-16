@@ -124,7 +124,7 @@
 <div class="wrap">
   <div class="grid">
     <!-- INPUTS -->
-    <div class="card">
+    <div class="card" id="inputCard">
       <h2>Job</h2>
       <div class="fld"><label>Product / job name</label><input id="product_name" type="text" placeholder="e.g. Annual brochure" /></div>
       <div class="row">
@@ -601,7 +601,8 @@ function render(r){
   const nofit=r.options.filter(o=>!o.ups);
   $("suggest").innerHTML = nofit.length
     ? `<div class="suggest">💡 ${nofit.map(o=>`${o.sw}×${o.sh} needs ~${Math.ceil(o.shortfall)}mm less`).join(" · ")}. Reduce the design slightly, rotate, or use a larger sheet.</div>` : "";
-  SELECTED_MACHINE=null;                         // re-recommend a press for this job
+  // keep a manually-chosen press across auto-reruns; only auto-mode re-recommends
+  SELECTED_MACHINE = (MACHINE_MODE==="manual" && MANUAL_PICK && MACHINES.includes(MANUAL_PICK)) ? MANUAL_PICK : null;
   const runnable=r.options.filter(o=>o.ups&&machinesFor(o.sw,o.sh,need).length).sort((a,b)=>a.waste-b.waste||a.total-b.total)[0];
   r.bestRunnable=runnable||null;
   showSheet(runnable||bw||bp||r.options.find(o=>o.ups));
@@ -939,8 +940,10 @@ function machineFit(m,sw,sh){
 function machinesFor(sw,sh,need){ return MACHINES.filter(m=>machineFit(m,sw,sh)==="fits" && m.col>=need).sort((a,b)=>b.speed-a.speed); }
 // press-dependent cost (printing + plates) for the current job on a given press — for comparison
 function pressPrintCost(machine){ try{ const q=priceJob(CHOSEN,currentPriceParams(),machine); return q.printing+q.plates; }catch(e){ return Infinity; } }
+let MANUAL_PICK=null;                            // remembered manual press (survives auto-reruns)
 function selectMachine(name){
   SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE;
+  if(MACHINE_MODE==="manual") MANUAL_PICK=SELECTED_MACHINE;
   const base=CHOSEN_BASE||CHOSEN, eff=applyMachineCut(base,SELECTED_MACHINE); CHOSEN=eff;
   if(MACHINE_MODE==="manual"&&base) renderMachine(base);
   if(eff){ $("m_size").textContent=`${eff.sw} × ${eff.sh} in`; $("m_sub").innerHTML=sheetSummary(eff);
@@ -1267,6 +1270,21 @@ function printJobSheet(){
 buildPaperPickers();
 buildCoverPickers();
 onProductChange();
+
+/* ---------- LIVE AUTO-RECALC: any input change re-runs automatically (no button click) ---------- */
+function formReady(){
+  const booklet=isSig($("product").value);
+  const req=["W","H","gsm",booklet?"pages":null,booklet?"copies":"copies2"];
+  for(const id of req){ if(!id)continue; const e=$(id); if(!e||!(parseFloat(e.value)>0))return false; }
+  return [...document.querySelectorAll(".ss:checked")].length>0;
+}
+let _autoT=null;
+function autoRun(){ clearTimeout(_autoT); _autoT=setTimeout(()=>{ if(formReady()||RESULT) run(); }, 220); }
+(function wireLive(){
+  const card=$("inputCard"); if(!card)return;
+  card.addEventListener("input",autoRun);
+  card.addEventListener("change",autoRun);
+})();
 </script>
 </body>
 </html>
