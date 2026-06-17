@@ -181,7 +181,10 @@
           <div class="row3">
             <div class="fld"><label>Cover paper ₹/sheet</label><input id="coverPaperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onCoverRateEdit()" /></div>
             <div class="fld"><label>Cover make-ready</label><input id="coverSetup" type="number" value="150" oninput="showPrice()" /></div>
-            <div class="fld"><label>Spine (mm)</label><input id="spineMM" type="number" step="0.5" placeholder="auto" oninput="spineEdited=true;if(RESULT)run()" /><div class="hint">Auto = (text pages ÷ 2) × paper caliper</div></div>
+            <div class="fld"><label>Paper bulk (cm³/g)</label><input id="bulk" type="number" step="0.05" value="1.0" oninput="if(RESULT)run()" /><div class="hint">Coated ~0.8–1.0 · uncoated ~1.2–1.5</div></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Spine (mm)</label><input id="spineMM" type="number" step="0.5" placeholder="auto" oninput="spineEdited=true;if(RESULT)run()" /><div class="hint">Auto = (text pages ÷ 2) × GSM × bulk ÷ 1000</div></div>
           </div>
           <div class="hint" id="coverRateNote" style="margin:-4px 0 8px">Auto rate.</div>
           <div class="row3">
@@ -190,12 +193,12 @@
             <div class="fld"><label>Cover back</label><input id="coverCb" type="number" value="4" oninput="document.getElementById('coverColPreset').value='';showPrice()" /></div>
           </div>
           <div class="row3">
-            <div class="fld"><label>Cover coating</label><select id="coverLam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></div>
-            <div class="fld"><label>Embellishment 1</label><select id="coverEmb1" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="foil">Foil stamping</option><option value="emboss">Emboss / Deboss</option><option value="drip">Drip-off</option></select></div>
-            <div class="fld"><label>Embellishment 2</label><select id="coverEmb2" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="foil">Foil stamping</option><option value="emboss">Emboss / Deboss</option><option value="drip">Drip-off</option></select></div>
+            <div class="fld"><label>Cover coating</label><select id="coverLam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></div>
+            <div class="fld"><label>Embellishment 1</label><select id="coverEmb1" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option></select></div>
+            <div class="fld"><label>Embellishment 2</label><select id="coverEmb2" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option></select></div>
           </div>
           <div class="row3">
-            <div class="fld"><label>Embellishment 3</label><select id="coverEmb3" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="foil">Foil stamping</option><option value="emboss">Emboss / Deboss</option><option value="drip">Drip-off</option></select></div>
+            <div class="fld"><label>Embellishment 3</label><select id="coverEmb3" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option></select></div>
             <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Coating + up to 3 embellishments combine on the cover (e.g. Matt lam + Spot UV + Foil).</div></div>
           </div>
         </div>
@@ -275,7 +278,7 @@
             <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
           </div>
           <div class="prow">
-            <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Full UV</option><option value="gaqua">Gloss aqua</option><option value="maqua">Matt aqua</option><option value="drip">Drip-off</option></select></span>
+            <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></span>
             <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
             <span></span>
           </div>
@@ -298,7 +301,7 @@
             </select></span>
           </div>
           <div class="prow" id="bindingFields">
-            <span><label>Binding (auto by spine)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Centre / Saddle stitch</option><option value="perfect">Perfect (cover paste)</option><option value="sewn">Section sewn</option><option value="b2b">Back-to-back paste</option><option value="case">Hard case</option></select></span>
+            <span><label>Type of binding (spine recommends)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="side">Side stitch</option><option value="sewn">Section sewn</option><option value="perfect">Perfect binding</option><option value="sewn_perfect">Section sewn + Perfect</option><option value="soft">Soft cover book</option><option value="case">Hard case book</option><option value="wireo">Wire-O</option><option value="spiral">Spiral</option><option value="comb">Comb</option><option value="pad">Pad binding</option><option value="b2b">Back-to-back paste</option><option value="other">Other / custom</option></select></span>
             <span><label>Binding ₹/book</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="showPrice()" /></span>
             <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
           </div>
@@ -547,14 +550,14 @@ function run(){
   if(missing.length){ $("err").textContent="Please enter: "+missing.join(", ")+"."; return; }
   if(!sizes.length){ $("err").textContent="Tick at least one sheet size."; return; }
   const unit=$("unit").value;
-  // Binding-dependent page validation: saddle = multiple of 4; perfect/sewn/case = multiple of 2 (leaves)
+  // Binding-dependent page validation: folded sections = multiple of 4; leaf bindings = 2; mechanical = 1.
   if(booklet){
     const bind=$("binding")?$("binding").value:"saddle";
-    const mult=(bind==="saddle"||bind==="none")?4:2;
+    const mult=BIND_MULT[bind]||4;
     const pg=Math.round(num("pages",0));
-    if(pg%mult!==0){ $("pages").classList.add("bad");
+    if(mult>1 && pg%mult!==0){ $("pages").classList.add("bad");
       const up=Math.ceil(pg/mult)*mult, dn=Math.floor(pg/mult)*mult;
-      $("err").textContent=`For ${bind==="none"?"saddle":bind} binding, pages must be a multiple of ${mult}. Nearest valid: ${dn} or ${up}.`;
+      $("err").textContent=`For ${BINDING_NAME[bind]||bind} binding, pages must be a multiple of ${mult}. Nearest valid: ${dn} or ${up}.`;
       return; }
   }
   const inp={
@@ -574,9 +577,10 @@ function run(){
   if(!inp.trimmed){ inp.margins.bleed=0; inp.margins.paperTrim=0; }   // no-trim: drop bleed + paper-trim allowances
 
   inp.separateCover=booklet&&$("separateCover").checked;
-  // SPINE (NKK sir): book thickness = (text pages ÷ 2 leaves) × paper caliper. Caliper ≈ GSM/1000 mm/sheet
-  // (bulk ~1.0). Auto-calculated, editable. The cover wraps front + spine + back.
-  inp.caliper=inp.gsm/1000;
+  // SPINE (NKK sir #3): thickness = (text pages ÷ 2 leaves) × GSM × bulk ÷ 1000. Bulk (cm³/g) varies by
+  // paper type (coated ~0.8–1.0, uncoated ~1.2–1.5). Auto-calculated, editable. Cover wraps front+spine+back.
+  inp.bulk=Math.max(0.3,num("bulk",1.0));
+  inp.caliper=inp.gsm*inp.bulk/1000;
   const spineAuto=+((inp.pages/2)*inp.caliper).toFixed(1);
   inp.spineMM = (spineEdited && num("spineMM",NaN)>=0 && $("spineMM").value!=="") ? num("spineMM",spineAuto) : spineAuto;
   if(!spineEdited) $("spineMM").value=inp.spineMM;
@@ -1174,44 +1178,44 @@ function activePrint(){ return PRINT_SOURCES[($("printSrc")&&$("printSrc").value
 function plateRate(src,band){ return src.mode==="band" ? PRINT[band].plate : src.plate; }
 // coating rate sources (per 100 sq.in + job minimum)
 const COAT_SOURCES={
-  card:{label:"Standard card (current)",r:{none:{r:0,min:0},matt:{r:0.40,min:1000},gloss:{r:0.28,min:800},bopp:{r:0.45,min:1000},uv:{r:0.30,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},drip:{r:0.55,min:3500}}},
-  anderson:{label:"Anderson agreement",r:{none:{r:0,min:0},matt:{r:0.45,min:0},gloss:{r:0.35,min:0},bopp:{r:0.40,min:0},uv:{r:0.30,min:1000},gaqua:{r:0.18,min:600},maqua:{r:0.30,min:1000},drip:{r:0.55,min:3500}}}
+  card:{label:"Standard card (current)",r:{none:{r:0,min:0},matt:{r:0.40,min:1000},gloss:{r:0.28,min:800},bopp:{r:0.45,min:1000},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}},
+  anderson:{label:"Anderson agreement",r:{none:{r:0,min:0},matt:{r:0.45,min:0},gloss:{r:0.35,min:0},bopp:{r:0.40,min:0},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.18,min:600},maqua:{r:0.30,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}}
 };
 function activeCoat(){ return (COAT_SOURCES[($("coatSrc")&&$("coatSrc").value)||"card"]||COAT_SOURCES.card).r; }
 // COVER EMBELLISHMENTS (NKK sir): coating + up to 3 combinable embellishments (foil/spot-UV/emboss/drip).
 // Charged on the cover's printed sheets (one cover layout's worth), per 100 sq.in with a job minimum.
-const EMBELLISH={none:{r:0,min:0,name:"None"},spotuv:{r:0.30,min:1000,name:"Spot UV"},foil:{r:0.60,min:1500,name:"Foil stamping"},emboss:{r:0.50,min:1500,name:"Emboss / Deboss"},drip:{r:0.55,min:3500,name:"Drip-off"}};
+const EMBELLISH={none:{r:0,min:0,name:"None"},spotuv:{r:0.30,min:1000,name:"Spot UV"},raiseduv:{r:0.45,min:1500,name:"Raised / Textured UV"},foil:{r:0.60,min:1500,name:"Foil stamping"},emboss:{r:0.50,min:1500,name:"Embossing"},deboss:{r:0.50,min:1500,name:"Debossing"},texture:{r:0.40,min:1200,name:"Texture effect"},specialty:{r:0.70,min:2000,name:"Specialty finish"},drip:{r:0.55,min:3500,name:"Drip-off UV"}};
 function coverEmbList(){ return ["coverEmb1","coverEmb2","coverEmb3"].map(id=>$(id)&&$(id).value||"none").filter(v=>v!=="none"); }
 function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cover printed sheets
   return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none; return {name:e.name, cost:Math.max(e.r*(area/100)*sheets, e.min)}; });
 }
 function setCoverColours(v){ if(!v)return; const p=v.split("+").map(Number); $("coverCf").value=p[0]; $("coverCb").value=p[1]; showPrice(); }
 // binding ₹/book + job minimum — real POST_PRESS rates (hardcase 95, perfect 9, section-sew+perfect 6.75, centre-stitch 3.5)
-const BINDING={none:[0,0],saddle:[3.5,500],perfect:[9,1000],sewn:[6.75,3000],b2b:[5,800],case:[95,5000]};
-const BINDING_NAME={none:"None",saddle:"Centre / Saddle stitch",perfect:"Perfect (cover paste)",sewn:"Section sewn",b2b:"Back-to-back paste",case:"Hard case"};
+// Binding ₹/book + job minimum (editable; real POST_PRESS defaults). Full type list per NKK sir's spec.
+const BINDING={none:[0,0],saddle:[3.5,500],side:[4,600],sewn:[6.75,3000],perfect:[9,1000],sewn_perfect:[14,3000],soft:[9,1000],case:[95,5000],wireo:[12,1000],spiral:[10,800],comb:[8,800],pad:[2,300],b2b:[5,800],other:[0,0]};
+const BINDING_NAME={none:"None",saddle:"Saddle stitch",side:"Side stitch",sewn:"Section sewn",perfect:"Perfect binding",sewn_perfect:"Section sewn + Perfect",soft:"Soft cover book",case:"Hard case book",wireo:"Wire-O",spiral:"Spiral",comb:"Comb",pad:"Pad binding",b2b:"Back-to-back paste",other:"Other / custom"};
+// page-count multiple a binding needs: folded sections=4, leaf bindings=2, mechanical=1
+const BIND_MULT={none:4,saddle:4,sewn:4,sewn_perfect:4,side:2,perfect:2,soft:2,case:2,b2b:2,wireo:1,spiral:1,comb:1,pad:1,other:1};
 function setBinding(v){ const x=BINDING[v]||BINDING.none; $("bindingRate").value=x[0]; $("bindingMin").value=x[1]; if(RESULT)run(); else showPrice(); }
-// SPINE-DRIVEN binding (NKK sir): <3mm → saddle stitch default; ≥3mm → perfect/section-sewn. Saddle blocked
-// if spine >4.5mm (force-overwrite to keep); warn if saddle on >64pp & >130gsm (thick spine, discouraged).
+// SPINE-DRIVEN recommendation (NKK sir's rules — RECOMMEND, never silently assume; user can override):
+//   spine ≤ 2.5mm → Saddle stitch · spine > 3mm → warn (Section sewn / Perfect) · spine > 4.5mm → error+override.
 function autoBindingBySpine(spineMM){
   if(bindingEdited) return;                        // user picked manually → respect it
-  const want = spineMM < 3 ? "saddle" : "perfect";
+  const want = spineMM <= 3 ? "saddle" : "perfect";
   const sel=$("binding"); if(sel && sel.value!==want){ sel.value=want; const x=BINDING[want]; $("bindingRate").value=x[0]; $("bindingMin").value=x[1]; }
 }
 function bindingCheck(inp){
   const sel=$("binding"); if(!sel) return {ok:true,html:""};
   const bind=sel.value, spine=inp.spineMM||0, force=$("forceBinding")&&$("forceBinding").checked;
-  let msgs=[];
   if(bind==="saddle"){
-    if(spine>4.5 && !force){
-      return {ok:false, html:`<div class="suggest" style="border-color:#c0392b;background:#fdecea"><b>⚠ Saddle stitch not possible:</b> spine is <b>${spine.toFixed(2)} mm</b> (limit 4.5 mm). Choose Perfect / Section-sewn, or tick <b>Force binding</b> to overwrite.</div>`};
-    }
-    if(inp.pages>64 && inp.gsm>130){
-      msgs.push(`Saddle stitch discouraged for <b>${inp.pages}pp &amp; ${inp.gsm} gsm</b> (thick ${spine.toFixed(2)} mm spine) — prefer Perfect / Section-sewn.`);
-    } else if(spine>4.5 && force){
-      msgs.push(`Forced saddle stitch at <b>${spine.toFixed(2)} mm</b> spine (over the 4.5 mm limit).`);
-    }
+    if(spine>4.5 && !force)
+      return {ok:false, html:`<div class="suggest" style="border-color:#c0392b;background:#fdecea"><b>⛔ Error — Saddle Stitch not recommended:</b> spine is <b>${spine.toFixed(2)} mm</b> (limit 4.5 mm). Please select <b>Section sewing</b> or <b>Perfect binding</b>, or tick <b>Force binding</b> to override.</div>`};
+    if(spine>4.5 && force)
+      return {ok:true, html:`<div class="suggest" style="border-color:#e0a800;background:#fff8e6">⚠ Forced Saddle Stitch at <b>${spine.toFixed(2)} mm</b> spine (over the 4.5 mm limit).</div>`};
+    if(spine>3)
+      return {ok:true, html:`<div class="suggest" style="border-color:#e0a800;background:#fff8e6">⚠ Spine thickness <b>${spine.toFixed(2)} mm</b> exceeds the recommended limit for Saddle Stitching. <b>Section Sewing</b> or <b>Perfect Binding</b> is recommended.</div>`};
   }
-  return {ok:true, html: msgs.length?`<div class="suggest" style="border-color:#e0a800;background:#fff8e6">⚠ ${msgs.join(" ")}</div>`:""};
+  return {ok:true, html:""};
 }
 function refreshMachineAndPrice(){ if(RESULT){run();return;} if(CHOSEN)renderMachine(CHOSEN); showPrice(); }   // sides affect per-forme paper → recompute
 function setColours(v){ if(!v)return; const p=v.split("+").map(Number); $("cf").value=p[0]; $("cb").value=p[1]; refreshMachineAndPrice(); }
@@ -1457,6 +1461,11 @@ function specsTable(p,q,internal){
   const rows=[["Job",product],["Quantity",LASTINP.copies.toLocaleString("en-IN")],["Pages",LASTINP.isSig?LASTINP.totalPages+"pp":"—"],["Size",size],
     ["Paper",`${LASTINP.gsm} GSM; ${CHOSEN.sw} x ${CHOSEN.sh} in`],["Colours",`${p.cf}+${p.cb}`],
     ["Coating",LASTINP.separateCover?"Separate cover component":coatingName(p.lam)],["Signature / layout",sig]];
+  if(LASTINP.isSig){ const bv=$("binding")?$("binding").value:"none";
+    if(bv!=="none") rows.push(["Binding",`${BINDING_NAME[bv]||bv} · spine ${LASTINP.spineMM} mm`]);
+    const embs=(typeof coverEmbList==="function")?coverEmbList().map(v=>(EMBELLISH[v]||{}).name).filter(Boolean):[];
+    if(LASTINP.separateCover){ rows.push(["Cover coating",coatingName($("coverLam").value)]);
+      if(embs.length) rows.push(["Cover embellishments",embs.join(", ")]); } }
   if(internal) rows.push(["Machine",SELECTED_MACHINE?SELECTED_MACHINE.name:"No compatible press"],["Sheets",CHOSEN.total.toLocaleString("en-IN")],
     ["Forms/book · ganged · layouts",`${CHOSEN.signatures} · ×${CHOSEN.formsPerSheet||1}/sheet · ${CHOSEN.layouts} printed (${CHOSEN.formes} formes)`],
     ["Good + make-ready + running waste",`${CHOSEN.good.toLocaleString("en-IN")} + ${(CHOSEN.setupWaste||CHOSEN.setup).toLocaleString("en-IN")} + ${CHOSEN.run.toLocaleString("en-IN")}`],
