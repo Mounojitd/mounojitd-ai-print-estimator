@@ -16,8 +16,10 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `ff2cf51` (COVER-sheet cutting → Komori L-32 surfaces as cheapest cover press,
-as sir said: cuts 23×36→31×21, 4-up, small band). Prior `fe45ada` cover machine-choice display. Prior `9cd336c` (spine-driven binding + saddle-stitch limits, cover
+**Latest commit at save:** `f5e1bee` (NKK sir 15-point spec: full binding type list, spine bulk factor,
+exact recommendation thresholds ≤2.5/>3/>4.5, coating +Matt UV/Varnish, embellishments +Raised UV/Deboss/
+Texture/Specialty, quote/job-sheet binding+spine+embellishment reporting; added IMPLEMENTATION_REPORT.md).
+Prior `ff2cf51` cover-sheet cutting → L-32 cheapest. See IMPLEMENTATION_REPORT.md for the 15-point status. Prior `9cd336c` (spine-driven binding + saddle-stitch limits, cover
 embellishments ×3 combinable, "Open size with bleed" rename). Prior: `b8afb94` 8pp S/S form
 to sir's swing-form (Front [[5,4],[8,1]], Back [[3,6],[2,7]]). 24/32pp patterns still pending sir's forms.
 
