@@ -103,8 +103,8 @@ hand numbers rather than relying on DB values alone.
 ---
 
 ## Remaining (need sir's input to finish 100%)
-1. **Cutting diagram** in the job card (how the parent is cut into press-size pieces) — the
-   cut MATH + cost is done; the visual cut layout drawing is still to add.
-2. **Grain-direction compatibility** in sheet selection — need sir's grain rule.
-3. **24pp / 32pp fold patterns** — need sir's hand-drawn forms (8/12/16pp already match).
-4. **Digital press click-rate card** — digital currently uses offset rates; need ₹/click table.
+1. **Grain-direction compatibility** in sheet selection — need sir's grain rule.
+2. **24pp / 32pp fold patterns** — need sir's hand-drawn forms (8/12/16pp already match).
+3. **Digital press click-rate card** — digital currently uses offset rates; need ₹/click table.
+4. **Wastage % schedule** — sir mentioned 15% / 25% brackets; need the exact rule
+   (which quantity/run gets 15% vs 25%) to wire as auto running-waste tiers.
