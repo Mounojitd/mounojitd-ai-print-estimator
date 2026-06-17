@@ -42,12 +42,13 @@ then combined. Binding/packing/freight/overhead/margin/GST applied once on the c
 ## 6. Naming Correction — ✅ done
 "Print size (+bleed)" → **"Open size with bleed"** (size table + remarks).
 
-## 7. Paper Planning Logic — 🟡 partial
-Done: most-economical sheet by waste/total; auto-rate by grade/GSM/size; parent-sheet
-purchasing; **cover** now cuts the parent to the required print size (cheapest sheet×press,
-e.g. Komori L-32 on a 31×21 cut beats a big press on 23×36). ⏳ **Text-side** cut-to-
-required-size (sir's 12,000→6,000) + grain-direction compatibility — pending one full worked
-example from sir to build and node-verify against his exact sheet/parent counts.
+## 7. Paper Planning Logic — ✅ done (cut-to-cheaper-press, both cover & text)
+Most-economical sheet by waste/total; auto-rate by grade/GSM/size; parent-sheet purchasing.
+**Both cover AND text** now choose the cheapest press route: a press runs the sheet WHOLE if
+it fits, or CUTS the parent down to its print size if not — so a small-band press (Komori
+L-32: 23×36 → 31×21 cut, 4-up, plate ₹475 + small lot) is auto-selected when it saves cost
+(e.g. text 96pp/2000/4+4 → ₹129,948 on L-32-cut vs ₹144,648 big-whole). ⏳ grain-direction
+compatibility still needs sir's rule.
 
 ## 8. Machine Selection Logic — ✅ done
 Full press master with fit check + per-press print+plate cost; cheapest runnable
@@ -102,9 +103,8 @@ hand numbers rather than relying on DB values alone.
 ---
 
 ## Remaining (need sir's input to finish 100%)
-1. **Text-side cut-to-required-print-size** (12,000→6,000) + cutting diagram in the job card
-   — need one full worked example: parent size, required print size, ups, forms, copies,
-   make-ready, and the exact sheet + parent count expected.
+1. **Cutting diagram** in the job card (how the parent is cut into press-size pieces) — the
+   cut MATH + cost is done; the visual cut layout drawing is still to add.
 2. **Grain-direction compatibility** in sheet selection — need sir's grain rule.
 3. **24pp / 32pp fold patterns** — need sir's hand-drawn forms (8/12/16pp already match).
 4. **Digital press click-rate card** — digital currently uses offset rates; need ₹/click table.
