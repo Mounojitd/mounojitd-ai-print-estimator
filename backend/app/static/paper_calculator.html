@@ -1004,6 +1004,29 @@ function marginDiagramSVG(o,job){
   s+=`<text x="${W/2}" y="${H+38}" font-size="8.5" text-anchor="middle" fill="#6b7480">Finished ${job.W}×${job.H} → Open ${job.openW}×${job.openH} → Print → Parent ${parW}×${parH}</text>`;
   return s+`</svg>`;
 }
+// CUTTING DIAGRAM (NKK sir): show HOW the parent sheet is cut into press-size pieces — pieces tiled inside
+// the parent, leftover shown as trim. Makes the cut + pieces-per-parent visible on the job card.
+function cutDiagramSVG(o){
+  if(!o||!o.cutMachine||!o.cutTo) return "";
+  const pL=Math.max(o.paperSheetW,o.paperSheetH), pS=Math.min(o.paperSheetW,o.paperSheetH);
+  const cc=o.cutTo.split(/[×x]/).map(s=>parseFloat(s)); const cL=Math.max(cc[0],cc[1]), cS=Math.min(cc[0],cc[1]);
+  if(!(pL>0&&pS>0&&cL>0&&cS>0)) return "";
+  const cols=Math.max(1,Math.floor(pL/cL)), rows=Math.max(1,Math.floor(pS/cS)), per=cols*rows;
+  const W=300, sc=W/pL, H=Math.round(pS*sc), L=v=>v.toFixed(1), cw=cL*sc, ch=cS*sc;
+  let s=`<svg viewBox="0 0 ${W} ${H+40}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H+40}" fill="#fff"/>`;
+  // trim area first (whole parent grey), then place the cut pieces on top
+  s+=`<rect x="0.5" y="0.5" width="${L(W-1)}" height="${L(H-1)}" fill="#f0ebe3" stroke="#13314f" stroke-width="1.5"/>`;
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){ const x=c*cw, y=r*ch;
+    s+=`<rect x="${L(x+1)}" y="${L(y+1)}" width="${L(cw-2)}" height="${L(ch-2)}" fill="#dbeafe" stroke="#2c6fb3" stroke-width="1"/>`+
+       `<text x="${L(x+cw/2)}" y="${L(y+ch/2+3)}" font-size="8" text-anchor="middle" fill="#1f4e78" font-weight="bold">${cL}×${cS}</text>`; }
+  const usedW=cols*cw, usedH=rows*ch;
+  if(usedW<W-2) s+=`<text x="${L((usedW+W)/2)}" y="${L(H/2)}" font-size="7.5" text-anchor="middle" fill="#a0826d" transform="rotate(90 ${L((usedW+W)/2)} ${L(H/2)})">trim</text>`;
+  if(usedH<H-2) s+=`<text x="${L(usedW/2)}" y="${L((usedH+H)/2)}" font-size="7.5" text-anchor="middle" fill="#a0826d">trim</text>`;
+  s+=`<text x="${W/2}" y="${H+13}" font-size="9" text-anchor="middle" fill="#7c3aed" font-weight="bold">✂ Cut parent ${o.paperSheetW}×${o.paperSheetH} → ${per} × (${cL}×${cS}) per sheet</text>`;
+  s+=`<text x="${W/2}" y="${H+27}" font-size="8.5" text-anchor="middle" fill="#13314f">Buy ${(o.paperSheets||0).toLocaleString("en-IN")} parents → ${(o.total||0).toLocaleString("en-IN")} cut sheets · runs on ${o.cutMachine}</text>`;
+  s+=`<text x="${W/2}" y="${H+39}" font-size="8" text-anchor="middle" fill="#6b7480">${per>1?`${per} pieces/parent → less paper`:"1 piece/parent (cut for the press)"}</text>`;
+  return s+`</svg>`;
+}
 // One folding/imposition picture for ONE sheet size (front + back, representative form 1).
 function sheetPicture(o){
   const dbl=LASTINP&&LASTINP.isSig, work=($("workStyle")?$("workStyle").value:"back"), gripTopBack=work==="tumble";
@@ -1051,10 +1074,12 @@ function renderDiagram(){
   const chipRow=`<div style="margin-bottom:8px"><span style="font-size:11px;color:#6b7480">Sheet:</span> ${chips}</div>`;
   // SIZE HIERARCHY + MARGIN diagram (sir's drawing) — TWO separate sections: Inside/Text and Cover.
   const cpD=(LASTINP.separateCover)?coverPlan():null, hasCoverD=cpD&&cpD.option;
-  const textCol=`<div style="flex:1;min-width:250px;border:1px solid #cbd8e5;border-radius:6px;padding:8px"><div style="font-weight:700;color:#13314f;font-size:12px;margin-bottom:6px">📄 Inside / Text</div>${marginDiagramSVG(o)}${sizesTable(o)}</div>`;
+  const textCut=o.cutMachine?`<div style="margin-top:8px">${cutDiagramSVG(o)}</div>`:"";
+  const textCol=`<div style="flex:1;min-width:250px;border:1px solid #cbd8e5;border-radius:6px;padding:8px"><div style="font-weight:700;color:#13314f;font-size:12px;margin-bottom:6px">📄 Inside / Text</div>${marginDiagramSVG(o)}${textCut}${sizesTable(o)}</div>`;
   let coverCol="";
   if(hasCoverD){ const cm=cpD.meta, co=cpD.option, cjob={W:cm.coverW,H:cm.coverH,isSig:false,openW:cm.coverW,openH:cm.coverH};
-    coverCol=`<div style="flex:1;min-width:250px;border:1px solid #efd9a6;border-radius:6px;padding:8px"><div style="font-weight:700;color:#b9770a;font-size:12px;margin-bottom:6px">📕 Cover (front + spine + back)</div>${marginDiagramSVG(co,cjob)}${coverSchematic(cpD)}</div>`; }
+    const coverCut=co.cutMachine?`<div style="margin-top:8px">${cutDiagramSVG(co)}</div>`:"";
+    coverCol=`<div style="flex:1;min-width:250px;border:1px solid #efd9a6;border-radius:6px;padding:8px"><div style="font-weight:700;color:#b9770a;font-size:12px;margin-bottom:6px">📕 Cover (front + spine + back)</div>${marginDiagramSVG(co,cjob)}${coverCut}${coverSchematic(cpD)}</div>`; }
   const sizePanel=`<details class="pbox" style="margin-bottom:10px;border-color:#cbd8e5" open><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 Production sizes &amp; margins (finished → open → print → cut → parent)${hasCoverD?" — Inside/Text + Cover":""}</summary>`+
     `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">${textCol}${coverCol}</div></details>`;
   const legend=`<div style="font-size:11px;color:#6b7480;margin-bottom:8px"><span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut&nbsp;<span style="color:#1f4e78">↕</span>head direction':''}${o.cutMachine?`&nbsp;·&nbsp;<span style="color:#7c3aed">✂ cut to ${o.cutTo} for ${o.cutMachine}</span>`:''}</div>`;
