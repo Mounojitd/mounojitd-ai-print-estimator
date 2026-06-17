@@ -253,6 +253,56 @@
         <label class="chip"><input type="checkbox" class="ss" value="30,40" checked /> 30×40</label>
       </div>
 
+      <div class="pbox">
+        <div class="ptitle">💰 Colour · plate · impression · price</div>
+        <div class="prow">
+          <span><label>Colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
+          <span><label>Front</label><input id="cf" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
+          <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
+        </div>
+        <div class="prow">
+          <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></span>
+          <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
+          <span></span>
+        </div>
+        <div class="prow">
+          <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="showPrice()">
+            <option value="anderson" selected>Naba Mudran (agreement)</option>
+            <option value="nabamudran">Nabamudran Heidelberg-102</option>
+            <option value="komori_l40">Komori L-40</option>
+            <option value="komori_l32">Komori L-32</option>
+            <option value="balaji_2030">Balaji Press 20×30</option>
+            <option value="balaji_1925">Balaji Press 19×25</option>
+          </select></span>
+          <span><label>Coating rate source</label><select id="coatSrc" onchange="showPrice()">
+            <option value="card" selected>Standard card</option><option value="anderson">Anderson agreement</option>
+          </select></span>
+          <span><label>Work style</label><select id="workStyle" onchange="if(RESULT)run();else showPrice()">
+            <option value="back" selected>Work &amp; back (sheetwise)</option>
+            <option value="turn">Work &amp; turn</option>
+            <option value="tumble">Work &amp; tumble</option>
+          </select></span>
+        </div>
+        <div class="prow">
+          <span><label>Margin %</label><input id="margin" type="number" value="28" oninput="showPrice()" /></span>
+          <span><label>GST %</label><input id="gst" type="number" value="18" oninput="showPrice()" /></span>
+          <span></span>
+        </div>
+      </div>
+      <div class="pbox">
+        <div class="ptitle">📑 Type of binding &amp; finishing</div>
+        <div class="prow" id="bindingFields">
+          <span><label>Type of binding (spine recommends)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="side">Side stitch</option><option value="sewn">Section sewn</option><option value="perfect">Perfect binding</option><option value="sewn_perfect">Section sewn + Perfect</option><option value="soft">Soft cover book</option><option value="case">Hard case book</option><option value="wireo">Wire-O</option><option value="spiral">Spiral</option><option value="comb">Comb</option><option value="pad">Pad binding</option><option value="b2b">Back-to-back paste</option><option value="other">Other / custom</option></select></span>
+          <span><label>Binding ₹/book</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="showPrice()" /></span>
+          <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
+          <span><label>Finishing make-ready (sheets/op)</label><input id="finishMR" type="number" value="25" min="10" max="50" oninput="showPrice()" /><div class="hint">Per op (coating/fold/bind/embellish); sir: 10 min, 40–50 max</div></span>
+        </div>
+        <div class="prow" style="margin-top:-4px">
+          <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="forceBinding" type="checkbox" oninput="if(RESULT)run()" style="width:auto"> Force binding (override spine limit)</label></span>
+        </div>
+        <div id="bindingWarn"></div>
+      </div>
+
       <button class="go" onclick="run()">🔍 Find Minimum Paper Usage</button>
       <div id="err" class="err"></div>
     </div>
@@ -270,52 +320,6 @@
         <div id="diagram" style="margin-top:12px"></div>
         <div id="calcExplain"></div>
         <div id="machine"></div>
-        <div class="pbox">
-          <div class="ptitle">💰 Colour · plate · impression · price</div>
-          <div class="prow">
-            <span><label>Colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
-            <span><label>Front</label><input id="cf" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
-            <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
-          </div>
-          <div class="prow">
-            <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></span>
-            <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
-            <span></span>
-          </div>
-          <div class="prow">
-            <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="showPrice()">
-              <option value="anderson" selected>Naba Mudran (agreement)</option>
-              <option value="nabamudran">Nabamudran Heidelberg-102</option>
-              <option value="komori_l40">Komori L-40</option>
-              <option value="komori_l32">Komori L-32</option>
-              <option value="balaji_2030">Balaji Press 20×30</option>
-              <option value="balaji_1925">Balaji Press 19×25</option>
-            </select></span>
-            <span><label>Coating rate source</label><select id="coatSrc" onchange="showPrice()">
-              <option value="card" selected>Standard card</option><option value="anderson">Anderson agreement</option>
-            </select></span>
-            <span><label>Work style</label><select id="workStyle" onchange="if(RESULT)run();else showPrice()">
-              <option value="back" selected>Work &amp; back (sheetwise)</option>
-              <option value="turn">Work &amp; turn</option>
-              <option value="tumble">Work &amp; tumble</option>
-            </select></span>
-          </div>
-          <div class="prow" id="bindingFields">
-            <span><label>Type of binding (spine recommends)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="side">Side stitch</option><option value="sewn">Section sewn</option><option value="perfect">Perfect binding</option><option value="sewn_perfect">Section sewn + Perfect</option><option value="soft">Soft cover book</option><option value="case">Hard case book</option><option value="wireo">Wire-O</option><option value="spiral">Spiral</option><option value="comb">Comb</option><option value="pad">Pad binding</option><option value="b2b">Back-to-back paste</option><option value="other">Other / custom</option></select></span>
-            <span><label>Binding ₹/book</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="showPrice()" /></span>
-            <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
-            <span><label>Finishing make-ready (sheets/op)</label><input id="finishMR" type="number" value="25" min="10" max="50" oninput="showPrice()" /><div class="hint">Per op (coating/fold/bind/embellish); sir: 10 min, 40–50 max</div></span>
-          </div>
-          <div class="prow" style="margin-top:-4px">
-            <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="forceBinding" type="checkbox" oninput="if(RESULT)run()" style="width:auto"> Force binding (override spine limit)</label></span>
-          </div>
-          <div id="bindingWarn"></div>
-          <div class="prow">
-            <span><label>Margin %</label><input id="margin" type="number" value="28" oninput="showPrice()" /></span>
-            <span><label>GST %</label><input id="gst" type="number" value="18" oninput="showPrice()" /></span>
-            <span></span>
-          </div>
-        </div>
         <div class="pbox">
           <div class="ptitle">Quotation details</div>
           <div class="prow">
@@ -967,8 +971,8 @@ function sizesTable(o){
   return `<table style="font-size:12px;width:100%">${rows.join("")}</table>`;
 }
 // nested production diagram: parent sheet → gripper/side-lay → print area → finished page (bleed/trim/fold)
-function marginDiagramSVG(o){
-  const I=LASTINP, R=RESULT;
+function marginDiagramSVG(o,job){
+  const I=LASTINP, R=RESULT; job=job||{W:I.W,H:I.H,isSig:I.isSig,openW:R.openW,openH:R.openH};
   const parW=o.paperSheetW, parH=o.paperSheetH, longP=Math.max(parW,parH), shortP=Math.min(parW,parH);
   const W=380, sc=W/longP, H=Math.round(shortP*sc), L=v=>v.toFixed(1);
   const g=I.margins.gripper*sc, sl=(I.margins.sidelay+I.margins.paperTrim)*sc, bl=Math.max(2,I.margins.bleed*sc);
@@ -991,13 +995,13 @@ function marginDiagramSVG(o){
   const fpw=Math.min(pw*0.42,pw-8), fph=Math.min(ph*0.66,ph-8), fx=px+(pw-fpw)/2, fy=py+(ph-fph)/2;
   s+=`<rect x="${L(fx-bl)}" y="${L(fy-bl)}" width="${L(fpw+2*bl)}" height="${L(fph+2*bl)}" fill="#eef6ff" stroke="#9bbbe0" stroke-dasharray="2 2"/>`;  // bleed
   s+=`<rect x="${L(fx)}" y="${L(fy)}" width="${L(fpw)}" height="${L(fph)}" fill="#dbeafe" stroke="#1f4e78"/>`;                                       // trim/finished
-  s+=`<line x1="${L(fx+fpw/2)}" y1="${L(fy)}" x2="${L(fx+fpw/2)}" y2="${L(fy+fph)}" stroke="#c2410c" stroke-width="1.2" stroke-dasharray="6 2 2 2"/>`; // fold
-  s+=`<text x="${L(fx+fpw/2)}" y="${L(fy+fph/2)}" font-size="7.5" text-anchor="middle" fill="#1f4e78">finished ${I.isSig?I.W+"×"+I.H:I.W+"×"+I.H}</text>`;
+  if(job.isSig) s+=`<line x1="${L(fx+fpw/2)}" y1="${L(fy)}" x2="${L(fx+fpw/2)}" y2="${L(fy+fph)}" stroke="#c2410c" stroke-width="1.2" stroke-dasharray="6 2 2 2"/>`; // fold
+  s+=`<text x="${L(fx+fpw/2)}" y="${L(fy+fph/2)}" font-size="7.5" text-anchor="middle" fill="#1f4e78">finished ${job.W}×${job.H}</text>`;
   s+=`<text x="${L(fx-bl-1)}" y="${L(fy-bl-2)}" font-size="6.5" fill="#9bbbe0">bleed ${I.margins.bleed}mm</text>`;
-  s+=`<text x="${L(fx+fpw/2)}" y="${L(fy-bl-9)}" font-size="6.5" text-anchor="middle" fill="#c2410c">fold</text>`;
+  if(job.isSig) s+=`<text x="${L(fx+fpw/2)}" y="${L(fy-bl-9)}" font-size="6.5" text-anchor="middle" fill="#c2410c">fold</text>`;
   // 5) parent→cut yield note
   s+=`<text x="${W/2}" y="${H+25}" font-size="8.5" text-anchor="middle" fill="${isCut?'#7c3aed':'#6b7480'}">${isCut?`✂ cut to ${o.cutTo} (press) — ${o.cutsPerParent}/parent`:`prints full on ${o.sw}×${o.sh}`}</text>`;
-  s+=`<text x="${W/2}" y="${H+38}" font-size="8.5" text-anchor="middle" fill="#6b7480">Finished ${I.W}×${I.H} → Open ${I.isSig?R.openW+"×"+R.openH:I.W+"×"+I.H} → Print → Parent ${parW}×${parH}</text>`;
+  s+=`<text x="${W/2}" y="${H+38}" font-size="8.5" text-anchor="middle" fill="#6b7480">Finished ${job.W}×${job.H} → Open ${job.openW}×${job.openH} → Print → Parent ${parW}×${parH}</text>`;
   return s+`</svg>`;
 }
 // One folding/imposition picture for ONE sheet size (front + back, representative form 1).
@@ -1045,9 +1049,14 @@ function renderDiagram(){
     return `<button onclick="drawIdx(${idx})" class="mbtn ${sel?'p':'s'}" style="padding:5px 10px;font-size:12px;margin:0 6px 6px 0">${opt.sw}×${opt.sh}${sel?' ★':''}</button>`;
   }).join("");
   const chipRow=`<div style="margin-bottom:8px"><span style="font-size:11px;color:#6b7480">Sheet:</span> ${chips}</div>`;
-  // SIZE HIERARCHY + MARGIN diagram (sir's drawing) — open by default
-  const sizePanel=`<details class="pbox" style="margin-bottom:10px;border-color:#cbd8e5" open><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 Production sizes &amp; margins (finished → open → print → cut → parent)</summary>`+
-    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px"><div style="flex:1;min-width:170px">${marginDiagramSVG(o)}</div><div style="flex:1;min-width:160px">${sizesTable(o)}</div></div></details>`;
+  // SIZE HIERARCHY + MARGIN diagram (sir's drawing) — TWO separate sections: Inside/Text and Cover.
+  const cpD=(LASTINP.separateCover)?coverPlan():null, hasCoverD=cpD&&cpD.option;
+  const textCol=`<div style="flex:1;min-width:250px;border:1px solid #cbd8e5;border-radius:6px;padding:8px"><div style="font-weight:700;color:#13314f;font-size:12px;margin-bottom:6px">📄 Inside / Text</div>${marginDiagramSVG(o)}${sizesTable(o)}</div>`;
+  let coverCol="";
+  if(hasCoverD){ const cm=cpD.meta, co=cpD.option, cjob={W:cm.coverW,H:cm.coverH,isSig:false,openW:cm.coverW,openH:cm.coverH};
+    coverCol=`<div style="flex:1;min-width:250px;border:1px solid #efd9a6;border-radius:6px;padding:8px"><div style="font-weight:700;color:#b9770a;font-size:12px;margin-bottom:6px">📕 Cover (front + spine + back)</div>${marginDiagramSVG(co,cjob)}${coverSchematic(cpD)}</div>`; }
+  const sizePanel=`<details class="pbox" style="margin-bottom:10px;border-color:#cbd8e5" open><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 Production sizes &amp; margins (finished → open → print → cut → parent)${hasCoverD?" — Inside/Text + Cover":""}</summary>`+
+    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">${textCol}${coverCol}</div></details>`;
   const legend=`<div style="font-size:11px;color:#6b7480;margin-bottom:8px"><span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut&nbsp;<span style="color:#1f4e78">↕</span>head direction':''}${o.cutMachine?`&nbsp;·&nbsp;<span style="color:#7c3aed">✂ cut to ${o.cutTo} for ${o.cutMachine}</span>`:''}</div>`;
   if(!dbl){ box.innerHTML=chipRow+sizePanel+legend+sheetPicture(o); return; }
   const L=Math.max(1,o.layouts||1);
