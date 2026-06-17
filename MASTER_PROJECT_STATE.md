@@ -16,7 +16,11 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `f5e1bee` (NKK sir 15-point spec: full binding type list, spine bulk factor,
+**Latest commit at save:** `2ebfaa1` (UI per sir: colour/plate/price + Type-of-binding boxes moved to the
+FRONT page; Production sizes split into two pictures — Inside/Text + Cover). Prior `dae2cd2` text cut-to-
+cheaper-press (L-32); `a00a7b1` finishing make-ready 10–50/op; `2d25cc4` real POST_PRESS rates.
+
+**Earlier commit:** `f5e1bee` (NKK sir 15-point spec: full binding type list, spine bulk factor,
 exact recommendation thresholds ≤2.5/>3/>4.5, coating +Matt UV/Varnish, embellishments +Raised UV/Deboss/
 Texture/Specialty, quote/job-sheet binding+spine+embellishment reporting; added IMPLEMENTATION_REPORT.md).
 Prior `ff2cf51` cover-sheet cutting → L-32 cheapest. See IMPLEMENTATION_REPORT.md for the 15-point status. Prior `9cd336c` (spine-driven binding + saddle-stitch limits, cover
