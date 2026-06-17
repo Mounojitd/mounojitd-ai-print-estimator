@@ -304,6 +304,7 @@
             <span><label>Type of binding (spine recommends)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="side">Side stitch</option><option value="sewn">Section sewn</option><option value="perfect">Perfect binding</option><option value="sewn_perfect">Section sewn + Perfect</option><option value="soft">Soft cover book</option><option value="case">Hard case book</option><option value="wireo">Wire-O</option><option value="spiral">Spiral</option><option value="comb">Comb</option><option value="pad">Pad binding</option><option value="b2b">Back-to-back paste</option><option value="other">Other / custom</option></select></span>
             <span><label>Binding ₹/book</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="showPrice()" /></span>
             <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
+            <span><label>Finishing make-ready (sheets/op)</label><input id="finishMR" type="number" value="25" min="10" max="50" oninput="showPrice()" /><div class="hint">Per op (coating/fold/bind/embellish); sir: 10 min, 40–50 max</div></span>
           </div>
           <div class="prow" style="margin-top:-4px">
             <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="forceBinding" type="checkbox" oninput="if(RESULT)run()" style="width:auto"> Force binding (override spine limit)</label></span>
@@ -1343,6 +1344,24 @@ function coverMachineHTML(cp){
     `<table style="font-size:12px;margin-top:4px"><thead><tr><th>Press</th><th>Band</th><th>Best cover sheet</th><th>Run</th><th style="text-align:right">Cover cost (paper+print+plates)</th></tr></thead><tbody>${rows}</tbody></table>`+
     `<div style="font-size:11px;color:#6b7480;margin-top:6px">Each press shows its cheapest cover sheet. A small-band press (e.g. Komori L-32) on a smaller sheet is usually cheapest for the short cover run (lower plate ₹475 + lot ₹1,500). Auto picks the cheapest; switch to Manual to choose.</div></details>`;
 }
+// PER-OPERATION FINISHING MAKE-READY (NKK sir: 10 sheets min, 40–50 max per operation). Every finishing
+// operation (coating, folding, binding for text; coating + each embellishment for cover) spoils make-ready
+// sheets of the printed stock. These are added to paper consumption (extra parent sheets at parent rate/wt).
+function finishingMakeReady(textP,cp,p){
+  const perOp=Math.min(50,Math.max(10,Math.round(num("finishMR",25))));
+  const bind=p.binding||"none";
+  let textOps=0;
+  if(textP.lam&&textP.lam!=="none") textOps++;          // text coating / lamination
+  if(LASTINP&&LASTINP.isSig) textOps++;                 // folding (signature products fold)
+  if(bind!=="none") textOps++;                          // binding
+  const textSh=textOps*perOp, textRate=p.paperRate||0, textWtSh=CHOSEN.paperWtSheet||CHOSEN.wt_sheet||0;
+  let coverOps=0, coverSh=0, coverRate=0, coverWtSh=0;
+  if(cp&&cp.option){ coverOps=($("coverLam")&&$("coverLam").value!=="none"?1:0)+coverEmbList().length;
+    coverRate=cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh);
+    coverWtSh=cp.option.paperWtSheet||cp.option.wt_sheet||0; coverSh=coverOps*perOp; }
+  const sheets=textSh+coverSh, cost=textSh*textRate+coverSh*coverRate, wt=textSh*textWtSh+coverSh*coverWtSh;
+  return {perOp,textOps,coverOps,ops:textOps+coverOps,sheets,cost:+cost.toFixed(2),wt:+wt.toFixed(2)};
+}
 function combinedPrice(){
   const p=currentPriceParams(), textP=Object.assign({},p), cp=coverPlan();
   // Coating is the CLIENT's choice (NKK sir): the cover has its own coating; the inside/text coating is
@@ -1351,10 +1370,13 @@ function combinedPrice(){
   const tq=priceJob(CHOSEN,textP);
   const binding=p.binding==="none"?0:Math.max(p.bindingRate*p.books,p.bindingMin);
   if(!cp||!cp.option){
-    if(!binding)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0};
-    const base=tq.paper+tq.printing+tq.plates+tq.lam+binding+tq.packing+tq.freight,overhead=base*0.12,prod=base+overhead;
+    const fmr=finishingMakeReady(textP,null,p);
+    if(!binding&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
+    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt;
+    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const base=tq.paper+fmr.cost+tq.printing+tq.plates+tq.lam+binding+packing+freight,overhead=base*0.12,prod=base+overhead;
     const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
-    return {p,q:Object.assign({},tq,{overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding};
+    return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding,fmr};
   }
   const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
     paperRate:(cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh)),margin:p.margin,gst:p.gst,books:p.books};
@@ -1362,13 +1384,14 @@ function combinedPrice(){
   // COVER EMBELLISHMENTS (combinable, on the cover printed sheets)
   const embItems=coverEmbCost(cp.option.sw*cp.option.sh, cp.option.total);
   const embTotal=embItems.reduce((s,e)=>s+e.cost,0);
-  const paper=tq.paper+cq.paper,printing=tq.printing+cq.printing,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
-  const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(cp.option.paperWeight||cp.option.total_wt);
+  const fmr=finishingMakeReady(textP,cp,p);
+  const paper=tq.paper+cq.paper+fmr.cost,printing=tq.printing+cq.printing,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
+  const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(cp.option.paperWeight||cp.option.total_wt)+fmr.wt;
   const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+embTotal+binding+packing+freight,overhead=base*0.12,prod=base+overhead;
   const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
-  const q={band:tq.band+" text / "+cq.band+" cover",paper,printing,plates,plateCount,impressions,lam,embTotal,embItems,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books};
-  return {p,q,text:tq,cover:cq,coverPlan:cp,binding,embItems,embTotal};
+  const q={band:tq.band+" text / "+cq.band+" cover",paper,printing,plates,plateCount,impressions,lam,embTotal,embItems,fmr:fmr.cost,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books};
+  return {p,q,text:tq,cover:cq,coverPlan:cp,binding,embItems,embTotal,fmr};
 }
 function showPrice(){
   if(!CHOSEN)return;
@@ -1395,6 +1418,7 @@ function showPrice(){
     rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.formes} formes × ~${q.formeRun.toLocaleString("en-IN")} sheets)`,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
   }
   if(x.binding)rows.push([`${$("binding").selectedOptions[0].text} binding`,x.binding]);
+  if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets)`,x.fmr.cost]);
   rows.push(["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
   rows.forEach(([k,v])=>h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
