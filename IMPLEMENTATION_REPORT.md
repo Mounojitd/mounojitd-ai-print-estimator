@@ -55,12 +55,13 @@ highlighted; Auto vs Manual. Large-vs-small trade-off is surfaced (cover ranks e
 by total cost). ⏳ full total-production-cost ranking incl. make-ready for the text path
 ties into #7/#9.
 
-## 9. Make-Ready Calculation — 🟡 partial
-Printing make-ready is per-forme and kept separate from running waste (Good + Make-ready +
-Running = Total, with waste %). ⏳ separate setup-WASTE-SHEET lines for coating / laminating /
-folding / binding. NOTE: sir's POST_PRESS_RATES sheet (2026-06-17) supplies the COST split
-(lot-minimum = setup, per-unit = running) but NOT the make-ready *waste-sheet counts* per
-operation — those are still needed to add finishing spoilage into paper consumption.
+## 9. Make-Ready Calculation — ✅ done
+Printing make-ready is per-forme, separate from running waste (Good + Make-ready + Running =
+Total, with waste %). **Finishing make-ready** now added per sir's rule (**10 sheets min,
+40–50 max per operation**, default 25, clamped 10–50): every active finishing operation
+(text: coating, folding, binding; cover: coating + each embellishment) consumes spoilage
+sheets, folded into paper consumption (extra parent sheets at parent rate + weight) and shown
+as its own line "Finishing make-ready (N ops × M sheets)".
 
 ## 10. Paper Consumption Logic — ✅ core done
 Total = Good + Running waste + Make-ready (no double counting); parent-purchasing converts
@@ -104,9 +105,6 @@ hand numbers rather than relying on DB values alone.
 1. **Text-side cut-to-required-print-size** (12,000→6,000) + cutting diagram in the job card
    — need one full worked example: parent size, required print size, ups, forms, copies,
    make-ready, and the exact sheet + parent count expected.
-2. **Per-operation make-ready WASTE SHEETS** (coating, folding, binding, die-cut) — the rate
-   COST split is now wired from his POST_PRESS master; still need the spoilage *sheet counts*
-   per operation to fold finishing waste into total paper consumption (#9/#10).
-3. **Grain-direction compatibility** in sheet selection — need sir's grain rule.
-4. **24pp / 32pp fold patterns** — need sir's hand-drawn forms (8/12/16pp already match).
-5. **Digital press click-rate card** — digital currently uses offset rates; need ₹/click table.
+2. **Grain-direction compatibility** in sheet selection — need sir's grain rule.
+3. **24pp / 32pp fold patterns** — need sir's hand-drawn forms (8/12/16pp already match).
+4. **Digital press click-rate card** — digital currently uses offset rates; need ₹/click table.
