@@ -1113,53 +1113,77 @@ function selectMachine(name){
 }
 let MACHINE_MODE="auto";                       // NKK sir: machine must be auto OR manually selectable
 function setMachineMode(v){ MACHINE_MODE=v; if(CHOSEN){renderMachine(CHOSEN); showPrice();} }
+// TEXT route cost for a press = total of paper(on parent) + printing + plates, after applyMachineCut decides
+// whole-sheet (press fits) vs CUT-to-press-size (press smaller). Captures the wastage saving of cutting the
+// parent down to a cheaper small-band press (NKK sir: e.g. Komori L-32).
+function textRouteCost(base,m){ try{
+  const eff=applyMachineCut(base,m); if(!eff||!eff.ups) return Infinity;
+  const q=priceJob(eff,currentPriceParams(),m); return q.paper+q.printing+q.plates;
+}catch(e){ return Infinity; } }
+// A press can run a sheet WHOLE (fits) or via a CUT-down to its print size (sheet too big). Returns the route.
+function pressRoute(o,m,need){
+  if(m.col<need) return null;
+  const fit=machineFit(m,o.sw,o.sh);
+  if(fit==="too_small") return null;
+  if(fit==="fits") return {m,route:"whole",cost:textRouteCost(o,m)};
+  const eff=applyMachineCut(o,m);                                   // too_big → try cut to press size
+  if(eff&&eff.ups&&eff.cutMachine) return {m,route:"cut",cutTo:eff.cutTo,cost:textRouteCost(o,m)};
+  return null;
+}
 function renderMachine(o){
-  const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
-  const ok=machinesFor(o.sw,o.sh,need), box=$("machine");
-  if(MACHINE_MODE==="auto"&&!ok.length){
+  const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4))), box=$("machine");
+  // every press that can run this job WHOLE or via a CUT, cheapest total cost first (NKK sir's cut-to-save logic)
+  const routes=MACHINES.map(m=>pressRoute(o,m,need)).filter(Boolean).sort((a,b)=>a.cost-b.cost);
+  if(MACHINE_MODE==="auto"&&!routes.length){
     SELECTED_MACHINE=null;
     const biggest=MACHINES.slice().sort((a,b)=>Math.max(...b.max)-Math.max(...a.max))[0];
     box.innerHTML=`<div class="pbox" style="border-color:#f3c0a0;background:#fff5ef"><div class="ptitle" style="color:#b9770a">🖨 Machine</div>`+
-      `⚠ A <b>${o.sw}×${o.sh}</b> sheet needs ${need} colours and won't run on any press (largest is ${biggest.name} ${biggest.max[0]}×${biggest.max[1]}). `+
-      `<b>Cut the sheet down</b> to ≤ ${biggest.max[0]}×${biggest.max[1]}, drop colours, or add a larger press, or switch the press selection to Manual.</div>`;
+      `⚠ A <b>${o.sw}×${o.sh}</b> sheet needs ${need} colours and won't run on any press even cut down (largest is ${biggest.name} ${biggest.max[0]}×${biggest.max[1]}). `+
+      `Drop colours, pick a smaller sheet, or switch the press selection to Manual.</div>`;
     return;
   }
-  if(MACHINE_MODE==="auto"){ if(!SELECTED_MACHINE || !ok.includes(SELECTED_MACHINE)) SELECTED_MACHINE=ok[0]; }
-  else if(!SELECTED_MACHINE) SELECTED_MACHINE=ok[0]||MACHINES[0];
-  const m=SELECTED_MACHINE, hrs=o.total/m.speed, mp=maxPrint(m);
-  const mFit=machineFit(m,o.sw,o.sh), mBad=mFit!=="fits"||m.col<need;   // manual pick may not fit — warn loudly
+  if(MACHINE_MODE==="auto"){ SELECTED_MACHINE=routes[0].m; }   // auto = always the cheapest total route
+  else if(!SELECTED_MACHINE) SELECTED_MACHINE=(routes[0]&&routes[0].m)||MACHINES[0];
+  const m=SELECTED_MACHINE, mp=maxPrint(m);
+  const selEff=applyMachineCut(o,m), hrs=(selEff&&selEff.ups?selEff.total:o.total)/m.speed;
+  const mFit=machineFit(m,o.sw,o.sh), mBad=mFit==="too_small"||m.col<need;   // too_big is now OK (we cut)
   const img=Math.max(o.sw,o.sh), imgS=Math.min(o.sw,o.sh);
-  const tightPrint = img>mp[0]||imgS>mp[1];     // sheet fits feed but exceeds printable area (gripper)
-  const list=(MACHINE_MODE==="manual")?MACHINES:ok;                 // manual: pick ANY press from the master
+  const tightPrint = (mFit==="fits") && (img>mp[0]||imgS>mp[1]);
+  const list=(MACHINE_MODE==="manual")?MACHINES:routes.map(r=>r.m);          // manual: any press; auto: runnable routes
   const opts=list.map(x=>`<option ${x===m?'selected':''}>${x.name}</option>`).join("");
-  const cheapest=ok.map(x=>({m:x,c:pressPrintCost(x)})).sort((a,b)=>a.c-b.c)[0];
-  // FULL machine master — every press from Process master, with fit status (runnable ones priced + clickable)
+  const cheapest=routes[0];
+  const routeFor=x=>routes.find(r=>r.m===x);
+  // FULL machine master — every press, with whole/cut route, total cost, runnable ones clickable
   const rowsHtml=MACHINES.map(x=>{
-    const fit=machineFit(x,o.sw,o.sh), colOk=x.col>=need, runnable=fit==="fits"&&colOk;
-    const sel=x===m, best=cheapest&&x===cheapest.m;
+    const r=routeFor(x), fit=machineFit(x,o.sw,o.sh), sel=x===m, best=cheapest&&x===cheapest.m;
     let status,cost="—",cls="";
-    if(runnable){ status=`<span style="color:#1c7a52">✓ ${machineBand(x)}</span>`; cost="₹"+Math.round(pressPrintCost(x)).toLocaleString('en-IN'); }
-    else if(fit==="too_big"){ status='<span style="color:#c0392b">sheet too big</span>'; cls="nofit"; }
+    if(r){ const eff=applyMachineCut(o,x), t=(eff&&eff.ups?eff.total:o.total);
+      status = r.route==="cut" ? `<span style="color:#7c3aed">✂ cut ${r.cutTo} (${machineBand(x)})</span>` : `<span style="color:#1c7a52">✓ ${machineBand(x)}</span>`;
+      cost="₹"+Math.round(r.cost).toLocaleString('en-IN'); }
+    else if(x.col<need){ status=`<span style="color:#a9761a">${x.col}-col only (need ${need})</span>`; cls="nofit"; }
     else if(fit==="too_small"){ status='<span style="color:#a9761a">sheet too small</span>'; cls="nofit"; }
-    else { status=`<span style="color:#a9761a">${x.col}-col only (need ${need})</span>`; cls="nofit"; }
-    const clickable=runnable||MACHINE_MODE==="manual";
-    const click=clickable?`data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" style="cursor:pointer${runnable?'':';opacity:.7'}"`:'style="opacity:.6"';
+    else { status='<span style="color:#c0392b">cannot run</span>'; cls="nofit"; }
+    const clickable=!!r||MACHINE_MODE==="manual";
+    const click=clickable?`data-click onclick="selectMachine('${x.name.replace(/'/g,"\\'")}')" style="cursor:pointer${r?'':';opacity:.7'}"`:'style="opacity:.6"';
+    const runH=r?'~'+((applyMachineCut(o,x)||o).total/x.speed).toFixed(1)+'h':'—';
     return `<tr ${click} class="${sel?'best':''} ${cls}">`+
       `<td>${x.name}${x.digital?'<span class="pill" style="background:#7c3aed">DIGITAL</span>':''}${best?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${sel?'<span class="pill">SELECTED</span>':''}</td>`+
       `<td>${x.vendor||""}</td><td>${x.max[0]}×${x.max[1]}</td><td>${x.col}c</td><td>${x.grip}mm</td>`+
-      `<td>${runnable?'~'+(o.total/x.speed).toFixed(1)+'h':'—'}</td><td>${status}</td><td>${cost}</td></tr>`;
+      `<td>${runH}</td><td>${status}</td><td>${cost}</td></tr>`;
   }).join("");
-  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine — full press master (${MACHINES.length} presses), fit &amp; price</div>`+
-    `<div class="prow"><span><label>Press selection</label><select onchange="setMachineMode(this.value)"><option value="auto" ${MACHINE_MODE==="auto"?"selected":""}>Auto (best fit)</option><option value="manual" ${MACHINE_MODE==="manual"?"selected":""}>Manual (choose any)</option></select></span>`+
+  const selRoute=routeFor(m);
+  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine — full press master (${MACHINES.length} presses), whole / cut route &amp; total cost</div>`+
+    `<div class="prow"><span><label>Press selection</label><select onchange="setMachineMode(this.value)"><option value="auto" ${MACHINE_MODE==="auto"?"selected":""}>Auto (cheapest route)</option><option value="manual" ${MACHINE_MODE==="manual"?"selected":""}>Manual (choose any)</option></select></span>`+
     `<span style="flex:2"><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
     `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr @ ${m.speed.toLocaleString('en-IN')}/hr" disabled></span></div>`+
     `<div style="font-size:11.5px;color:#6b7480;margin:2px 0 8px"><b>${m.vendor||""}</b>${m.loc?" · "+m.loc:""} · Max paper <b>${m.max[0]}×${m.max[1]}</b> · max print <b>${mp[0]}×${mp[1]}</b> (gripper ${m.grip}mm) · min <b>${m.min[0]}×${m.min[1]}</b> · ${m.col}-col`+
+    `${selRoute&&selRoute.route==="cut"?` · <span style="color:#7c3aed">✂ parent cut to <b>${selRoute.cutTo}</b> for this press (saves wastage)</span>`:""}`+
     `${tightPrint?` · <span style="color:#a9761a">⚠ sheet ${o.sw}×${o.sh} exceeds printable area — image must clear the ${m.grip}mm gripper</span>`:""}`+
     `${m.digital?` · <span style="color:#7c3aed"><b>DIGITAL</b> — no plates; click-rate card pending</span>`:""}`+
     `${LASTINP&&LASTINP.copies<200&&!m.digital?` · <span style="color:#7c3aed">qty ${LASTINP.copies} &lt; 200 → consider a DIGITAL press (switch to Manual)</span>`:""}</div>`+
-    `${mBad?`<div class="suggest">⚠ Manually selected press <b>${m.name}</b> ${mFit==="too_big"?`cannot feed a ${o.sw}×${o.sh} sheet (max ${m.max[0]}×${m.max[1]}) — cut the paper down to the machine size`:mFit==="too_small"?`needs a bigger sheet (min ${m.min[0]}×${m.min[1]})`:`has only ${m.col} colours (job needs ${need})`}.</div>`:""}`+
-    `<table style="font-size:12px"><thead><tr><th>Press</th><th>Vendor</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Status</th><th>Print+plates</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
-    `<div style="font-size:11px;color:#6b7480;margin-top:6px">${MACHINE_MODE==="auto"?`Auto: only presses that fit the ${o.sw}×${o.sh} sheet with ${need}+ colours are selectable.`:`Manual: any press can be chosen — non-fitting picks show a warning.`} Cheapest runnable: <b>${cheapest?cheapest.m.name:"—"}</b> · click a row to switch.</div></div>`;
+    `${mBad?`<div class="suggest">⚠ Manually selected press <b>${m.name}</b> ${mFit==="too_small"?`needs a bigger sheet (min ${m.min[0]}×${m.min[1]})`:`has only ${m.col} colours (job needs ${need})`}.</div>`:""}`+
+    `<table style="font-size:12px"><thead><tr><th>Press</th><th>Vendor</th><th>Max paper</th><th>Col</th><th>Gripper</th><th>Run</th><th>Route</th><th>Cost (paper+print+plates)</th></tr></thead><tbody>${rowsHtml}</tbody></table>`+
+    `<div style="font-size:11px;color:#6b7480;margin-top:6px">${MACHINE_MODE==="auto"?`Auto picks the <b>cheapest total route</b> — a press runs the sheet whole, or cuts the parent to its size when that saves wastage (e.g. Komori L-32).`:`Manual: any press can be chosen — non-fitting picks are cut to the press size.`} Cheapest: <b>${cheapest?cheapest.m.name:"—"}</b>${cheapest&&cheapest.route==="cut"?` (✂ ${cheapest.cutTo})`:""} · click a row to switch.</div></div>`;
 }
 
 /* ---------- PRICE (Naba Mudran / Anderson default + vendor sources) ---------- */
