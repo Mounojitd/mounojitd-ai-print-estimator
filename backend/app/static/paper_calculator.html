@@ -1275,8 +1275,32 @@ function coverPlan(){
   // COVER = cheapest SHEET × PRESS combo (NKK sir: a SMALLER sheet on a small-band press like Komori L-32
   // beats a big sheet on a big press — lower plate ₹475 + lot ₹1500). Rank each press by its cheapest cover
   // sheet's full cost (paper + print + plates), not just the fastest press on the lowest-waste sheet.
-  const bestSheetFor=m=>{ let b=null; for(const x of usable){ if(machineFit(m,x.sw,x.sh)!=="fits"||m.col<need) continue;
-      const c=coverPressCost(x,m)+coverRateFor(x.sw,x.sh)*x.total; if(!b||c<b.cost) b={opt:x,cost:c}; } return b; };
+  // CUT the parent down to a press's required print size (NKK sir): lets a small-band press (L-32) print the
+  // cover 4-up on its own size → cheaper plate/lot + less paper, then BUY the parent (parent-purchasing).
+  const cutForPress=m=>{
+    const mp=maxPrint(m), cw=Math.floor(mp[0]), ch=Math.floor(mp[1]);
+    if(cw<4||ch<4||m.col<need) return null;
+    const rc=computePaper(Object.assign({},inp,{sizes:[[cw,ch]],rotate:true}));
+    const co=rc.options&&rc.options[0]; if(!co||!co.ups) return null;
+    const cL=Math.max(cw,ch), cS=Math.min(cw,ch);
+    let par=null;                                            // cheapest ticked parent that yields this cut
+    for(const [pw,ph] of inp.sizes){ const pL=Math.max(pw,ph), pS=Math.min(pw,ph); if(pL<cL||pS<cS) continue;
+      const per=Math.max(1,Math.floor(pL/cL)*Math.floor(pS/cS)), sheets=Math.ceil(co.total/per), rate=coverRateFor(pw,ph);
+      const paper=rate*sheets; if(!par||paper<par.paper) par={pw,ph,per,sheets,rate,paper}; }
+    if(!par) return null;
+    co.cutFrom=`${par.pw}×${par.ph}`; co.cutTo=`${cw}×${ch}`; co.cutMachine=m.name;
+    co.cutsPerParent=par.per; co.parentTotal=par.sheets; co.paperSheetW=par.pw; co.paperSheetH=par.ph;
+    co.paperSheets=par.sheets; co.paperRate=par.rate;
+    const pWt=(par.pw*MM/1000)*(par.ph*MM/1000)*inp.gsm/1000; co.paperWtSheet=+pWt.toFixed(4); co.paperWeight=+(pWt*par.sheets).toFixed(2);
+    Object.assign(co,meta);
+    return {opt:co, cost:coverPressCost(co,m)+par.paper};
+  };
+  const bestSheetFor=m=>{ let b=null;
+    for(const x of usable){ if(machineFit(m,x.sw,x.sh)!=="fits"||m.col<need) continue;       // whole ticked sheet
+      const c=coverPressCost(x,m)+coverRateFor(x.sw,x.sh)*x.total; if(!b||c<b.cost) b={opt:x,cost:c}; }
+    const cut=cutForPress(m);                                                                  // or cut to fit this press
+    if(cut && (!b||cut.cost<b.cost)) b=cut;
+    return b; };
   const pressBest=MACHINES.map(m=>({m,b:bestSheetFor(m)})).filter(p=>p.b).sort((a,b)=>a.b.cost-b.b.cost);
   if(!pressBest.length) return {result:r,option:null,machine:null,meta,fits:[]};
   let pick=(COVER_MACHINE_MODE==="manual"&&COVER_MANUAL_PICK)?pressBest.find(p=>p.m===COVER_MANUAL_PICK):null;
@@ -1303,7 +1327,7 @@ function coverMachineHTML(cp){
   const rows=ranked.map(({m,b})=>{ const x=b.opt, hrs=x.total/m.speed;
     return `<tr ${m===sel?'class="best"':''} data-click onclick="selectCoverMachine('${m.name.replace(/'/g,"\\'")}')" style="cursor:pointer">`+
       `<td>${m.name}${m.digital?'<span class="pill" style="background:#7c3aed">DIGITAL</span>':''}${m===cheapest?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${m===sel?'<span class="pill">SELECTED</span>':''}</td>`+
-      `<td>${machineBand(m)}</td><td>${x.sw}×${x.sh}</td><td>~${hrs.toFixed(1)}h</td><td style="text-align:right">₹${Math.round(b.cost).toLocaleString("en-IN")}</td></tr>`;
+      `<td>${machineBand(m)}</td><td>${x.cutMachine?`${x.sw}×${x.sh} <span style="color:#7c3aed">✂ from ${x.cutFrom}</span>`:`${x.sw}×${x.sh}`}</td><td>~${hrs.toFixed(1)}h</td><td style="text-align:right">₹${Math.round(b.cost).toLocaleString("en-IN")}</td></tr>`;
   }).join("");
   return `<details class="pbox" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">🖨 Cover press — <b>${sel?sel.name:"—"}</b> (${sel?machineBand(sel):""}) on ${cp.option.sw}×${cp.option.sh} · click to compare</summary>`+
     `<div class="prow" style="margin-top:8px"><span><label>Cover press</label><select onchange="setCoverMachineMode(this.value)"><option value="auto" ${COVER_MACHINE_MODE==="auto"?"selected":""}>Auto (cheapest)</option><option value="manual" ${COVER_MACHINE_MODE==="manual"?"selected":""}>Manual</option></select></span>`+
@@ -1325,13 +1349,13 @@ function combinedPrice(){
     return {p,q:Object.assign({},tq,{overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding};
   }
   const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
-    paperRate:coverRateFor(cp.option.sw,cp.option.sh),margin:p.margin,gst:p.gst,books:p.books};
+    paperRate:(cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh)),margin:p.margin,gst:p.gst,books:p.books};
   const cq=priceJob(cp.option,coverP,cp.machine);
   // COVER EMBELLISHMENTS (combinable, on the cover printed sheets)
   const embItems=coverEmbCost(cp.option.sw*cp.option.sh, cp.option.total);
   const embTotal=embItems.reduce((s,e)=>s+e.cost,0);
   const paper=tq.paper+cq.paper,printing=tq.printing+cq.printing,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
-  const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=CHOSEN.total_wt+cp.option.total_wt;
+  const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(cp.option.paperWeight||cp.option.total_wt);
   const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+embTotal+binding+packing+freight,overhead=base*0.12,prod=base+overhead;
   const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
@@ -1343,12 +1367,12 @@ function showPrice(){
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
   const x=combinedPrice(),p=x.p,q=x.q,inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
-  const totalWt=(CHOSEN.paperWeight||CHOSEN.total_wt)+((x.coverPlan&&x.coverPlan.option)?x.coverPlan.option.total_wt:0);
+  const totalWt=(CHOSEN.paperWeight||CHOSEN.total_wt)+((x.coverPlan&&x.coverPlan.option)?(x.coverPlan.option.paperWeight||x.coverPlan.option.total_wt):0);
   const perKg=totalWt>0?(q.paper/totalWt):0;
   const wlabel=p.work==="back"?"W&amp;back":"W&amp;"+p.work;
   let rows;
   if(x.cover){                                   // separate cover → itemise text vs cover so cover costing is explicit
-    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt, cvWt=x.coverPlan.option.total_wt;
+    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt, cvWt=x.coverPlan.option.paperWeight||x.coverPlan.option.total_wt;
     rows=[
       [`Text paper (${txtWt.toFixed(1)} kg consumed)`, x.text.paper],
       [`Cover paper (${cvWt.toFixed(1)} kg consumed)`, x.cover.paper],
