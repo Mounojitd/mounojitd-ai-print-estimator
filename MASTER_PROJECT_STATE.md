@@ -16,7 +16,7 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `2ebfaa1` (UI per sir: colour/plate/price + Type-of-binding boxes moved to the
+**Latest commit at save:** `dfa6bb7` (Cut sheet (on press) = required imaged size not press max; digital excluded from auto) (UI per sir: colour/plate/price + Type-of-binding boxes moved to the
 FRONT page; Production sizes split into two pictures — Inside/Text + Cover). Prior `dae2cd2` text cut-to-
 cheaper-press (L-32); `a00a7b1` finishing make-ready 10–50/op; `2d25cc4` real POST_PRESS rates.
 
