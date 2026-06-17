@@ -57,18 +57,25 @@ ties into #7/#9.
 
 ## 9. Make-Ready Calculation — 🟡 partial
 Printing make-ready is per-forme and kept separate from running waste (Good + Make-ready +
-Running = Total, with waste %). ⏳ separate setup-waste lines for coating / laminating /
-folding / binding — pending sir's make-ready quantities per operation.
+Running = Total, with waste %). ⏳ separate setup-WASTE-SHEET lines for coating / laminating /
+folding / binding. NOTE: sir's POST_PRESS_RATES sheet (2026-06-17) supplies the COST split
+(lot-minimum = setup, per-unit = running) but NOT the make-ready *waste-sheet counts* per
+operation — those are still needed to add finishing spoilage into paper consumption.
 
 ## 10. Paper Consumption Logic — ✅ core done
 Total = Good + Running waste + Make-ready (no double counting); parent-purchasing converts
 print sheets → parent sheets. ⏳ explicit machine-waste / process-waste lines (with #9).
 
-## 11. Costing Engine — 🟡 partial
-Material + per-forme running + lot/setup tiers for printing & plates; coating &
-embellishment with job minimums; binding ₹/book + minimum; packing/freight/overhead/
-margin/GST. ⏳ explicit Setup + Running + Material split for every process
-(folding, die-cutting, etc.) — pending sir's rate tables.
+## 11. Costing Engine — ✅ rates wired from real POST_PRESS master
+Real **POST_PRESS_RATES** master (sir's sheet, 80 vendor records) saved to
+`db/files/vendor_db/POST_PRESS_RATES_2026.xlsx` + `.csv`. Finishing now uses his actual
+numbers, structured as setup (lot minimum) + running (per-unit): lamination matt 0.45 /
+gloss 0.28 per sq.in; Full UV 0.30/min1000; gloss aqua 0.12/800; matt aqua 0.25/1000;
+varnish 0.10–0.12; drip-off 0.55/3500; Spot UV lot 1500 + ~1.3/pc; Foil lot 600 + ~1/pc
+(+ die ₹30/sq.in); Emboss lot 700 + 1.25/pc. **Binding ₹/book corrected to his data:**
+centre-stitch 3.5, section-sewn 4.32, section-sewn+perfect 6.75, perfect 9 (23–28 low qty),
+hardcase 95. ⏳ page/qty-scaled perfect-binding curve + folding/die-cut rates (data has them
+per-customer; need a canonical rule).
 
 ## 12. Coating Module — ✅ expanded
 Options: Matt/Gloss lam, BOPP, Gloss UV (full), **Matt UV**, Gloss/Matt aqueous,
@@ -97,8 +104,9 @@ hand numbers rather than relying on DB values alone.
 1. **Text-side cut-to-required-print-size** (12,000→6,000) + cutting diagram in the job card
    — need one full worked example: parent size, required print size, ups, forms, copies,
    make-ready, and the exact sheet + parent count expected.
-2. **Per-operation make-ready & setup/running cost split** (coating, folding, binding,
-   die-cutting) — need sir's make-ready quantities and setup/running rates per operation.
+2. **Per-operation make-ready WASTE SHEETS** (coating, folding, binding, die-cut) — the rate
+   COST split is now wired from his POST_PRESS master; still need the spoilage *sheet counts*
+   per operation to fold finishing waste into total paper consumption (#9/#10).
 3. **Grain-direction compatibility** in sheet selection — need sir's grain rule.
 4. **24pp / 32pp fold patterns** — need sir's hand-drawn forms (8/12/16pp already match).
 5. **Digital press click-rate card** — digital currently uses offset rates; need ₹/click table.

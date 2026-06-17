@@ -1184,15 +1184,19 @@ const COAT_SOURCES={
 function activeCoat(){ return (COAT_SOURCES[($("coatSrc")&&$("coatSrc").value)||"card"]||COAT_SOURCES.card).r; }
 // COVER EMBELLISHMENTS (NKK sir): coating + up to 3 combinable embellishments (foil/spot-UV/emboss/drip).
 // Charged on the cover's printed sheets (one cover layout's worth), per 100 sq.in with a job minimum.
-const EMBELLISH={none:{r:0,min:0,name:"None"},spotuv:{r:0.30,min:1000,name:"Spot UV"},raiseduv:{r:0.45,min:1500,name:"Raised / Textured UV"},foil:{r:0.60,min:1500,name:"Foil stamping"},emboss:{r:0.50,min:1500,name:"Embossing"},deboss:{r:0.50,min:1500,name:"Debossing"},texture:{r:0.40,min:1200,name:"Texture effect"},specialty:{r:0.70,min:2000,name:"Specialty finish"},drip:{r:0.55,min:3500,name:"Drip-off UV"}};
+// Embellishment defaults from POST_PRESS_RATES master: Spot UV lot ₹1200–1500 + ~₹1.3/pc; Foil charge lot
+// ₹600 + ~₹1/pc (+ foil die ₹30/sq.in one-time); Emboss lot ₹300–700 + ₹1.25/pc (≥1000).
+const EMBELLISH={none:{r:0,min:0,name:"None"},spotuv:{r:0.30,min:1500,name:"Spot UV"},raiseduv:{r:0.45,min:1500,name:"Raised / Textured UV"},foil:{r:0.60,min:600,name:"Foil stamping"},emboss:{r:0.50,min:700,name:"Embossing"},deboss:{r:0.50,min:700,name:"Debossing"},texture:{r:0.40,min:1200,name:"Texture effect"},specialty:{r:0.70,min:2000,name:"Specialty finish"},drip:{r:0.55,min:3500,name:"Drip-off UV"}};
 function coverEmbList(){ return ["coverEmb1","coverEmb2","coverEmb3"].map(id=>$(id)&&$(id).value||"none").filter(v=>v!=="none"); }
 function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cover printed sheets
   return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none; return {name:e.name, cost:Math.max(e.r*(area/100)*sheets, e.min)}; });
 }
 function setCoverColours(v){ if(!v)return; const p=v.split("+").map(Number); $("coverCf").value=p[0]; $("coverCb").value=p[1]; showPrice(); }
 // binding ₹/book + job minimum — real POST_PRESS rates (hardcase 95, perfect 9, section-sew+perfect 6.75, centre-stitch 3.5)
-// Binding ₹/book + job minimum (editable; real POST_PRESS defaults). Full type list per NKK sir's spec.
-const BINDING={none:[0,0],saddle:[3.5,500],side:[4,600],sewn:[6.75,3000],perfect:[9,1000],sewn_perfect:[14,3000],soft:[9,1000],case:[95,5000],wireo:[12,1000],spiral:[10,800],comb:[8,800],pad:[2,300],b2b:[5,800],other:[0,0]};
+// Binding ₹/book + job minimum (editable). Real defaults from POST_PRESS_RATES master (db/files/vendor_db,
+// N.C. Paper Binding / Nabamudran): centre-stitch 3.5, section-sewn 4.32, section-sewn+perfect 6.75,
+// perfect 9 (rises to 23–28 for low qty / high extent), hardcase 95.
+const BINDING={none:[0,0],saddle:[3.5,500],side:[4,600],sewn:[4.32,3000],perfect:[9,1000],sewn_perfect:[6.75,2000],soft:[9,1000],case:[95,5000],wireo:[12,1000],spiral:[10,800],comb:[8,800],pad:[2,300],b2b:[5,800],other:[0,0]};
 const BINDING_NAME={none:"None",saddle:"Saddle stitch",side:"Side stitch",sewn:"Section sewn",perfect:"Perfect binding",sewn_perfect:"Section sewn + Perfect",soft:"Soft cover book",case:"Hard case book",wireo:"Wire-O",spiral:"Spiral",comb:"Comb",pad:"Pad binding",b2b:"Back-to-back paste",other:"Other / custom"};
 // page-count multiple a binding needs: folded sections=4, leaf bindings=2, mechanical=1
 const BIND_MULT={none:4,saddle:4,sewn:4,sewn_perfect:4,side:2,perfect:2,soft:2,case:2,b2b:2,wireo:1,spiral:1,comb:1,pad:1,other:1};
