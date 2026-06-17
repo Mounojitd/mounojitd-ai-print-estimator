@@ -16,15 +16,16 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `9cd336c` (NKK sir review 2026-06-17: spine-driven binding + saddle-stitch
-limits, cover embellishments ×3 combinable, "Open size with bleed" rename). Prior: `b8afb94` 8pp S/S form
+**Latest commit at save:** `fe45ada` (cover machine-choice display: pick the press for the cover run,
+auto=cheapest, comparison table). Prior `9cd336c` (spine-driven binding + saddle-stitch limits, cover
+embellishments ×3 combinable, "Open size with bleed" rename). Prior: `b8afb94` 8pp S/S form
 to sir's swing-form (Front [[5,4],[8,1]], Back [[3,6],[2,7]]). 24/32pp patterns still pending sir's forms.
 
 **PENDING from sir's 2026-06-17 review (NOT yet built — need his exact numbers):** ① CUT-TO-REQUIRED-
 PRINT-SIZE — cut parent to the imposition bounding box (~18×20), not machine-max (31×21); he expects
 12,000→6,000 sheets (1→2 cuts/parent) + a cutting diagram in the job card. HIGH RISK (rewrites core paper
 purchasing) → need ONE full worked example (parent/print size/ups/forms/copies/MR + expected sheet & parent
-count) to build + node-verify. ② cover machine-choice (small vs big) shown for the cover run.
+count) to build + node-verify. (② cover machine-choice DONE in fe45ada.)
 
 **Full system audit (2026-06-17):** node-verified all of sir's canonical hand numbers (204pp/12pp=1,105;
 80pp gang-2; calendar 90000/8-up single-sided=11,913; weight 0.0929 kg/sheet; Anderson per-forme tiers;
