@@ -646,14 +646,22 @@ function applyMachineCut(base,m){
   if(machineFit(m,base.sw,base.sh)==="fits"&&m.col>=need) return base;     // press already fits → no cut
   const mp=maxPrint(m), cw=Math.floor(mp[0]), ch=Math.floor(mp[1]);
   if(cw<2||ch<2) return base;
+  // impose on the press MAX first (gives the most ups the press can carry in one pass)
   const r=computePaper(Object.assign({},LASTINP,{sizes:[[cw,ch]],rotate:true}));
   const co=r.options&&r.options[0];
   if(co&&co.ups>0){
-    co.cutFrom=`${base.sw}×${base.sh}`; co.cutTo=`${cw}×${ch}`; co.cutMachine=m.name;
-    // PARENT-SHEET PURCHASING (NKK sir Req6): you print on the CUT sheet (machine size) but you BUY the
-    // full PARENT sheet and cut it. Paper qty/weight/cost are on the parent, not the cut.
-    const pL=Math.max(base.sw,base.sh), pS=Math.min(base.sw,base.sh), cL=Math.max(cw,ch), cS=Math.min(cw,ch);
-    const perParent=Math.max(1, Math.floor(pL/cL)*Math.floor(pS/cS));   // cut sheets per parent
+    // CUT TO THE REQUIRED PRINT SIZE (NKK sir — "Cut sheet (on press)"): cut to the actual IMAGED area
+    // (cols×cell + gripper/side-lay/trim), NOT the press max. A smaller cut → more pieces per parent → less
+    // paper. Capped to press min..max; best of the two orientations is used for the parent yield.
+    const mm=LASTINP.margins, rup=v=>Math.ceil(v*2)/2;            // round up to 0.5 in
+    const minL=Math.max(...m.min), minS=Math.min(...m.min);
+    let cutL=Math.min(Math.max(rup(co.cols*co.cell_used_w + (2*mm.sidelay+2*mm.paperTrim)/MM), minL), Math.max(cw,ch));
+    let cutS=Math.min(Math.max(rup(co.rows*co.cell_used_h + (mm.gripper+mm.backside+2*mm.paperTrim)/MM), minS), Math.min(cw,ch));
+    co.cutFrom=`${base.sw}×${base.sh}`; co.cutTo=`${cutL}×${cutS}`; co.cutMachine=m.name;
+    // PARENT-SHEET PURCHASING (NKK sir Req6): print on the required-size CUT, BUY the parent. Pieces/parent
+    // takes the better orientation. Paper qty/weight/cost are on the parent.
+    const pL=Math.max(base.sw,base.sh), pS=Math.min(base.sw,base.sh);
+    const perParent=Math.max(1, Math.floor(pL/cutL)*Math.floor(pS/cutS), Math.floor(pL/cutS)*Math.floor(pS/cutL));
     const parentSheets=Math.ceil(co.total/perParent);
     const pWt=(base.sw*MM/1000)*(base.sh*MM/1000)*LASTINP.gsm/1000;
     co.cutsPerParent=perParent; co.parentTotal=parentSheets;
@@ -1168,7 +1176,10 @@ function renderMachine(o){
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4))), box=$("machine");
   // every press that can run this job WHOLE or via a CUT, cheapest total cost first (NKK sir's cut-to-save logic)
   const routes=MACHINES.map(m=>pressRoute(o,m,need)).filter(Boolean).sort((a,b)=>a.cost-b.cost);
-  if(MACHINE_MODE==="auto"&&!routes.length){
+  // DIGITAL excluded from AUTO pick (no plates + click-rate card pending → it looks artificially cheapest);
+  // it stays selectable in Manual. Auto ranks offset presses by total route cost.
+  const autoRoutes=routes.filter(r=>!r.m.digital);
+  if(MACHINE_MODE==="auto"&&!autoRoutes.length&&!routes.length){
     SELECTED_MACHINE=null;
     const biggest=MACHINES.slice().sort((a,b)=>Math.max(...b.max)-Math.max(...a.max))[0];
     box.innerHTML=`<div class="pbox" style="border-color:#f3c0a0;background:#fff5ef"><div class="ptitle" style="color:#b9770a">🖨 Machine</div>`+
@@ -1176,16 +1187,16 @@ function renderMachine(o){
       `Drop colours, pick a smaller sheet, or switch the press selection to Manual.</div>`;
     return;
   }
-  if(MACHINE_MODE==="auto"){ SELECTED_MACHINE=routes[0].m; }   // auto = always the cheapest total route
+  if(MACHINE_MODE==="auto"){ SELECTED_MACHINE=(autoRoutes[0]||routes[0]).m; }   // auto = cheapest offset route
   else if(!SELECTED_MACHINE) SELECTED_MACHINE=(routes[0]&&routes[0].m)||MACHINES[0];
   const m=SELECTED_MACHINE, mp=maxPrint(m);
   const selEff=applyMachineCut(o,m), hrs=(selEff&&selEff.ups?selEff.total:o.total)/m.speed;
   const mFit=machineFit(m,o.sw,o.sh), mBad=mFit==="too_small"||m.col<need;   // too_big is now OK (we cut)
   const img=Math.max(o.sw,o.sh), imgS=Math.min(o.sw,o.sh);
   const tightPrint = (mFit==="fits") && (img>mp[0]||imgS>mp[1]);
-  const list=(MACHINE_MODE==="manual")?MACHINES:routes.map(r=>r.m);          // manual: any press; auto: runnable routes
+  const list=(MACHINE_MODE==="manual")?MACHINES:autoRoutes.map(r=>r.m);       // manual: any press; auto: offset routes
   const opts=list.map(x=>`<option ${x===m?'selected':''}>${x.name}</option>`).join("");
-  const cheapest=routes[0];
+  const cheapest=autoRoutes[0]||routes[0];
   const routeFor=x=>routes.find(r=>r.m===x);
   // FULL machine master — every press, with whole/cut route, total cost, runnable ones clickable
   const rowsHtml=MACHINES.map(x=>{
