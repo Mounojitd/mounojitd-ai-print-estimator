@@ -1269,18 +1269,22 @@ function coverPlan(){
     W:coverW, H:coverH, gsm:num("coverGsm",300), setup:Math.round(num("coverSetup",150)),separateCover:false,
     sides:Math.max(1,(Math.round(num("coverCf",4))>0?1:0)+(Math.round(num("coverCb",4))>0?1:0))});
   const r=computePaper(inp), need=Math.max(Math.round(num("coverCf",4)),Math.round(num("coverCb",4)));
-  const o=r.options.filter(x=>x.ups&&machinesFor(x.sw,x.sh,need).length).sort((a,b)=>a.waste-b.waste||a.total-b.total)[0];
   const meta={coverW:+coverW.toFixed(2),coverH:+coverH.toFixed(2),spineIn:+spineIn.toFixed(2),spineMM:LASTINP.spineMM,pageW:W,pageH:H,portrait};
-  if(o) Object.assign(o,meta);
-  if(!o)return {result:r,option:null,machine:null,meta,fits:[]};
-  // COVER MACHINE (NKK sir): show & let user pick the press for the COVER run. Default = CHEAPEST runnable
-  // (small machine often saves paper/plate/print on a short cover run), not just the fastest.
-  const fits=machinesFor(o.sw,o.sh,need);
-  let machine;
-  if(COVER_MACHINE_MODE==="manual" && COVER_MANUAL_PICK && fits.includes(COVER_MANUAL_PICK)) machine=COVER_MANUAL_PICK;
-  else machine=fits.slice().sort((a,b)=>coverPressCost(o,a)-coverPressCost(o,b))[0]||fits[0];
+  const usable=r.options.filter(x=>x.ups&&machinesFor(x.sw,x.sh,need).length);
+  if(!usable.length) return {result:r,option:null,machine:null,meta,fits:[]};
+  // COVER = cheapest SHEET × PRESS combo (NKK sir: a SMALLER sheet on a small-band press like Komori L-32
+  // beats a big sheet on a big press — lower plate ₹475 + lot ₹1500). Rank each press by its cheapest cover
+  // sheet's full cost (paper + print + plates), not just the fastest press on the lowest-waste sheet.
+  const bestSheetFor=m=>{ let b=null; for(const x of usable){ if(machineFit(m,x.sw,x.sh)!=="fits"||m.col<need) continue;
+      const c=coverPressCost(x,m)+coverRateFor(x.sw,x.sh)*x.total; if(!b||c<b.cost) b={opt:x,cost:c}; } return b; };
+  const pressBest=MACHINES.map(m=>({m,b:bestSheetFor(m)})).filter(p=>p.b).sort((a,b)=>a.b.cost-b.b.cost);
+  if(!pressBest.length) return {result:r,option:null,machine:null,meta,fits:[]};
+  let pick=(COVER_MACHINE_MODE==="manual"&&COVER_MANUAL_PICK)?pressBest.find(p=>p.m===COVER_MANUAL_PICK):null;
+  if(!pick) pick=pressBest[0];
+  const o=pick.b.opt, machine=pick.m;
+  Object.assign(o,meta);
   COVER_MACHINE=machine;
-  return {result:r,option:o,machine,meta,fits};
+  return {result:r,option:o,machine,meta,fits:pressBest};   // fits = [{m,b:{opt,cost}}] cheapest-first
 }
 let COVER_MACHINE_MODE="auto", COVER_MACHINE=null, COVER_MANUAL_PICK=null;
 function coverPressCost(o,m){ try{
@@ -1293,18 +1297,19 @@ function selectCoverMachine(name){ COVER_MANUAL_PICK=MACHINES.find(m=>m.name===n
 // Cover-machine comparison box (NKK sir: which machine prints the cover — small vs big changes cost).
 function coverMachineHTML(cp){
   if(!cp||!cp.option||!cp.fits||!cp.fits.length) return "";
-  const o=cp.option, sel=cp.machine, fits=cp.fits.slice();
-  const costed=fits.map(m=>({m,c:coverPressCost(o,m),hrs:o.total/m.speed})).sort((a,b)=>a.c-b.c);
-  const cheapest=costed[0]&&costed[0].m;
-  const opts=fits.map(m=>`<option ${m===sel?"selected":""}>${m.name}</option>`).join("");
-  const rows=costed.map(({m,c,hrs})=>`<tr ${m===sel?'class="best"':''} data-click onclick="selectCoverMachine('${m.name.replace(/'/g,"\\'")}')" style="cursor:pointer">`+
-    `<td>${m.name}${m.digital?'<span class="pill" style="background:#7c3aed">DIGITAL</span>':''}${m===cheapest?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${m===sel?'<span class="pill">SELECTED</span>':''}</td>`+
-    `<td>${machineBand(m)}</td><td>${m.max[0]}×${m.max[1]}</td><td>~${hrs.toFixed(1)}h</td><td style="text-align:right">₹${Math.round(c).toLocaleString("en-IN")}</td></tr>`).join("");
-  return `<details class="pbox" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">🖨 Cover press — ${o.sw}×${o.sh} on <b>${sel?sel.name:"—"}</b> (${sel?machineBand(sel):""}) · click to compare</summary>`+
+  const sel=cp.machine, ranked=cp.fits;                 // [{m,b:{opt,cost}}] cheapest-first
+  const cheapest=ranked[0]&&ranked[0].m;
+  const opts=ranked.map(p=>`<option ${p.m===sel?"selected":""}>${p.m.name}</option>`).join("");
+  const rows=ranked.map(({m,b})=>{ const x=b.opt, hrs=x.total/m.speed;
+    return `<tr ${m===sel?'class="best"':''} data-click onclick="selectCoverMachine('${m.name.replace(/'/g,"\\'")}')" style="cursor:pointer">`+
+      `<td>${m.name}${m.digital?'<span class="pill" style="background:#7c3aed">DIGITAL</span>':''}${m===cheapest?'<span class="pill" style="background:#1c7a52">CHEAPEST</span>':''}${m===sel?'<span class="pill">SELECTED</span>':''}</td>`+
+      `<td>${machineBand(m)}</td><td>${x.sw}×${x.sh}</td><td>~${hrs.toFixed(1)}h</td><td style="text-align:right">₹${Math.round(b.cost).toLocaleString("en-IN")}</td></tr>`;
+  }).join("");
+  return `<details class="pbox" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">🖨 Cover press — <b>${sel?sel.name:"—"}</b> (${sel?machineBand(sel):""}) on ${cp.option.sw}×${cp.option.sh} · click to compare</summary>`+
     `<div class="prow" style="margin-top:8px"><span><label>Cover press</label><select onchange="setCoverMachineMode(this.value)"><option value="auto" ${COVER_MACHINE_MODE==="auto"?"selected":""}>Auto (cheapest)</option><option value="manual" ${COVER_MACHINE_MODE==="manual"?"selected":""}>Manual</option></select></span>`+
     `<span style="flex:2"><label>Selected cover press</label><select onchange="selectCoverMachine(this.value)" ${COVER_MACHINE_MODE==="auto"?"disabled":""}>${opts}</select></span></div>`+
-    `<table style="font-size:12px;margin-top:4px"><thead><tr><th>Press</th><th>Band</th><th>Max paper</th><th>Run</th><th style="text-align:right">Print+plates</th></tr></thead><tbody>${rows}</tbody></table>`+
-    `<div style="font-size:11px;color:#6b7480;margin-top:6px">Cover printed on the parent ${o.sw}×${o.sh}. A smaller press is often cheaper for the short cover run (lower plate + print cost). Auto picks the cheapest runnable; switch to Manual to choose.</div></details>`;
+    `<table style="font-size:12px;margin-top:4px"><thead><tr><th>Press</th><th>Band</th><th>Best cover sheet</th><th>Run</th><th style="text-align:right">Cover cost (paper+print+plates)</th></tr></thead><tbody>${rows}</tbody></table>`+
+    `<div style="font-size:11px;color:#6b7480;margin-top:6px">Each press shows its cheapest cover sheet. A small-band press (e.g. Komori L-32) on a smaller sheet is usually cheapest for the short cover run (lower plate ₹475 + lot ₹1,500). Auto picks the cheapest; switch to Manual to choose.</div></details>`;
 }
 function combinedPrice(){
   const p=currentPriceParams(), textP=Object.assign({},p), cp=coverPlan();
