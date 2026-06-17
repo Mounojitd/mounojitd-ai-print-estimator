@@ -16,7 +16,13 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `4b35cbb` (arrows on all fold sizes; 24/32pp patterns pending sir's forms).
+**Latest commit at save:** `b8afb94` (8pp S/S form imposition updated to sir's 2026-06-17 hand-drawn
+swing form: Front [[5,4],[8,1]], Back [[3,6],[2,7]]; arrows already matched. 24/32pp patterns still pending sir's forms).
+
+**Full system audit (2026-06-17):** node-verified all of sir's canonical hand numbers (204pp/12pp=1,105;
+80pp gang-2; calendar 90000/8-up single-sided=11,913; weight 0.0929 kg/sheet; Anderson per-forme tiers;
+plates) + a full real-world priced job — 29/29 checks pass. App loads in-browser with no console errors.
+No engine bugs found. Only the 8pp page-layout (not arrows) differed from sir's new drawing → fixed above.
 
 **Workflow:** NKK sir sends WhatsApp audio transcripts (Bengali/Hindi) + hand-drawn PDFs, reviews the LIVE
 app, finds real bugs. Match his hand numbers exactly. Decode → fix → node-verify → publish → he refreshes.
