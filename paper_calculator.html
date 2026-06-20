@@ -1020,10 +1020,14 @@ function marginDiagramSVG(o,job){
 function cutDiagramSVG(o){
   if(!o||!o.cutMachine||!o.cutTo) return "";
   const pL=Math.max(o.paperSheetW,o.paperSheetH), pS=Math.min(o.paperSheetW,o.paperSheetH);
-  const cc=o.cutTo.split(/[×x]/).map(s=>parseFloat(s)); const cL=Math.max(cc[0],cc[1]), cS=Math.min(cc[0],cc[1]);
-  if(!(pL>0&&pS>0&&cL>0&&cS>0)) return "";
-  const cols=Math.max(1,Math.floor(pL/cL)), rows=Math.max(1,Math.floor(pS/cS)), per=cols*rows;
-  const W=300, sc=W/pL, H=Math.round(pS*sc), L=v=>v.toFixed(1), cw=cL*sc, ch=cS*sc;
+  const cc=o.cutTo.split(/[×x]/).map(s=>parseFloat(s)); const cA=Math.max(cc[0],cc[1]), cB=Math.min(cc[0],cc[1]);
+  if(!(pL>0&&pS>0&&cA>0&&cB>0)) return "";
+  // tile in the orientation that yields the MOST pieces (matches o.cutsPerParent) — fixes wrong-direction diagram
+  const o1=Math.floor(pL/cA)*Math.floor(pS/cB), o2=Math.floor(pL/cB)*Math.floor(pS/cA);
+  const rot = o2>o1;                                   // rotated piece fits more per parent
+  const pieceL = rot?cB:cA, pieceS = rot?cA:cB;        // piece long-edge along the parent long-edge
+  const cols=Math.max(1,Math.floor(pL/pieceL)), rows=Math.max(1,Math.floor(pS/pieceS)), per=cols*rows;
+  const W=300, sc=W/pL, H=Math.round(pS*sc), L=v=>v.toFixed(1), cw=pieceL*sc, ch=pieceS*sc, cL=cA, cS=cB;
   let s=`<svg viewBox="0 0 ${W} ${H+40}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H+40}" fill="#fff"/>`;
   // trim area first (whole parent grey), then place the cut pieces on top
   s+=`<rect x="0.5" y="0.5" width="${L(W-1)}" height="${L(H-1)}" fill="#f0ebe3" stroke="#13314f" stroke-width="1.5"/>`;
