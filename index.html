@@ -1337,6 +1337,23 @@ function sideCost(src,band,cols,sheets){ if(cols<=0)return 0;
   if(sheets<=src.lotQty) return src.lot4*scale;
   const per=src.tiers[0].r;
   return src.lot4*scale + scale*per*((sheets-src.lotQty)/1000); }
+// PER-MACHINE rate cards from NKK sir's PRINTING_RATE_CARD (each press its own lot + per-1000 tiers + plate/
+// colour). 4-colour rates scaled by cols/4. lot covers ≤lotQty, then per-1000 on the SUBSEQUENT thousands.
+const PRESS_RATES={
+  M001:{lotQty:3000,lot4:2200,tiers:[{upTo:10000,r:720},{upTo:Infinity,r:640}],plate:550},  // Heidelberg-102
+  M002:{lotQty:3000,lot4:1400,tiers:[{upTo:Infinity,r:460}],plate:450},                       // MAN Roland R-200
+  M003:{lotQty:3000,lot4:600, tiers:[{upTo:Infinity,r:460}],plate:550},                       // Parva (2-col)
+  M004:{lotQty:3000,lot4:2200,tiers:[{upTo:10000,r:800},{upTo:Infinity,r:720}],plate:550},   // Planeta
+  M005:{lotQty:2000,lot4:2700,tiers:[{upTo:Infinity,r:460}],plate:400},                       // Komori L-40
+  M006:{lotQty:2000,lot4:2400,tiers:[{upTo:Infinity,r:360}],plate:400},                       // Komori L-32
+  M007:{lotQty:2000,lot4:1400,tiers:[{upTo:Infinity,r:640}],plate:400},                       // Florence Komori
+  M008:{lotQty:2000,lot4:600, tiers:[{upTo:Infinity,r:350}],plate:400}                        // Dyre (single)
+};
+function pressSideCost(card,cols,sheets){ if(cols<=0)return 0;
+  const scale=cols/4, lot=card.lot4*scale;
+  if(sheets<=card.lotQty) return lot;
+  const tier=card.tiers.find(t=>sheets<=t.upTo)||card.tiers[card.tiers.length-1];
+  return lot + scale*tier.r*((sheets-card.lotQty)/1000); }
 function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
   const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
@@ -1346,11 +1363,16 @@ function priceJob(o,p,machine){
   // lot/minimum. Ganged forms share a layout (and its plates), so the cut part is not double-charged.
   const formeRun=Math.max(1,Math.round(sheets/sigs));            // sheets passing the press per forme
   const fFront=p.cf>0?sigs:0, fBack=p.cb>0?sigs:0, formes=fFront+fBack;
-  const printing=fFront*sideCost(src,band,p.cf,formeRun)+fBack*sideCost(src,band,p.cb,formeRun);
+  // PER-MACHINE rate card (NKK sir: printing cost depends on the SELECTED machine) — falls back to the
+  // band/source rates when the selected press has no card (or none selected / digital).
+  const card=(press&&!press.digital)?PRESS_RATES[press.id]:null;
+  const printing = card
+    ? fFront*pressSideCost(card,p.cf,formeRun)+fBack*pressSideCost(card,p.cb,formeRun)
+    : fFront*sideCost(src,band,p.cf,formeRun)+fBack*sideCost(src,band,p.cb,formeRun);
   const work=p.work||"back";
   const platesPerForme=(work==="back")?(Math.max(0,p.cf)+Math.max(0,p.cb)):Math.max(Math.max(0,p.cf),Math.max(0,p.cb));
   const plateCount=(press&&press.digital)?0:platesPerForme*sigs;   // plates per printed layout; digital = none
-  const plates=plateCount*plateRate(src,band);
+  const plates=plateCount*(card?card.plate:plateRate(src,band));
   const impressions=formes*formeRun;
   const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
   const coatSheets = (p.coatArea==="cover") ? Math.round(sheets/sigs) : sheets;   // cover = one signature's sheets
