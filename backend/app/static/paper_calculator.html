@@ -285,7 +285,7 @@
         </div>
         <div class="prow">
           <span><label>Margin %</label><input id="margin" type="number" value="28" oninput="showPrice()" /></span>
-          <span><label>Overhead %</label><input id="overhead" type="number" value="12" oninput="showPrice()" /></span>
+          <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
           <span></span>
         </div>
@@ -976,7 +976,9 @@ function sizesTable(o){
     r("— Cover finished", `${m.pageW} × ${m.pageH} in`);
     r("— Cover open (F+spine+B)", `${m.coverW} × ${m.coverH} in`);
     r("— Spine width", `${m.spineMM} mm`);
-    if(cp.option) r("— Cover parent sheet", `${cp.option.sw} × ${cp.option.sh} in`); } }
+    if(cp.option){ const co=cp.option;
+      if(co.cutMachine) r("— Cover cut sheet (on press)", `${co.cutTo} in`);
+      r("— Cover parent sheet (buy)", `${co.paperSheetW} × ${co.paperSheetH} in${co.cutsPerParent>1?` (${co.cutsPerParent}/parent)`:""}`); } } }
   return `<table style="font-size:12px;width:100%">${rows.join("")}</table>`;
 }
 // nested production diagram: parent sheet → gripper/side-lay → print area → finished page (bleed/trim/fold)
@@ -1295,16 +1297,18 @@ function bindingCheck(inp){
 function refreshMachineAndPrice(){ if(RESULT){run();return;} if(CHOSEN)renderMachine(CHOSEN); showPrice(); }   // sides affect per-forme paper → recompute
 function setColours(v){ if(!v)return; const p=v.split("+").map(Number); $("cf").value=p[0]; $("cb").value=p[1]; refreshMachineAndPrice(); }
 function sizeBand(w,h){const lo=Math.max(w,h),sh=Math.min(w,h);return (lo>=34&&sh>=22)?"big":"small";}
+// NKK sir: minimum/lot covers 1–3000 (flat — same for 1000 or 2000), then ONE per-1000 rate for the
+// SUBSEQUENT thousands above 3000 (no second tier). Charge = lot + subsequent.
 function sideCost(src,band,cols,sheets){ if(cols<=0)return 0;
-  if(src.mode==="band"){ const t=PRINT[band];
-    if(sheets<=3000) return (t[cols]||t[4]).lot;
-    if(band==="small") return cols*(sheets/1000)*t.per1000;
-    const s=t[cols]||t[4]; return cols*(sheets/1000)*(sheets<=10000?s.a:s.b); }
-  // flat single-press source: 4-col rates scaled by cols/4
+  if(src.mode==="band"){ const t=PRINT[band], lot=(t[cols]||t[4]).lot;
+    if(sheets<=3000) return lot;
+    const per = band==="small" ? t.per1000 : (t[cols]||t[4]).a;          // single subsequent per-1000 rate
+    return lot + cols*((sheets-3000)/1000)*per; }
+  // flat single-press source: 4-col rates scaled by cols/4 — lot covers lotQty, then one subsequent rate
   const scale=cols/4;
   if(sheets<=src.lotQty) return src.lot4*scale;
-  const tier=src.tiers.find(t=>sheets<=t.upTo)||src.tiers[src.tiers.length-1];
-  return scale*tier.r*(sheets/1000); }
+  const per=src.tiers[0].r;
+  return src.lot4*scale + scale*per*((sheets-src.lotQty)/1000); }
 function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
   const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
@@ -1334,7 +1338,7 @@ function currentPriceParams(){
   return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
           coatArea:($("coatArea")?$("coatArea").value:"cover"),paperRate:num("paperRate",0),
           work:($("workStyle")?$("workStyle").value:"back"),
-          margin:num("margin",28),overheadPct:num("overhead",12),gst:num("gst",0),books:LASTINP?LASTINP.copies:1,
+          margin:num("margin",28),overheadPct:num("overhead",0),gst:num("gst",0),books:LASTINP?LASTINP.copies:1,
           binding:LASTINP&&LASTINP.isSig?$("binding").value:"none",bindingRate:num("bindingRate",0),bindingMin:num("bindingMin",0)};
 }
 function coverPlan(){
