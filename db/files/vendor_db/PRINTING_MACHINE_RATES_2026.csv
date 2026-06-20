@@ -1,0 +1,34 @@
+Rate_Record_ID,Vendor_ID,Vendor_Name,Machine_Name,Machine_Type,Max_Sheet_Size_Name,inXin,Max_Sheet_Length_MM,Max_Sheet_Width_MM,Color_Capability,Machine_Speed_IPH,Pricing_Model,upto Qty,Rate_Sheet_Size,Rate_Single Color(One Side),Rate_4_Color(One Side) big machine,Rate_4_Color(One Side) small machine,Qty_Break_1_Min,Qty_Break_1_Rate,Qty_Break_2_Min,Qty_Break_2_Rate,Plate_Charge_Per_Color(Small Machine),Plate_Charge_Per_Color(Big Machine,Lead_Time_Days,Active
+PR001,VEN010,NABAMUDRAN PVT LTD,HEIDELBERG-102,Offset Sheet-Fed,B1 Format,28X40,711,1016,4 COL,9000,Per Impression,3000,SRA2,0,2200,0,216,1500,5000,432,0,550,2,Yes
+PR002,VEN010,NABAMUDRAN PVT LTD,HEIDELBERG-102,Offset Sheet-Fed,B1 Format,28X40,711,1016,4 COL,9000,Per Impression,3001-10000,SRA2,0,720/1000,,,,,,,,2,Yes
+PR003,VEN010,NABAMUDRAN PVT LTD,HEIDELBERG-102,Offset Sheet-Fed,B1 Format,28X40,711,1016,4 COL,9000,Per Impression,10000+,SRA2,0,640/1000,,,,,,,,2,Yes
+PR004,VEN010,NABAMUDRAN PVT LTD,MAN ROLAND R-200,Offset Sheet-Fed,B2 Format,20X30,508,762,5 COL,8000,Per Impression,3000,A3,0,0,1400,150,1300,5000,300,450,0,2,Yes
+PR005,VEN010,NABAMUDRAN PVT LTD,MAN ROLAND R-200,Offset Sheet-Fed,B2 Format,20X30,508,762,5 COL,8000,Per Impression,3001+,A3,0,0,460/1000,150,1300,5000,300,450,0,2,Yes
+PR006,VEN010,NABAMUDRAN PVT LTD,MAN ROLAND R-200,Offset Sheet-Fed,B2 Format,20X30,508,762,5 COL,8000,Per Impression,10000+,A3,0,0,460/1000,150,1300,5000,300,0,0,,
+PR007,VEN010,NABAMUDRAN PVT LTD,MAN ROLAND PARVA,Offset Sheet-Fed,B1 Format,25X36,635,914,2 COL,7000,Per Impression,3000,SRA3,600,0,0,150,1300,5000,300,0,550,1,Yes
+PR008,VEN010,NABAMUDRAN PVT LTD,PLANETA SUPPER VARRIANT,Offset Sheet-Fed,B1 Format,28X40,711,1016,4 COL,7000,Per Impression,3001-10000,SRA3,0,800/1000,0,150,1300,5000,300,0,,1,Yes
+PR009,VEN010,NABAMUDRAN PVT LTD,PLANETA SUPPER VARRIANT,Offset Sheet-Fed,B1 Format,28X40,711,1016,4COL,7000,Per Impression,10000+,SRA3,0,720/1000,0,150,1300,5000,300,0,,1,Yes
+PR010,VEN011,BALAJI PRINTING SOLUTION,KOMORI L-40,Offset Sheet-Fed,B1 Format,20x30,508,762,4 COL,15000,Per Impression,2000,SRA4,0,2700,0,150,1300,5000,300,0,400,1,Yes
+PR011,VEN011,BALAJI PRINTING SOLUTION,KOMORI L-40,Offset Sheet-Fed,B1 Format,20x30,508,762,4 COL,15000,per Impression,2001,,,460/1000,0,150,1300,5000,300,0,400,1,Yes
+PR012,VEN011,BALAJI PRINTING SOLUTION,KOMORI L-32,Offset Sheet-Fed,B2+ Format,19x25,483,635,4 COL,13000,Per Impression,2000,SRA5,0,2400,0,150,1300,5000,300,0,400,1,Yes
+PR013,VEN011,BALAJI PRINTING SOLUTION,KOMORI L-32,Offset Sheet-Fed,B2+ Format,19x25,483,635,4 COL,13000,Per Impression,2001,SRA6,0,360/1000,0,150,1300,5000,300,0,400,1,Yes
+PR014,VEN012,FLORENCE OFFSET PVT LTD,KOMORI,Offset Sheet-Fed,B2+ Format,18x25,457,635,4 COL,13000,Per Impression,2000,SRA6,0,0,0,150,1300,5000,300,0,0,1,Yes
+PR015,VEN012,FLORENCE OFFSET PVT LTD,KOMORI,Offset Sheet-Fed,B2+ Format,18x25,457,635,4 COL,13000,Per Impression,2000+,SRA6,0,640/1000,0,150,1300,5000,300,0,0,1,Yes
+PR016,VEN012,FLORENCE OFFSET PVT LTD,DYRE,Offset Sheet-Fed,B2+ Format,25X36,635,915,SINGLE,13000,Per Impression,2000,SRA6,0,0,0,150,1300,5000,300,0,0,1,Yes
+PR017,VEN012,FLORENCE OFFSET PVT LTD,DYRE,Offset Sheet-Fed,B2+ Format,25X36,635,915,SINGLE,13000,Per Impression,2000+,SRA6,350/1000,0,0,150,1300,5000,300,0,0,1,Yes
+,18x29,450,r-200,,,,,,,,,,,,,,,,,,,,,
+,23x36,550,,,,,,,,,,,,,,,,,,,,,,
+,,,0.7252,,,4400 NABAMUDRAN,,,,,,,,,,,,,,,,,,
+,,,,,,3200 NABMUDRA,,,20X30,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,432,,,,,,,
+,,,,,,2400,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,22.64516129,,,,,,,,,,,,,
+,,,,,,,,,,,1718.28,,,,,,,,,,,,,
+,,,,,,balaji,,,,,22337.64,,,,,,,,,,,,,
+,,,,,,2400,,,20X30,,23837.64,,,,,,,,,,,,,
+,,,,,,2700,,,22X32,,4290.7752,,,,,,,,,,,,,
+,,18x29,450,r-250,,,,,,,,,,,,,,,,,,,,
+,,23x36,550,,,,,,,,,,,,,,,,,,,,,
+,,,1400,mimium charges,upto 3000,short machine,,1400,,,,,,,,,,,,,,,,
+,,,600,mimium charges,,,,,,,,,,,,,,,,,,,,
+,,,2200,big machine,,,,,,,,,,,,,,,,,,,,
