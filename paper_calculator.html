@@ -294,7 +294,7 @@
         <div class="ptitle">📑 Type of binding &amp; finishing</div>
         <div class="prow" id="bindingFields">
           <span><label>Type of binding (spine recommends)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="side">Side stitch</option><option value="sewn">Section sewn</option><option value="perfect">Perfect binding</option><option value="sewn_perfect">Section sewn + Perfect</option><option value="soft">Soft cover book</option><option value="case">Hard case book</option><option value="wireo">Wire-O</option><option value="spiral">Spiral</option><option value="comb">Comb</option><option value="pad">Pad binding</option><option value="b2b">Back-to-back paste</option><option value="other">Other / custom</option></select></span>
-          <span><label>Binding ₹/book</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="showPrice()" /></span>
+          <span><label>Binding ₹/book (auto by pages·qty)</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="bindingRateEdited=true;showPrice()" /></span>
           <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
           <span><label>Finishing make-ready (sheets/op)</label><input id="finishMR" type="number" value="25" min="10" max="50" oninput="showPrice()" /><div class="hint">Per op (coating/fold/bind/embellish); sir: 10 min, 40–50 max</div></span>
         </div>
@@ -590,8 +590,9 @@ function run(){
   const spineAuto=+((inp.pages/2)*inp.caliper).toFixed(1);
   inp.spineMM = (spineEdited && num("spineMM",NaN)>=0 && $("spineMM").value!=="") ? num("spineMM",spineAuto) : spineAuto;
   if(!spineEdited) $("spineMM").value=inp.spineMM;
-  // BINDING (NKK sir): auto-pick by spine unless user overrode; then check saddle-stitch limits.
+  // BINDING (NKK sir): auto-pick by spine unless user overrode; rate auto by pages·qty; check saddle limits.
   if(booklet){ autoBindingBySpine(inp.spineMM); inp.binding=$("binding").value;
+    if(!bindingRateEdited) $("bindingRate").value=bindingRateFor(inp.binding,inp.pages,inp.copies);
     const bc=bindingCheck(inp); if($("bindingWarn")) $("bindingWarn").innerHTML=bc.html; }
   else if($("bindingWarn")) $("bindingWarn").innerHTML="";
   LASTINP=inp;
@@ -1279,7 +1280,28 @@ const BINDING={none:[0,0],saddle:[3.5,500],side:[4,600],sewn:[4.32,3000],perfect
 const BINDING_NAME={none:"None",saddle:"Saddle stitch",side:"Side stitch",sewn:"Section sewn",perfect:"Perfect binding",sewn_perfect:"Section sewn + Perfect",soft:"Soft cover book",case:"Hard case book",wireo:"Wire-O",spiral:"Spiral",comb:"Comb",pad:"Pad binding",b2b:"Back-to-back paste",other:"Other / custom"};
 // page-count multiple a binding needs: folded sections=4, leaf bindings=2, mechanical=1
 const BIND_MULT={none:4,saddle:4,sewn:4,sewn_perfect:4,side:2,perfect:2,soft:2,case:2,b2b:2,wireo:1,spiral:1,comb:1,pad:1,other:1};
-function setBinding(v){ const x=BINDING[v]||BINDING.none; $("bindingRate").value=x[0]; $("bindingMin").value=x[1]; if(RESULT)run(); else showPrice(); }
+// Real binding ₹/book SAMPLE quotes from N.C. Paper Binding Works (POST_PRESS master) — rate depends on
+// PAGES (C+N) and QUANTITY (NKK sir). Lookup picks the nearest sample by pages, then quantity.
+const BINDING_SAMPLES={
+  case:[{pp:232,qty:50,r:95}],
+  perfect:[{pp:56,qty:400,r:28},{pp:76,qty:2000,r:9},{pp:204,qty:500,r:23}],
+  soft:[{pp:56,qty:400,r:28},{pp:76,qty:2000,r:9},{pp:204,qty:500,r:23}],
+  saddle:[{pp:24,qty:5000,r:3.5}],
+  side:[{pp:24,qty:5000,r:3.5}],
+  sewn:[{pp:160,qty:2000,r:4.32}],
+  sewn_perfect:[{pp:144,qty:2000,r:6.75}]
+};
+function bindingRateFor(type,pp,qty){
+  const s=BINDING_SAMPLES[type]; if(!s||!s.length) return (BINDING[type]||BINDING.none)[0];
+  // nearest by pages (primary), then quantity (secondary)
+  const best=s.slice().sort((a,b)=> (Math.abs(a.pp-pp)-Math.abs(b.pp-pp)) || (Math.abs(a.qty-qty)-Math.abs(b.qty-qty)) )[0];
+  return best.r;
+}
+let bindingRateEdited=false;
+function setBinding(v){ const x=BINDING[v]||BINDING.none;
+  const pp=LASTINP?LASTINP.pages:Math.round(num("pages",0)), qty=LASTINP?LASTINP.copies:Math.round(num("copies",1));
+  $("bindingRate").value=bindingRateFor(v,pp,qty); $("bindingMin").value=x[1]; bindingRateEdited=false;
+  if(RESULT)run(); else showPrice(); }
 // SPINE-DRIVEN recommendation (NKK sir's rules — RECOMMEND, never silently assume; user can override):
 //   spine ≤ 2.5mm → Saddle stitch · spine > 3mm → warn (Section sewn / Perfect) · spine > 4.5mm → error+override.
 function autoBindingBySpine(spineMM){
