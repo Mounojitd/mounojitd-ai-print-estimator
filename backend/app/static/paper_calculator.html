@@ -23,7 +23,8 @@
       radial-gradient(120% 140% at 92% -20%,rgba(184,134,47,.30),transparent 55%),
       linear-gradient(120deg,#0e2740 0%,#13314f 45%,#1f5286 120%);
     color:#fff;padding:0;border-bottom:3px solid var(--accent);box-shadow:var(--shadow)}
-  .masthead{max-width:1140px;margin:0 auto;padding:22px 24px;display:flex;align-items:center;gap:16px}
+  .masthead{max-width:1140px;margin:0 auto;padding:22px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .masthead>div{min-width:0}                              /* title block shrinks instead of forcing page width */
   .brandmark{width:46px;height:46px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
     font-size:24px;background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.04));
     border:1px solid rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
@@ -36,6 +37,7 @@
   .wrap{max-width:1140px;margin:0 auto;padding:22px 24px}
   .grid{display:grid;grid-template-columns:392px 1fr;gap:22px;align-items:start}
   @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  @media(max-width:600px){.masthead{gap:10px;padding:16px 16px}.tagchip{margin-left:0;order:3}.wrap{padding:16px 14px}.card{padding:16px}header h1{font-size:18px}}
   .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
 
   h2{font-size:11px;text-transform:uppercase;letter-spacing:.9px;color:var(--brand2);font-weight:700;
@@ -45,7 +47,7 @@
 
   label{display:block;font-size:11.5px;font-weight:600;color:#46505e;margin-bottom:5px;letter-spacing:.1px}
   .fld{margin-bottom:12px}
-  input,select{width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;
+  input,select{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;
     background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
   input::placeholder{color:#aab2bd}
   input:hover,select:hover{border-color:#c4ccd6}
@@ -57,6 +59,8 @@
     background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
   .row{display:grid;grid-template-columns:1fr 1fr;gap:11px}
   .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+  .row>*,.row3>*,.prow>span{min-width:0}                 /* let grid/flex cells shrink — no page-wide scroll */
+  .pbox{overflow-x:auto}                                  /* wide result tables scroll inside their box, not the page */
   .hint{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45}
 
   .chips{display:flex;flex-wrap:wrap;gap:8px}
@@ -1552,9 +1556,9 @@ function showPrice(){
   } else {
     rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.formes} formes × ~${q.formeRun.toLocaleString("en-IN")} sheets)`,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
   }
-  if(x.binding)rows.push([`${$("binding").selectedOptions[0].text} binding`,x.binding]);
+  if(x.binding)rows.push([`Binding — ${$("binding").selectedOptions[0].text}`,x.binding]);
   if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets)`,x.fmr.cost]);
-  rows.push(["Packing",q.packing],["Freight",q.freight],["Overhead (12%)",q.overhead]);
+  rows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
   rows.forEach(([k,v])=>h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
   h+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
@@ -1692,7 +1696,7 @@ function printJobSheet(){
   if(!CHOSEN||!LASTINP||!printablePlanReady())return;
   const x=combinedPrice(),p=x.p,q=x.q,m=quoteMeta();
   const costs=[["Paper",q.paper],["Printing",q.printing],["Plates",q.plates],["Coating",q.lam],["Packing",q.packing],["Freight",q.freight],
-    ["Overhead (12%)",q.overhead],["Production",q.prod],["Margin ("+p.margin+"%)",q.margin],["Pre-tax",q.pretax],["GST ("+p.gst+"%)",q.gst],["Grand total",q.grand]];
+    ["Overhead ("+(p.overheadPct||0)+"%)",q.overhead],["Production",q.prod],["Margin ("+p.margin+"%)",q.margin],["Pre-tax",q.pretax],["GST ("+p.gst+"%)",q.gst],["Grand total",q.grand]];
   if(x.binding)costs.splice(4,0,[$("binding").selectedOptions[0].text+" binding",x.binding]);
   const body=docHeader("INTERNAL JOB SHEET",m)+`<div class="box"><b>Customer:</b> ${esc(m.customer)} &nbsp; <b>Job:</b> ${esc(LASTINP.product_name||"Untitled job")}</div>
     <div class="cols"><div><h2>Production specification</h2>${specsTable(p,q,true)}</div>
