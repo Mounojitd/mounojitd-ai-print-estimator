@@ -415,9 +415,9 @@ function lookupPaperRate(key,gsm,w,h){
     if(!all.length)return null; let nd=1e9; for(const o of all) nd=Math.min(nd,Math.abs(o.gsm-gsm));
     cands=all.filter(o=>Math.abs(o.gsm-gsm)===nd); }
   const exact=cands.find(o=>(Math.abs(o.w-w)<0.6&&Math.abs(o.h-h)<0.6)||(Math.abs(o.w-h)<0.6&&Math.abs(o.h-w)<0.6));
-  if(exact)return{rate:exact.r,via:`${exact.gsm}gsm ${exact.w}×${exact.h} list`};
+  if(exact)return{rate:exact.r,via:`${exact.gsm}gsm ${exact.w}×${exact.h} list`,gsm:exact.gsm};
   let best=null,bd=1e9; for(const o of cands){const d=Math.abs(o.w*o.h-w*h);if(d<bd){bd=d;best=o;}}
-  return{rate:+(best.r*(w*h)/(best.w*best.h)).toFixed(2),via:`scaled from ${best.gsm}gsm ${best.w}×${best.h}`};
+  return{rate:+(best.r*(w*h)/(best.w*best.h)).toFixed(2),via:`scaled from ${best.gsm}gsm ${best.w}×${best.h}`,gsm:best.gsm};
 }
 // AUTO: best-priced paper for a given GSM at a sheet size (prefers exact-size list price, then cheapest);
 // optional paper-type filter (NKK sir: choose the TYPE, then auto-pick within it)
@@ -447,12 +447,16 @@ function autoPaperRate(){
   if(grade==="__auto"){
     const gsm=num("gsm",0), typ=$("paperTypeSel")?$("paperTypeSel").value:"";
     const hit=lookupByGsm(gsm,PW,PH,typ);
-    if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto @ ${gsm}gsm${typ?" · "+typ:""}, ${PW}×${PH}: ${hit.grade} — ₹${hit.rate}/sheet (best price, ${hit.via}).`; }
+    if(hit){ $("paperRate").value=hit.rate;
+      const sub=hit.gsm!==gsm?` <b style="color:#c0392b">⚠ no ${gsm}gsm in list — used nearest ${hit.gsm}gsm rate (verify or enter manually)</b>`:"";
+      $("paperRateNote").innerHTML=`Auto @ ${hit.gsm}gsm${typ?" · "+typ:""}, ${PW}×${PH}: ${hit.grade} — ₹${hit.rate}/sheet (best price, ${hit.via}).${sub}`; }
     else $("paperRateNote").textContent=`No ${gsm||"?"}gsm ${typ||"paper"} in the price list — choose a grade or enter the rate manually.`;
     return;
   }
   const gsm=num("gsm",0), hit=gsm>0?lookupPaperRate(grade,gsm,PW,PH):null;
-  if(hit){ $("paperRate").value=hit.rate; $("paperRateNote").textContent=`Auto: ${grade} @ ${gsm}gsm, ${PW}×${PH} = ₹${hit.rate}/sheet (${hit.via}).`; }
+  if(hit){ $("paperRate").value=hit.rate;
+    const sub=(hit.gsm&&hit.gsm!==gsm)?` <b style="color:#c0392b">⚠ no ${gsm}gsm for this grade — used nearest ${hit.gsm}gsm rate (verify or enter manually)</b>`:"";
+    $("paperRateNote").innerHTML=`Auto: ${grade} @ ${hit.gsm||gsm}gsm, ${PW}×${PH} = ₹${hit.rate}/sheet (${hit.via}).${sub}`; }
   else $("paperRateNote").textContent=`Enter a GSM, or no list price for ${grade} at ${PW}×${PH} — type the rate manually.`;
 }
 /* ---- COVER paper auto-pickup (same DB) ---- */
@@ -471,7 +475,9 @@ function coverRateFor(w,h){
   if(grade==="") return num("coverPaperRate",0);                  // manual
   const hit=grade==="__auto"?lookupByGsm(gsm,w,h,$("coverTypeSel")?$("coverTypeSel").value:"")
                             :(gsm>0?lookupPaperRate(grade,gsm,w,h):null);
-  if(hit){ $("coverPaperRate").value=hit.rate; $("coverRateNote").textContent=`Auto ₹${hit.rate}/sheet @ ${gsm}gsm ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).`; return hit.rate; }
+  if(hit){ $("coverPaperRate").value=hit.rate;
+    const sub=(hit.gsm&&hit.gsm!==gsm)?` <b style="color:#c0392b">⚠ no ${gsm}gsm in list — used nearest ${hit.gsm}gsm rate (verify or enter manually)</b>`:"";
+    $("coverRateNote").innerHTML=`Auto ₹${hit.rate}/sheet @ ${hit.gsm||gsm}gsm ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).${sub}`; return hit.rate; }
   $("coverRateNote").textContent=`No list price @ ${gsm}gsm ${w}×${h} — manual.`; return num("coverPaperRate",0);
 }
 
