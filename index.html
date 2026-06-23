@@ -206,6 +206,30 @@
             <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Coating + up to 3 embellishments combine on the cover (e.g. Matt lam + Spot UV + Foil).</div></div>
           </div>
         </div>
+        <div id="hardcaseFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
+          <div class="ptitle">📦 Hard case (Binding = Hard case book) — case = PLC + chipboard + endpapers</div>
+          <div class="row3">
+            <div class="fld"><label>Board thickness (mm)</label><input id="hcBoard" type="number" step="0.5" value="2.5" oninput="showPrice()" /></div>
+            <div class="fld"><label>Board ₹/sq.in</label><input id="hcBoardRate" type="number" step="0.01" value="0.05" oninput="showPrice()" /><div class="hint">greyboard / chipboard</div></div>
+            <div class="fld"><label>Square / overhang (mm)</label><input id="hcSquare" type="number" step="0.5" value="3" oninput="showPrice()" /><div class="hint">case extends past text</div></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Joint / groove (mm)</label><input id="hcJoint" type="number" step="0.5" value="8" oninput="showPrice()" /></div>
+            <div class="fld"><label>Cover turn-in (mm)</label><input id="hcTurnin" type="number" step="1" value="15" oninput="showPrice()" /></div>
+            <div class="fld"><label>Case material</label><select id="hcMaterial" onchange="showPrice()"><option value="plc" selected>Printed paper (PLC)</option><option value="rexine">Rexine</option><option value="cloth">Cloth</option><option value="velvet">Velvet</option></select></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Material ₹/sq.in (non-paper)</label><input id="hcMatRate" type="number" step="0.01" value="0.12" oninput="showPrice()" /><div class="hint">rexine / cloth / velvet</div></div>
+            <div class="fld"><label>Endpaper ₹/sheet (×2/book)</label><input id="hcEndRate" type="number" step="0.01" value="6" oninput="showPrice()" /></div>
+            <div class="fld"><label>Case-make + casing-in ₹/book</label><input id="hcCaseLabour" type="number" step="0.5" value="95" oninput="showPrice()" /></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Headband ₹/book</label><input id="hcHeadband" type="number" step="0.5" value="0" oninput="showPrice()" /></div>
+            <div class="fld"><label>Ribbon ₹/book</label><input id="hcRibbon" type="number" step="0.5" value="0" oninput="showPrice()" /></div>
+            <div class="fld"><label>Dust jacket</label><select id="hcJacket" onchange="showPrice()"><option value="no" selected>No</option><option value="yes">Yes (printed wrap)</option></select></div>
+          </div>
+          <div class="hint" style="margin-top:2px">PLC printing uses the Cover paper / colours / coating fields above. Rates are editable defaults — confirm with sir.</div>
+        </div>
       </div>
       <div id="flatFields" style="display:none">
         <div class="row">
@@ -1311,7 +1335,58 @@ let bindingRateEdited=false;
 function setBinding(v){ const x=BINDING[v]||BINDING.none;
   const pp=LASTINP?LASTINP.pages:Math.round(num("pages",0)), qty=LASTINP?LASTINP.copies:Math.round(num("copies",1));
   $("bindingRate").value=bindingRateFor(v,pp,qty); $("bindingMin").value=x[1]; bindingRateEdited=false;
+  toggleHardcase();
   if(RESULT)run(); else showPrice(); }
+function toggleHardcase(){ const hc=$("hardcaseFields"); if(!hc) return;
+  const on=($("binding")&&$("binding").value==="case"); hc.style.display=on?"block":"none";
+  if(on){ const ct=$("coverType"); if(ct&&ct.value==="none"){ ct.value="separate"; if(window.onCoverChange) onCoverChange(); } }  // hard case needs the PLC (uses cover fields)
+}
+// HARD CASE (NKK sir V2): case = PLC (printed wrap) + chipboard boards + endpapers + casing-in. Text block
+// is the section-sewn booklet (already computed). Case extends ~square mm beyond the text block on 3 sides.
+function hardCasePlan(){
+  if(!LASTINP||!$("binding")||$("binding").value!=="case") return null;
+  const I=LASTINP, books=I.copies, MM2=645.16;                 // mm² per sq.in
+  const square=num("hcSquare",3), boardTh=num("hcBoard",2.5), joint=num("hcJoint",8), turnin=num("hcTurnin",15);
+  const Wmm=I.W*MM, Hmm=I.H*MM, spine=I.spineMM||0;
+  const boardH=Hmm+2*square, boardW=Math.max(10,Wmm+square-joint), spineBoardW=spine+2*boardTh;
+  const caseOpenW=2*boardW+spineBoardW+2*joint, caseOpenH=boardH;
+  const plcW=(caseOpenW+2*turnin)/MM, plcH=(caseOpenH+2*turnin)/MM;          // PLC piece (in), with turn-in
+  const boardAreaSqin=(2*boardW*boardH+spineBoardW*boardH)/MM2;              // chipboard per book
+  const waste=1.05, items=[];
+  // 1) chipboard
+  const boardCost=boardAreaSqin*books*num("hcBoardRate",0.05)*waste;
+  items.push({name:`Chipboard (${boardAreaSqin.toFixed(0)} sq.in/book × ${boards_in(books)})`,cost:boardCost});
+  // 2) PLC / case material
+  const mat=$("hcMaterial")?$("hcMaterial").value:"plc"; const plcArea=plcW*plcH; let plcWt=0;
+  if(mat==="plc"){
+    const gsm=num("coverGsm",300), rate=coverRateFor(plcW,plcH);             // PLC printed paper (uses cover fields)
+    const plcSheets=Math.ceil(books*waste)+Math.round(num("coverSetup",150));
+    const paper=rate*plcSheets; plcWt=(plcW*MM/1000)*(plcH*MM/1000)*gsm/1000*plcSheets;
+    const band=sizeBand(plcW,plcH), cf=Math.round(num("coverCf",4)), cb=Math.round(num("coverCb",4)), src=activePrint();
+    const printing=(cf>0?sideCost(src,band,cf,plcSheets):0)+(cb>0?sideCost(src,band,cb,plcSheets):0);
+    const plateCount=(cf+cb)*1, plates=plateCount*plateRate(src,band);
+    const lamV=$("coverLam")?$("coverLam").value:"none", lam=lamV!=="none"?Math.max(activeCoat()[lamV].r*(plcArea/100)*plcSheets,activeCoat()[lamV].min):0;
+    items.push({name:`PLC paper (${plcW.toFixed(1)}×${plcH.toFixed(1)} in, ${plcSheets} sh)`,cost:paper});
+    items.push({name:`PLC printing (${cf}+${cb})`,cost:printing});
+    items.push({name:`PLC plates (${plateCount})`,cost:plates});
+    if(lam>0) items.push({name:`PLC lamination (${coatingName(lamV)})`,cost:lam});
+  } else {
+    const matCost=plcArea*books*num("hcMatRate",0.12)*waste;
+    items.push({name:`Case material — ${mat} (${plcArea.toFixed(0)} sq.in/book)`,cost:matCost});
+  }
+  // 3) endpapers (2/book), 4) labour, 5) extras
+  const endRate=num("hcEndRate",6), endCost=endRate*2*Math.ceil(books*waste);
+  items.push({name:`Endpapers (2/book × ${boards_in(books)})`,cost:endCost});
+  items.push({name:`Case-making + casing-in (₹${num("hcCaseLabour",95)}/book)`,cost:num("hcCaseLabour",95)*books});
+  const hb=num("hcHeadband",0), rb=num("hcRibbon",0);
+  if(hb>0) items.push({name:"Headband",cost:hb*books});
+  if(rb>0) items.push({name:"Ribbon",cost:rb*books});
+  if($("hcJacket")&&$("hcJacket").value==="yes"){ const jW=I.W*2+1,jH=I.H+1, jr=coverRateFor(jW,jH), js=Math.ceil(books*waste)+150;
+    items.push({name:"Dust jacket (printed wrap)",cost:jr*js}); }
+  const total=items.reduce((s,i)=>s+i.cost,0);
+  return {items, total, plcWt, sizes:{boardW:+(boardW/MM).toFixed(2),boardH:+(boardH/MM).toFixed(2),spineBoardW:+(spineBoardW/MM).toFixed(2),plcW:+plcW.toFixed(2),plcH:+plcH.toFixed(2),caseOpenW:+(caseOpenW/MM).toFixed(2),caseOpenH:+(caseOpenH/MM).toFixed(2),boardAreaSqin:+boardAreaSqin.toFixed(0)}};
+}
+function boards_in(n){ return n.toLocaleString("en-IN")+" books"; }
 // SPINE-DRIVEN recommendation (NKK sir's rules — RECOMMEND, never silently assume; user can override):
 //   spine ≤ 2.5mm → Saddle stitch · spine > 3mm → warn (Section sewn / Perfect) · spine > 4.5mm → error+override.
 function autoBindingBySpine(spineMM){
@@ -1508,6 +1583,19 @@ function combinedPrice(){
   if(LASTINP&&LASTINP.separateCover) textP.coatArea="all";   // inside coating (if any) covers all text sheets
   const tq=priceJob(CHOSEN,textP);
   const binding=p.binding==="none"?0:Math.max(p.bindingRate*p.books,p.bindingMin);
+  // HARD CASE (NKK sir V2): case (PLC + boards + endpapers + casing-in) REPLACES the soft cover and the
+  // generic binding line. Text block = the section-sewn booklet (tq).
+  const hc=hardCasePlan();
+  if(hc){
+    const fmr=finishingMakeReady(textP,null,p);
+    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(hc.plcWt||0)+fmr.wt;
+    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.cost+hc.total+packing+freight;
+    const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+    const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
+    const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,hardcase:hc.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
+    return {p,q,text:tq,cover:null,coverPlan:null,binding:0,fmr,hardcase:hc};
+  }
   if(!cp||!cp.option){
     const fmr=finishingMakeReady(textP,null,p);
     if(!binding&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
@@ -1536,6 +1624,25 @@ function showPrice(){
   if(!CHOSEN)return;
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
   const x=combinedPrice(),p=x.p,q=x.q,inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  if(x.hardcase){                                  // HARD CASE: text block + case components (own breakdown)
+    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt;
+    let hrows=[[`Text block paper (${txtWt.toFixed(1)} kg, section-sewn)`,x.text.paper],
+      [`Text printing (${x.text.formes} formes)`,x.text.printing],[`Text plates (${x.text.plateCount})`,x.text.plates]];
+    if(x.text.lam) hrows.push(["Text coating",x.text.lam]);
+    x.hardcase.items.forEach(i=>hrows.push(["Case — "+i.name,i.cost]));
+    if(x.fmr&&x.fmr.sheets>0)hrows.push([`Finishing make-ready (${x.fmr.ops} ops)`,x.fmr.cost]);
+    hrows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    let h2='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
+    hrows.forEach(([k,v])=>h2+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+    const S=x.hardcase.sizes;
+    h2+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
+    h2+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
+    h2+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
+    h2+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
+    h2+=`<tr><td>Per book</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
+    h2+=`<div class="hint" style="margin-top:8px">📦 Case sizes: boards <b>${S.boardW}×${S.boardH} in</b> (×2) + spine board <b>${S.spineBoardW} in</b> · case open ${S.caseOpenW}×${S.caseOpenH} · PLC wrap <b>${S.plcW}×${S.plcH} in</b> (with turn-in) · chipboard ${S.boardAreaSqin} sq.in/book. Rates editable — confirm with sir.</div>`;
+    $("m_price").innerHTML=h2; return;
+  }
   if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
   const totalWt=(CHOSEN.paperWeight||CHOSEN.total_wt)+((x.coverPlan&&x.coverPlan.option)?(x.coverPlan.option.paperWeight||x.coverPlan.option.total_wt):0);
   const perKg=totalWt>0?(q.paper/totalWt):0;
