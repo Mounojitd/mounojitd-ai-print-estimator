@@ -257,6 +257,23 @@
             <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Leaves = pages ÷ 2 (each leaf shows 2 printed faces). Printed sheets + printing + coating use the Text / Cover fields above. Rates are editable defaults — confirm with sir.</div></div>
           </div>
         </div>
+        <div id="mechFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#9c8ab0;background:#f7f4fb">
+          <div class="ptitle">🌀 Mechanical binding (Wire-O / Spiral / Comb) — notebooks · calendars</div>
+          <div class="row3">
+            <div class="fld"><label>Punching ₹/book</label><input id="mbPunch" type="number" step="0.1" value="1.5" oninput="showPrice()" /></div>
+            <div class="fld"><label>Binding element ₹/book</label><input id="mbElement" type="number" step="0.1" placeholder="auto by type" oninput="showPrice()" /><div class="hint" id="mbDiaHint">Ø auto from block thickness</div></div>
+            <div class="fld"><label>Hanging (calendar)</label><select id="mbHang" onchange="showPrice()"><option value="none" selected>None</option><option value="loop">Wire hanging loop</option><option value="hook">Hook</option></select></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Hanger ₹/book</label><input id="mbHangRate" type="number" step="0.5" value="0" oninput="showPrice()" /><div class="hint">only if hanging</div></div>
+            <div class="fld"><label>Back / mount board</label><select id="mbBoard" onchange="showPrice()"><option value="none" selected>None</option><option value="board">Greyboard back / tent</option></select></div>
+            <div class="fld"><label>Board: thickness mm</label><input id="mbBoardTh" type="number" step="0.5" value="2" oninput="showPrice()" /></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Board ₹/sq.in</label><input id="mbBoardRate" type="number" step="0.01" value="0.05" oninput="showPrice()" /><div class="hint">only if back board</div></div>
+            <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Punching + wire/coil/comb element (Ø sized from block thickness) + optional hanger + back board. Printed sheets + cover use the Text / Cover fields. Rates editable — confirm with sir.</div></div>
+          </div>
+        </div>
       </div>
       <div id="flatFields" style="display:none">
         <div class="row">
@@ -1184,6 +1201,40 @@ function boardBookDiagramSVG(){
   s+=lbl(W-6,H-6,`stack of pasted board leaves · thickness not to scale`,'#aaa','end');
   return s+`</svg>`;
 }
+// MECHANICAL BINDING 2D view (A3): front of the bound edge — punched holes + the wire-o/spiral/comb element
+// looping through, optional hanging loop on top. Shows the suggested element diameter.
+function mechBindDiagramSVG(){
+  const mb=mechBindPlan(); if(!mb) return "";
+  const I=LASTINP, type=mb.sizes.type, dia=mb.dia, hang=mb.sizes.hang;
+  const W=470,H=210, bx=120, bw=250, by=40, bh=H-78;          // book block rect
+  const elS={wireo:"#7a5a8c",spiral:"#2c6fb3",comb:"#1f7a4d"}[type]||"#7a5a8c";
+  const lbl=(x,y,t,c,anc)=>`<text x="${x}" y="${y}" font-size="8" fill="${c||'#444'}" text-anchor="${anc||'start'}">${t}</text>`;
+  const lead=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#999" stroke-width="0.6"/>`;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #9c8ab0;border-radius:6px;background:#fbf9fd"><rect width="${W}" height="${H}" fill="#fbf9fd"/>`;
+  s+=lbl((bx+bw/2),22,`${BINDING_NAME[type]} — front of bound edge`,elS,'middle');
+  // book block (cover + pages)
+  s+=`<rect x="${bx}" y="${by}" width="${bw}" height="${bh}" fill="#ffffff" stroke="#bcc4cc"/>`;
+  for(let yy=by+10; yy<by+bh-4; yy+=9) s+=`<line x1="${bx+14}" y1="${yy}" x2="${bx+bw-8}" y2="${yy}" stroke="#eef0f3" stroke-width="0.8"/>`;
+  // punched holes + binding element along the spine edge (left)
+  const ex=bx+8, n=Math.max(4,Math.round(bh/16)), r=Math.min(6,dia*0.18+2);
+  for(let i=0;i<n;i++){ const cyh=by+8+i*(bh-12)/(n-1);
+    s+=`<circle cx="${ex}" cy="${cyh}" r="2.4" fill="#fff" stroke="#aaa"/>`;                          // punched hole
+    if(type==="comb") s+=`<path d="M ${ex} ${cyh-4} q -12 4 0 8" fill="none" stroke="${elS}" stroke-width="1.6"/>`;
+    else s+=`<ellipse cx="${ex-4}" cy="${cyh}" rx="${r}" ry="4.2" fill="none" stroke="${elS}" stroke-width="1.6"/>`; // wire/coil loop
+  }
+  if(type==="spiral") s+=`<path d="M ${ex-8} ${by+8} L ${ex-1} ${by+bh-4}" fill="none" stroke="${elS}" stroke-width="1.2" stroke-dasharray="3 3"/>`;
+  // hanging loop / hook on top
+  if(hang!=="none"){ const hx=bx+bw/2;
+    if(hang==="loop") s+=`<path d="M ${hx-10} ${by} q 10 -26 20 0" fill="none" stroke="#a8820f" stroke-width="2"/>`;
+    else s+=`<path d="M ${hx} ${by} l 0 -16 q 0 -8 -8 -8" fill="none" stroke="#a8820f" stroke-width="2"/>`;
+    s+=lead(hx,by-18,hx+70,by-18)+lbl(hx+74,by-15,`${hang==="loop"?"wire hanging loop":"hook"}`,'#a8820f'); }
+  // labels
+  s+=lead(ex-4,by+bh*0.5,bx-50,by+bh*0.5)+lbl(bx-54,by+bh*0.5-2,`${BINDING_NAME[type]}`,elS,'end')+lbl(bx-54,by+bh*0.5+9,`~Ø${dia} mm`,'#666','end');
+  s+=lead(ex,by+bh-8,bx-50,by+bh-8)+lbl(bx-54,by+bh-5,`punched holes`,'#888','end');
+  s+=lbl((bx+bw/2),H-26,`element Ø from block thickness ${mb.sizes.blockMM} mm + clearance`,'#555','middle');
+  s+=lbl(W-6,H-6,`schematic · not to scale`,'#aaa','end');
+  return s+`</svg>`;
+}
 // CUTTING DIAGRAM (NKK sir): show HOW the parent sheet is cut into press-size pieces — pieces tiled inside
 // the parent, leftover shown as trim. Makes the cut + pieces-per-parent visible on the job card.
 function cutDiagramSVG(o){
@@ -1268,6 +1319,7 @@ function renderDiagram(){
     pics+=picCard("📕 Cover — front │ spine │ back layout","#b9770a",coverSchematic(cpD)); }
   if($("binding")&&$("binding").value==="case"){ const hc=hardCaseDiagramSVG(); if(hc) pics+=picCard("📦 Hard case — cross-section (boards · spine · endpapers · case wrap)","#8a5a12",hc); }
   if($("binding")&&$("binding").value==="b2b"){ const bbS=boardBookDiagramSVG(); if(bbS) pics+=picCard("📚 Board book — leaf build &amp; stack","#2c5a9c",bbS); }
+  if($("binding")&&["wireo","spiral","comb"].includes($("binding").value)){ const mbS=mechBindDiagramSVG(); if(mbS) pics+=picCard("🌀 Mechanical binding — punched edge &amp; element","#6a4a7a",mbS); }
   const calcCard=`<div style="border:1.5px solid #13314f;border-radius:6px;padding:8px;background:#f6faff"><div style="font-weight:700;color:#13314f;font-size:12px;margin-bottom:6px">🧮 Sizes &amp; calculation</div>${sizesTable(o)}</div>`;
   const sizePanel=`<details class="pbox" style="margin-bottom:10px;border-color:#cbd8e5" open><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 Production sizes &amp; margins (finished → open → print → cut → parent)${hasCoverD?" — Inside/Text + Cover":""}</summary>`+
     `<div style="margin-top:8px">${pics}${calcCard}</div></details>`;
@@ -1474,7 +1526,7 @@ let bindingRateEdited=false;
 function setBinding(v){ const x=BINDING[v]||BINDING.none;
   const pp=LASTINP?LASTINP.pages:Math.round(num("pages",0)), qty=LASTINP?LASTINP.copies:Math.round(num("copies",1));
   $("bindingRate").value=bindingRateFor(v,pp,qty); $("bindingMin").value=x[1]; bindingRateEdited=false;
-  toggleHardcase(); toggleBoardbook();
+  toggleHardcase(); toggleBoardbook(); toggleMech();
   if(RESULT)run(); else showPrice(); }
 function toggleHardcase(){ const hc=$("hardcaseFields"); if(!hc) return;
   const on=($("binding")&&$("binding").value==="case"); hc.style.display=on?"block":"none";
@@ -1482,6 +1534,10 @@ function toggleHardcase(){ const hc=$("hardcaseFields"); if(!hc) return;
 }
 function toggleBoardbook(){ const bb=$("boardbookFields"); if(!bb) return;
   bb.style.display=($("binding")&&$("binding").value==="b2b")?"block":"none";
+}
+function toggleMech(){ const mf=$("mechFields"); if(!mf) return;
+  const on=($("binding")&&["wireo","spiral","comb"].includes($("binding").value)); mf.style.display=on?"block":"none";
+  if(on&&$("mbDiaHint")){ const mb=mechBindPlan(); if(mb) $("mbDiaHint").textContent=`Ø ~${mb.dia} mm (block ${mb.sizes.blockMM} mm + clearance)`; }
 }
 // HARD CASE (NKK sir V2): case = PLC (printed wrap) + chipboard boards + endpapers + casing-in. Text block
 // is the section-sewn booklet (already computed). Case extends ~square mm beyond the text block on 3 sides.
@@ -1557,6 +1613,31 @@ function boardBookPlan(){
   if($("bbCorner")&&$("bbCorner").value==="round"){ const cr=num("bbCornerRate",0); if(cr>0) items.push({name:"Corner rounding",cost:cr*books}); }
   const total=items.reduce((s,i)=>s+i.cost,0);
   return {items, total, bbWt, leaves, sizes:{leafW:+leafW.toFixed(2),leafH:+leafH.toFixed(2),leafAreaSqin:+leafAreaSqin.toFixed(0),boardTh,core,leaves}};
+}
+// MECHANICAL BINDING / A3 (NKK sir): wire-o · spiral · comb — notebooks & calendars. Adds punching +
+// binding element (Ø suggested from block thickness) + hanger + back/mount board. The flat binding line is
+// replaced; the normal cover flow stays. Printed sheets/printing/coating + cover come from the usual fields.
+const WIRE_DIA=[6.4,8,9.5,11,12.7,14.3,16,19,22,25,32,38];   // standard wire-o / coil diameters (mm)
+function mechBindPlan(){
+  const sel=$("binding")?$("binding").value:""; if(!LASTINP||!["wireo","spiral","comb"].includes(sel)) return null;
+  const I=LASTINP, books=I.copies;
+  let blockMM=I.spineMM||0;                                   // bound-block thickness
+  if(!blockMM){ const cal=(num("gsm",100)*num("bulk",1))/1000; blockMM=Math.max(1,(I.pages/2)*cal); }
+  const dia=WIRE_DIA.find(d=>d>=blockMM+3)||38;               // element Ø ≥ block + clearance
+  const elemDef={wireo:12,spiral:10,comb:8}[sel]||10;
+  const items=[]; let bbWt=0;
+  items.push({name:`Punching (₹${num("mbPunch",1.5)}/book)`,cost:num("mbPunch",1.5)*books});
+  const el=num("mbElement",elemDef);
+  items.push({name:`${BINDING_NAME[sel]} element ~Ø${dia}mm (₹${el}/book)`,cost:el*books});
+  const hang=$("mbHang")?$("mbHang").value:"none";
+  if(hang!=="none"){ const hr=num("mbHangRate",0); if(hr>0) items.push({name:`Hanging — ${hang==="loop"?"wire loop":"hook"} (₹${hr}/book)`,cost:hr*books}); }
+  if($("mbBoard")&&$("mbBoard").value==="board"){
+    const area=I.W*I.H, th=num("mbBoardTh",2), rate=num("mbBoardRate",0.05);
+    items.push({name:`Back / mount board (${area.toFixed(0)} sq.in × ${boards_in(books)})`,cost:area*rate*books*1.05});
+    bbWt=books*(area*6.4516)*(th/10)*0.75/1000;
+  }
+  const total=items.reduce((s,i)=>s+i.cost,0);
+  return {items,total,bbWt,dia,sizes:{dia,blockMM:+blockMM.toFixed(2),hang,type:sel}};
 }
 // SPINE-DRIVEN recommendation (NKK sir's rules — RECOMMEND, never silently assume; user can override):
 //   spine ≤ 2.5mm → Saddle stitch · spine > 3mm → warn (Section sewn / Perfect) · spine > 4.5mm → error+override.
@@ -1754,6 +1835,9 @@ function combinedPrice(){
   if(LASTINP&&LASTINP.separateCover) textP.coatArea="all";   // inside coating (if any) covers all text sheets
   const tq=priceJob(CHOSEN,textP);
   const binding=p.binding==="none"?0:Math.max(p.bindingRate*p.books,p.bindingMin);
+  // MECHANICAL / A3 (wire-o · spiral · comb): punching + element + hanger + back-board REPLACE the flat
+  // binding line, but the normal cover flow stays (notebooks/calendars usually have a separate cover).
+  const mb=mechBindPlan(), bindCost=mb?mb.total:binding, mbWt=mb?(mb.bbWt||0):0;
   // HARD CASE (NKK sir V2): case (PLC + boards + endpapers + casing-in) REPLACES the soft cover and the
   // generic binding line. Text block = the section-sewn booklet (tq).
   const hc=hardCasePlan();
@@ -1781,12 +1865,12 @@ function combinedPrice(){
   }
   if(!cp||!cp.option){
     const fmr=finishingMakeReady(textP,null,p);
-    if(!binding&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
-    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt;
+    if(!bindCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
+    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt+mbWt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+fmr.cost+tq.printing+tq.plates+tq.lam+binding+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+    const base=tq.paper+fmr.cost+tq.printing+tq.plates+tq.lam+bindCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
-    return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding,fmr};
+    return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding:bindCost,mech:mb,fmr};
   }
   const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
     paperRate:(cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh)),margin:p.margin,gst:p.gst,books:p.books};
@@ -1796,12 +1880,12 @@ function combinedPrice(){
   const embTotal=embItems.reduce((s,e)=>s+e.cost,0);
   const fmr=finishingMakeReady(textP,cp,p);
   const paper=tq.paper+cq.paper+fmr.cost,printing=tq.printing+cq.printing,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
-  const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(cp.option.paperWeight||cp.option.total_wt)+fmr.wt;
+  const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(cp.option.paperWeight||cp.option.total_wt)+fmr.wt+mbWt;
   const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-  const base=paper+printing+plates+lam+embTotal+binding+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+  const base=paper+printing+plates+lam+embTotal+bindCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
   const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
   const q={band:tq.band+" text / "+cq.band+" cover",paper,printing,plates,plateCount,impressions,lam,embTotal,embItems,fmr:fmr.cost,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books};
-  return {p,q,text:tq,cover:cq,coverPlan:cp,binding,embItems,embTotal,fmr};
+  return {p,q,text:tq,cover:cq,coverPlan:cp,binding:bindCost,mech:mb,embItems,embTotal,fmr};
 }
 function showPrice(){
   if(!CHOSEN)return;
@@ -1865,7 +1949,8 @@ function showPrice(){
   } else {
     rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[`Printing (${q.formes} formes × ~${q.formeRun.toLocaleString("en-IN")} sheets)`,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
   }
-  if(x.binding)rows.push([`Binding — ${$("binding").selectedOptions[0].text}`,x.binding]);
+  if(x.mech){ x.mech.items.forEach(i=>rows.push([`Binding — ${i.name}`,i.cost])); }
+  else if(x.binding)rows.push([`Binding — ${$("binding").selectedOptions[0].text}`,x.binding]);
   if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets)`,x.fmr.cost]);
   rows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
