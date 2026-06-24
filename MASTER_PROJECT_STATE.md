@@ -41,7 +41,7 @@ separate module), A5 wall calendars/stationery, A6 sets/bundles. Track B (backen
   (`hcEndTypeSel`/`hcEndGrade`/`hcEndGsm`, default Auto @120gsm) → `endRateFor(endW,endH)` mirrors
   `coverRateFor` (lookupByGsm / lookupPaperRate, area-scaled, ⚠ on GSM substitution); flat size = board
   spread `2·boardW × boardH` in `hardCasePlan`. Manual ₹/sheet still available. Node-verified: manual→6,
-  auto@120gsm 15×11→₹1.48 (Maplitho scaled), @125 25×36→₹17.4 list, grade→₹9.77. NOT yet published.
+  auto@120gsm 15×11→₹1.48 (Maplitho scaled), @125 25×36→₹17.4 list, grade→₹9.77. **Published (commit 7881f8a).**
 - **TEXT-side 12,000→6,000 exact reproduction** — cut-to-required-size is DONE generally; a specific job
   achieves 6,000 via 28×40 gang-2 (sheet selection), verified. If sir wants 2-cuts/parent halving on a
   specific job, need that job's exact numbers.
