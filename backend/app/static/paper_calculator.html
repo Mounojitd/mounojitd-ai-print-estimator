@@ -1049,7 +1049,9 @@ function marginDiagramSVG(o,job){
   const I=LASTINP, R=RESULT; job=job||{W:I.W,H:I.H,isSig:I.isSig,openW:R.openW,openH:R.openH};
   const parW=o.paperSheetW, parH=o.paperSheetH, longP=Math.max(parW,parH), shortP=Math.min(parW,parH);
   const W=380, sc=W/longP, H=Math.round(shortP*sc), L=v=>v.toFixed(1);
-  const g=I.margins.gripper*sc, sl=(I.margins.sidelay+I.margins.paperTrim)*sc, bl=Math.max(2,I.margins.bleed*sc);
+  // margins are in mm; sc is px-per-INCH (parent dims are inches) → convert mm→in (÷MM) before scaling.
+  // small floors keep the (correctly thin) bands visible + labelled without the old ~25× mm-as-inch blow-up.
+  const g=Math.max(9,(I.margins.gripper/MM)*sc), sl=Math.max(8,((I.margins.sidelay+I.margins.paperTrim)/MM)*sc), bl=Math.max(2,(I.margins.bleed/MM)*sc);
   // cut sheet (press) sits inside the parent
   const cutW=o.cutMachine?Math.max(...o.cutTo.split('×').map(Number)):o.sw>o.sh?o.sw:o.sh;
   const isCut=!!o.cutMachine;
