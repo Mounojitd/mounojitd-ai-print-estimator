@@ -240,6 +240,23 @@
           </div>
           <div class="hint" style="margin-top:2px">PLC printing uses the Cover paper / colours / coating fields above. Rates are editable defaults — confirm with sir.</div>
         </div>
+        <div id="boardbookFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#8aa6c9;background:#f3f7fc">
+          <div class="ptitle">📚 Board book (Binding = Back-to-back paste) — each leaf = 2 printed faces pasted to a board core</div>
+          <div class="row3">
+            <div class="fld"><label>Leaf board thickness (mm)</label><input id="bbBoard" type="number" step="0.5" value="2" oninput="showPrice()" /><div class="hint">greyboard / chipboard core</div></div>
+            <div class="fld"><label>Board ₹/sq.in</label><input id="bbBoardRate" type="number" step="0.01" value="0.05" oninput="showPrice()" /></div>
+            <div class="fld"><label>Leaf core</label><select id="bbCore" onchange="showPrice()"><option value="board" selected>Greyboard core (rigid board book)</option><option value="none">No board (paste 2 sheets only)</option></select></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Pasting / mounting ₹/leaf</label><input id="bbPaste" type="number" step="0.1" value="2" oninput="showPrice()" /><div class="hint">mount + paste both faces</div></div>
+            <div class="fld"><label>Assembly / casing ₹/book</label><input id="bbAssembly" type="number" step="0.5" value="15" oninput="showPrice()" /><div class="hint">join leaves into a book</div></div>
+            <div class="fld"><label>Corners</label><select id="bbCorner" onchange="showPrice()"><option value="square" selected>Square</option><option value="round">Round (trim)</option></select></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Corner-round ₹/book</label><input id="bbCornerRate" type="number" step="0.5" value="0" oninput="showPrice()" /><div class="hint">only if Round</div></div>
+            <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Leaves = pages ÷ 2 (each leaf shows 2 printed faces). Printed sheets + printing + coating use the Text / Cover fields above. Rates are editable defaults — confirm with sir.</div></div>
+          </div>
+        </div>
       </div>
       <div id="flatFields" style="display:none">
         <div class="row">
@@ -1131,6 +1148,42 @@ function hardCaseDiagramSVG(){
   s+=lbl(W-6,H-6,`closed book · thickness not to scale`,'#aaa','end');
   return s+`</svg>`;
 }
+// BOARD BOOK 2D cross-section (A2): one leaf = printed face + greyboard core + printed face (back-to-back),
+// then the stack of leaves. Thickness exaggerated for clarity (labels = real values).
+function boardBookDiagramSVG(){
+  if(!LASTINP || !$("binding") || $("binding").value!=="b2b") return "";
+  const bb=boardBookPlan(); if(!bb) return "";
+  const boardTh=num("bbBoard",2), core=$("bbCore")?$("bbCore").value:"board", leaves=bb.leaves;
+  const W=470,H=210, x0=150, xR=410, cx=(x0+xR)/2;
+  const pap=5, bd=core==="board"?20:0, gap=6;                 // printed-face, board, leaf gap (px, exaggerated)
+  const leafH=pap*2+bd;                                       // one leaf thickness px
+  const shown=Math.min(leaves,3), startY=44;
+  const papF="#cfe6fb", papS="#1f4e78", bdF="#c7b693", bdS="#8a795a";
+  const lbl=(x,y,t,c,anc)=>`<text x="${x}" y="${y}" font-size="8" fill="${c||'#444'}" text-anchor="${anc||'start'}">${t}</text>`;
+  const lead=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#999" stroke-width="0.6"/>`;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #8aa6c9;border-radius:6px;background:#fbfdff"><rect width="${W}" height="${H}" fill="#fbfdff"/>`;
+  // ---- ONE leaf (exploded, left) + the stack (right) ----
+  // title
+  s+=lbl(cx,20,`Leaf = printed face ${core==="board"?"+ greyboard core ":""}+ printed face (pasted back-to-back)`,papS,'middle');
+  let y=startY;
+  for(let i=0;i<shown;i++){
+    // printed face (top)
+    s+=`<rect x="${x0}" y="${y}" width="${xR-x0}" height="${pap}" fill="${papF}" stroke="${papS}" stroke-width="0.7"/>`;
+    if(bd>0) s+=`<rect x="${x0}" y="${y+pap}" width="${xR-x0}" height="${bd}" fill="${bdF}" stroke="${bdS}"/>`;
+    s+=`<rect x="${x0}" y="${y+pap+bd}" width="${xR-x0}" height="${pap}" fill="${papF}" stroke="${papS}" stroke-width="0.7"/>`;
+    if(i===0){
+      s+=lead(x0,y+pap/2,x0-12,y+pap/2)+lbl(x0-14,y+pap/2+3,`printed face`,papS,'end');
+      if(bd>0) s+=lead(x0,y+pap+bd/2,x0-12,y+pap+bd/2)+lbl(x0-14,y+pap+bd/2+3,`board ${boardTh}mm`,bdS,'end');
+      s+=lead(x0,y+pap+bd+pap/2,x0-12,y+pap+bd+pap/2)+lbl(x0-14,y+pap+bd+pap/2+3,`printed face`,papS,'end');
+    }
+    y+=leafH+gap;
+  }
+  if(leaves>shown) s+=lbl(cx,y+2,`⋮ ${leaves} leaves total`,'#888','middle');
+  else s+=lbl(cx,y+2,`${leaves} leaves`,'#888','middle');
+  s+=lbl(cx,H-26,`Leaves = pages ÷ 2 = ${leaves}  ·  leaf ${bb.sizes.leafW}×${bb.sizes.leafH} in`,'#555','middle');
+  s+=lbl(W-6,H-6,`stack of pasted board leaves · thickness not to scale`,'#aaa','end');
+  return s+`</svg>`;
+}
 // CUTTING DIAGRAM (NKK sir): show HOW the parent sheet is cut into press-size pieces — pieces tiled inside
 // the parent, leftover shown as trim. Makes the cut + pieces-per-parent visible on the job card.
 function cutDiagramSVG(o){
@@ -1214,6 +1267,7 @@ function renderDiagram(){
     if(co.cutMachine) pics+=picCard("✂ Cover — cut from parent sheet","#7c3aed",cutDiagramSVG(co));
     pics+=picCard("📕 Cover — front │ spine │ back layout","#b9770a",coverSchematic(cpD)); }
   if($("binding")&&$("binding").value==="case"){ const hc=hardCaseDiagramSVG(); if(hc) pics+=picCard("📦 Hard case — cross-section (boards · spine · endpapers · case wrap)","#8a5a12",hc); }
+  if($("binding")&&$("binding").value==="b2b"){ const bbS=boardBookDiagramSVG(); if(bbS) pics+=picCard("📚 Board book — leaf build &amp; stack","#2c5a9c",bbS); }
   const calcCard=`<div style="border:1.5px solid #13314f;border-radius:6px;padding:8px;background:#f6faff"><div style="font-weight:700;color:#13314f;font-size:12px;margin-bottom:6px">🧮 Sizes &amp; calculation</div>${sizesTable(o)}</div>`;
   const sizePanel=`<details class="pbox" style="margin-bottom:10px;border-color:#cbd8e5" open><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 Production sizes &amp; margins (finished → open → print → cut → parent)${hasCoverD?" — Inside/Text + Cover":""}</summary>`+
     `<div style="margin-top:8px">${pics}${calcCard}</div></details>`;
@@ -1420,11 +1474,14 @@ let bindingRateEdited=false;
 function setBinding(v){ const x=BINDING[v]||BINDING.none;
   const pp=LASTINP?LASTINP.pages:Math.round(num("pages",0)), qty=LASTINP?LASTINP.copies:Math.round(num("copies",1));
   $("bindingRate").value=bindingRateFor(v,pp,qty); $("bindingMin").value=x[1]; bindingRateEdited=false;
-  toggleHardcase();
+  toggleHardcase(); toggleBoardbook();
   if(RESULT)run(); else showPrice(); }
 function toggleHardcase(){ const hc=$("hardcaseFields"); if(!hc) return;
   const on=($("binding")&&$("binding").value==="case"); hc.style.display=on?"block":"none";
   if(on){ const ct=$("coverType"); if(ct&&ct.value==="none"){ ct.value="separate"; if(window.onCoverChange) onCoverChange(); } }  // hard case needs the PLC (uses cover fields)
+}
+function toggleBoardbook(){ const bb=$("boardbookFields"); if(!bb) return;
+  bb.style.display=($("binding")&&$("binding").value==="b2b")?"block":"none";
 }
 // HARD CASE (NKK sir V2): case = PLC (printed wrap) + chipboard boards + endpapers + casing-in. Text block
 // is the section-sewn booklet (already computed). Case extends ~square mm beyond the text block on 3 sides.
@@ -1473,6 +1530,34 @@ function hardCasePlan(){
   return {items, total, plcWt, sizes:{boardW:+(boardW/MM).toFixed(2),boardH:+(boardH/MM).toFixed(2),spineBoardW:+(spineBoardW/MM).toFixed(2),plcW:+plcW.toFixed(2),plcH:+plcH.toFixed(2),caseOpenW:+(caseOpenW/MM).toFixed(2),caseOpenH:+(caseOpenH/MM).toFixed(2),boardAreaSqin:+boardAreaSqin.toFixed(0)}};
 }
 function boards_in(n){ return n.toLocaleString("en-IN")+" books"; }
+// BOARD BOOK / A2 (NKK sir): binding = back-to-back paste. Each leaf = two printed faces pasted around a
+// greyboard core. Leaves = pages/2. Printed sheets + printing + coating stay in the text job (tq); this plan
+// adds the board cores, pasting/mounting labour, book assembly and optional corner-rounding.
+function boardBookPlan(){
+  if(!LASTINP||!$("binding")||$("binding").value!=="b2b") return null;
+  const I=LASTINP, books=I.copies, pages=I.pages||0;
+  const leaves=Math.max(1,Math.ceil(pages/2));                 // each leaf shows 2 printed faces
+  const square=0.0;                                            // board ~ finished page size (trim handles bleed)
+  const leafW=I.W, leafH=I.H, leafAreaSqin=leafW*leafH;
+  const boardTh=num("bbBoard",2), core=$("bbCore")?$("bbCore").value:"board";
+  const waste=1.05, items=[]; let bbWt=0;
+  // 1) greyboard cores (one per leaf) — skipped if "no board" (paste 2 sheets only)
+  if(core==="board"){
+    const boardCost=leaves*leafAreaSqin*num("bbBoardRate",0.05)*books*waste;
+    items.push({name:`Greyboard cores (${leaves} leaves × ${leafAreaSqin.toFixed(0)} sq.in × ${boards_in(books)})`,cost:boardCost});
+    // board weight ~ area × thickness × density 0.75 g/cm³
+    bbWt = leaves*books * (leafAreaSqin*6.4516) * (boardTh/10) * 0.75 / 1000;
+  }
+  // 2) pasting / mounting (mount printed faces + paste back-to-back), per leaf
+  const paste=num("bbPaste",2)*leaves*books;
+  items.push({name:`Pasting / mounting (₹${num("bbPaste",2)}/leaf × ${leaves} × ${boards_in(books)})`,cost:paste});
+  // 3) book assembly / casing (join leaves into a book), per book
+  items.push({name:`Assembly / casing (₹${num("bbAssembly",15)}/book)`,cost:num("bbAssembly",15)*books});
+  // 4) corner rounding (optional)
+  if($("bbCorner")&&$("bbCorner").value==="round"){ const cr=num("bbCornerRate",0); if(cr>0) items.push({name:"Corner rounding",cost:cr*books}); }
+  const total=items.reduce((s,i)=>s+i.cost,0);
+  return {items, total, bbWt, leaves, sizes:{leafW:+leafW.toFixed(2),leafH:+leafH.toFixed(2),leafAreaSqin:+leafAreaSqin.toFixed(0),boardTh,core,leaves}};
+}
 // SPINE-DRIVEN recommendation (NKK sir's rules — RECOMMEND, never silently assume; user can override):
 //   spine ≤ 2.5mm → Saddle stitch · spine > 3mm → warn (Section sewn / Perfect) · spine > 4.5mm → error+override.
 function autoBindingBySpine(spineMM){
@@ -1682,6 +1767,18 @@ function combinedPrice(){
     const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,hardcase:hc.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
     return {p,q,text:tq,cover:null,coverPlan:null,binding:0,fmr,hardcase:hc};
   }
+  // BOARD BOOK / A2 (back-to-back paste): board cores + pasting + assembly REPLACE the generic binding line.
+  const bb=boardBookPlan();
+  if(bb){
+    const fmr=finishingMakeReady(textP,null,p);
+    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(bb.bbWt||0)+fmr.wt;
+    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.cost+bb.total+packing+freight;
+    const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+    const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
+    const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,boardbook:bb.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
+    return {p,q,text:tq,cover:null,coverPlan:null,binding:0,fmr,boardbook:bb};
+  }
   if(!cp||!cp.option){
     const fmr=finishingMakeReady(textP,null,p);
     if(!binding&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
@@ -1728,6 +1825,25 @@ function showPrice(){
     h2+=`<tr><td>Per book</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
     h2+=`<div class="hint" style="margin-top:8px">📦 Case sizes: boards <b>${S.boardW}×${S.boardH} in</b> (×2) + spine board <b>${S.spineBoardW} in</b> · case open ${S.caseOpenW}×${S.caseOpenH} · PLC wrap <b>${S.plcW}×${S.plcH} in</b> (with turn-in) · chipboard ${S.boardAreaSqin} sq.in/book. Rates editable — confirm with sir.</div>`;
     $("m_price").innerHTML=h2; return;
+  }
+  if(x.boardbook){                                 // BOARD BOOK / A2: text faces + board cores + pasting (own breakdown)
+    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt;
+    let brows=[[`Printed faces — paper (${txtWt.toFixed(1)} kg)`,x.text.paper],
+      [`Printing (${x.text.formes} formes)`,x.text.printing],[`Plates (${x.text.plateCount})`,x.text.plates]];
+    if(x.text.lam) brows.push(["Coating / lamination",x.text.lam]);
+    x.boardbook.items.forEach(i=>brows.push(["Board book — "+i.name,i.cost]));
+    if(x.fmr&&x.fmr.sheets>0)brows.push([`Finishing make-ready (${x.fmr.ops} ops)`,x.fmr.cost]);
+    brows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    let h3='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
+    brows.forEach(([k,v])=>h3+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+    const B=x.boardbook.sizes;
+    h3+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
+    h3+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
+    h3+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
+    h3+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
+    h3+=`<tr><td>Per book</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
+    h3+=`<div class="hint" style="margin-top:8px">📚 Board book: <b>${B.leaves} leaves</b> (pages ÷ 2) · leaf <b>${B.leafW}×${B.leafH} in</b> (${B.leafAreaSqin} sq.in) · ${B.core==="board"?`greyboard core ${B.boardTh} mm`:"no board core (2 sheets pasted)"}. Printed faces use the Text fields. Rates editable — confirm with sir.</div>`;
+    $("m_price").innerHTML=h3; return;
   }
   if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
   const totalWt=(CHOSEN.paperWeight||CHOSEN.total_wt)+((x.coverPlan&&x.coverPlan.option)?(x.coverPlan.option.paperWeight||x.coverPlan.option.total_wt):0);
