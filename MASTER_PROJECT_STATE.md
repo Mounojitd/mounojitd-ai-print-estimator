@@ -2,7 +2,7 @@
 
 > Single source of truth for resuming work. Keep this updated. A brand-new session
 > should be able to continue from this file alone.
-> Last updated: 2026-06-16
+> Last updated: 2026-06-18
 
 ---
 
@@ -16,23 +16,33 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `dfa6bb7` (Cut sheet (on press) = required imaged size not press max; digital excluded from auto) (UI per sir: colour/plate/price + Type-of-binding boxes moved to the
-FRONT page; Production sizes split into two pictures — Inside/Text + Cover). Prior `dae2cd2` text cut-to-
-cheaper-press (L-32); `a00a7b1` finishing make-ready 10–50/op; `2d25cc4` real POST_PRESS rates.
+**Latest commit at save:** `32e00cc` (A1 HARD CASE / case-bound book estimator — sir's V2). Recent chain:
+`fce757f` UI readability pass (responsive, no h-scroll, label fixes) · `1a9455f` honest GSM substitution
+(fixes "130→128" silent mislabel) · `d0d19a8` ROADMAP.md (two-track plan + quotation DB schema) ·
+`fccf622` per-machine printing rate cards · `401f7f8` binding cost by pages·qty · `db30435` machine master
+rebuilt from sir's real sheet (L-40=20×30, L-32=19×25, Parva=25×36 corrected) · `aa8dc51` cut diagram
+direction fix · `dfa6bb7` cut-sheet = required size not machine-max · `469d7d1` printing tier (lot≤3000 +
+single per-1000 subsequent), overhead removed, cover parent shows real sheet · `f9d4034` GST=0, cover paper
+required-size cut. ALL of sir's data files integrated (machine master, per-machine print rates+plates,
+finishing/coating rates, binding by pages·qty).
 
-**Earlier commit:** `f5e1bee` (NKK sir 15-point spec: full binding type list, spine bulk factor,
-exact recommendation thresholds ≤2.5/>3/>4.5, coating +Matt UV/Varnish, embellishments +Raised UV/Deboss/
-Texture/Specialty, quote/job-sheet binding+spine+embellishment reporting; added IMPLEMENTATION_REPORT.md).
-Prior `ff2cf51` cover-sheet cutting → L-32 cheapest. See IMPLEMENTATION_REPORT.md for the 15-point status. Prior `9cd336c` (spine-driven binding + saddle-stitch limits, cover
-embellishments ×3 combinable, "Open size with bleed" rename). Prior: `b8afb94` 8pp S/S form
-to sir's swing-form (Front [[5,4],[8,1]], Back [[3,6],[2,7]]). 24/32pp patterns still pending sir's forms.
+**WHERE WE ARE (per ROADMAP.md two-track plan):** Track A (finish/validate offline engine) ≈ DONE — DB-audit,
+UI pass, testing matrix (122,304 assertions 0 fail + canonical 1,105/6,000/0.0929 hold). Now in **Track A —
+Grow Product Breadth (sir's V2–V7)**: **A1 hard case DONE** (32e00cc). Next: A2 back-to-back pasted (board)
+books, A3 calendars/notebooks/envelopes (wire-o/spiral/converting), A4 folders/sleeves/boxes (DIELINE —
+separate module), A5 wall calendars/stationery, A6 sets/bundles. Track B (backend + quotation DB) not started.
 
-**PENDING from sir's 2026-06-17 review:** ① TEXT-side CUT-TO-REQUIRED-PRINT-SIZE — cut parent to the
-imposition bounding box, not machine-max; he expects 12,000→6,000 sheets (1→2 cuts/parent) + a cutting
-diagram in the job card. HIGH RISK (rewrites core TEXT paper purchasing) → need ONE full worked example
-(parent/print size/ups/forms/copies/MR + expected sheet & parent count) to build + node-verify. (② cover
-machine-choice DONE fe45ada. ③ COVER-sheet cutting DONE ff2cf51 → L-32 cheapest. The same cut approach now
-needs porting to the TEXT path once sir confirms his numbers.)
+**IMMEDIATE PENDING (need sir's numbers):**
+- **A1 hard-case material rates** (board ₹0.05/sqin, rexine/cloth/velvet ₹0.12/sqin, endpaper ₹6/sheet,
+  headband/ribbon = placeholders — NOT real). Have: casing-in ₹95/book (real), PLC printed stock (real, from
+  ART BOARD/FBB/SBS in paper DB). Need from sir: greyboard ₹/sheet+sheet size by thickness; rexine/cloth/
+  velvet ₹/sqin or /m; endpaper paper/GSM (then auto-prices) or ₹/sheet; headband/ribbon/jacket ₹/book.
+  Offered next: wire endpaper to auto-price from paper DB (no sir input needed).
+- **TEXT-side 12,000→6,000 exact reproduction** — cut-to-required-size is DONE generally; a specific job
+  achieves 6,000 via 28×40 gang-2 (sheet selection), verified. If sir wants 2-cuts/parent halving on a
+  specific job, need that job's exact numbers.
+- **Binding rates** are sparse sample points (nearest-match); refine when sir gives a fuller grid/formula.
+- Pending earlier: 24/32pp fold forms; digital ₹/click card; grain-direction rule; wastage 15/25% bracket rule.
 
 **Full system audit (2026-06-17):** node-verified all of sir's canonical hand numbers (204pp/12pp=1,105;
 80pp gang-2; calendar 90000/8-up single-sided=11,913; weight 0.0929 kg/sheet; Anderson per-forme tiers;
