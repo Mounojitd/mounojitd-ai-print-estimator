@@ -16,7 +16,11 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `050338e` (**A2 BOARD BOOK** / back-to-back paste estimator + 2D leaf diagram —
+**Latest commit at save:** `ed3058e` (**A3 MECHANICAL BINDING** wire-o/spiral/comb — punching + element
+(Ø sized from block thickness via WIRE_DIA) + hanger + back board; `mechBindPlan` overrides the flat binding
+line as `bindCost` in BOTH combinedPrice branches while keeping the normal cover flow; `showPrice` itemises
+`x.mech`; `mechBindDiagramSVG` front-of-edge view; node-verified 120pp/1000 wire-o → Ø14.3, total 21,409).
+Previous: `050338e` (**A2 BOARD BOOK** / back-to-back paste estimator + 2D leaf diagram —
 sir's V3). A2 mirrors A1: select Binding=Back-to-back paste → `#boardbookFields` (toggleBoardbook); leaves =
 pages÷2; `boardBookPlan()` = greyboard cores + pasting/mounting + assembly/casing + optional corner-round
 (board weight into packing/freight); printed faces/printing/coating stay in the text job (tq). Own branch in
@@ -47,9 +51,10 @@ finishing/coating rates, binding by pages·qty).
 **WHERE WE ARE (per ROADMAP.md two-track plan):** Track A (finish/validate offline engine) ≈ DONE — DB-audit,
 UI pass, testing matrix (122,304 assertions 0 fail + canonical 1,105/6,000/0.0929 hold). Now in **Track A —
 Grow Product Breadth (sir's V2–V7)**: **A1 hard case DONE** (32e00cc) · **A2 board book / back-to-back paste
-DONE** (050338e). Next: A3 calendars/notebooks/envelopes (wire-o/spiral/converting), A4 folders/sleeves/boxes
-(DIELINE — separate module), A5 wall calendars/stationery, A6 sets/bundles. Track B (backend + quotation DB)
-not started.
+DONE** (050338e) · **A3 mechanical binding (wire-o/spiral/comb) DONE** (ed3058e — notebooks & calendars:
+punching + element Ø-from-block + hanger + back board; keeps normal cover flow; envelope/converting deferred
+to A4 dieline). Next: A3-converting + A4 folders/sleeves/boxes (DIELINE — separate module), A5 wall
+calendars/stationery, A6 sets/bundles. Track B (backend + quotation DB) not started.
 
 **IMMEDIATE PENDING (need sir's numbers):**
 - **A1 hard-case material rates** (board ₹0.05/sqin, rexine/cloth/velvet ₹0.12/sqin,
