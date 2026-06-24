@@ -33,11 +33,15 @@ books, A3 calendars/notebooks/envelopes (wire-o/spiral/converting), A4 folders/s
 separate module), A5 wall calendars/stationery, A6 sets/bundles. Track B (backend + quotation DB) not started.
 
 **IMMEDIATE PENDING (need sir's numbers):**
-- **A1 hard-case material rates** (board ₹0.05/sqin, rexine/cloth/velvet ₹0.12/sqin, endpaper ₹6/sheet,
+- **A1 hard-case material rates** (board ₹0.05/sqin, rexine/cloth/velvet ₹0.12/sqin,
   headband/ribbon = placeholders — NOT real). Have: casing-in ₹95/book (real), PLC printed stock (real, from
   ART BOARD/FBB/SBS in paper DB). Need from sir: greyboard ₹/sheet+sheet size by thickness; rexine/cloth/
-  velvet ₹/sqin or /m; endpaper paper/GSM (then auto-prices) or ₹/sheet; headband/ribbon/jacket ₹/book.
-  Offered next: wire endpaper to auto-price from paper DB (no sir input needed).
+  velvet ₹/sqin or /m; headband/ribbon/jacket ₹/book.
+  **✅ ENDPAPER NOW AUTO-PRICES from the paper DB** (no longer a ₹6 placeholder) — type/grade/GSM picker
+  (`hcEndTypeSel`/`hcEndGrade`/`hcEndGsm`, default Auto @120gsm) → `endRateFor(endW,endH)` mirrors
+  `coverRateFor` (lookupByGsm / lookupPaperRate, area-scaled, ⚠ on GSM substitution); flat size = board
+  spread `2·boardW × boardH` in `hardCasePlan`. Manual ₹/sheet still available. Node-verified: manual→6,
+  auto@120gsm 15×11→₹1.48 (Maplitho scaled), @125 25×36→₹17.4 list, grade→₹9.77. NOT yet published.
 - **TEXT-side 12,000→6,000 exact reproduction** — cut-to-required-size is DONE generally; a specific job
   achieves 6,000 via 28×40 gang-2 (sheet selection), verified. If sir wants 2-cuts/parent halving on a
   specific job, need that job's exact numbers.

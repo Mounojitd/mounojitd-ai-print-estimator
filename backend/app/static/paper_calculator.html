@@ -220,8 +220,18 @@
           </div>
           <div class="row3">
             <div class="fld"><label>Material ₹/sq.in (non-paper)</label><input id="hcMatRate" type="number" step="0.01" value="0.12" oninput="showPrice()" /><div class="hint">rexine / cloth / velvet</div></div>
-            <div class="fld"><label>Endpaper ₹/sheet (×2/book)</label><input id="hcEndRate" type="number" step="0.01" value="6" oninput="showPrice()" /></div>
             <div class="fld"><label>Case-make + casing-in ₹/book</label><input id="hcCaseLabour" type="number" step="0.5" value="95" oninput="showPrice()" /></div>
+            <div class="fld"></div>
+          </div>
+          <div class="ptitle" style="font-size:.92em;margin:2px 0 4px">📄 Endpaper (folded leaf, 2/book) — auto-priced from paper DB</div>
+          <div class="row3">
+            <div class="fld"><label>Endpaper type</label><select id="hcEndTypeSel" onchange="onHcEndTypeChange()"><option value="">All types</option></select></div>
+            <div class="fld"><label>Endpaper paper (price list)</label><select id="hcEndGrade" onchange="onHcEndPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual</option></select></div>
+            <div class="fld"><label>Endpaper GSM</label><input id="hcEndGsm" type="number" value="120" oninput="showPrice()" /></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Endpaper ₹/sheet (×2/book)</label><input id="hcEndRate" type="number" step="0.01" placeholder="auto / manual" oninput="onHcEndRateEdit()" /></div>
+            <div class="fld" style="grid-column:span 2"><div class="hint" id="hcEndRateNote" style="margin-top:8px">Auto rate from paper DB at the endpaper spread size.</div></div>
           </div>
           <div class="row3">
             <div class="fld"><label>Headband ₹/book</label><input id="hcHeadband" type="number" step="0.5" value="0" oninput="showPrice()" /></div>
@@ -507,6 +517,24 @@ function coverRateFor(w,h){
     const sub=(hit.gsm&&hit.gsm!==gsm)?` <b style="color:#c0392b">⚠ no ${gsm}gsm in list — used nearest ${hit.gsm}gsm rate (verify or enter manually)</b>`:"";
     $("coverRateNote").innerHTML=`Auto ₹${hit.rate}/sheet @ ${hit.gsm||gsm}gsm ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).${sub}`; return hit.rate; }
   $("coverRateNote").textContent=`No list price @ ${gsm}gsm ${w}×${h} — manual.`; return num("coverPaperRate",0);
+}
+
+/* ---- ENDPAPER paper auto-pickup (hard case, same DB as cover/text) ---- */
+function buildHcEndPickers(){ buildTypeList("hcEndTypeSel"); fillGradeList("hcEndGrade",""); if($("hcEndRate"))$("hcEndRate").readOnly=($("hcEndGrade").value!==""); }
+function onHcEndTypeChange(){ fillGradeList("hcEndGrade",$("hcEndTypeSel").value); $("hcEndGrade").value="__auto"; onHcEndPick(); }
+function onHcEndPick(){ $("hcEndRate").readOnly=($("hcEndGrade").value!==""); showPrice(); }
+function onHcEndRateEdit(){ $("hcEndGrade").value=""; $("hcEndRate").readOnly=false; $("hcEndRateNote").textContent="Manual rate."; showPrice(); }
+// endpaper ₹ per folded leaf at a given flat size (auto from DB by grade or GSM, else manual)
+function endRateFor(w,h){
+  const sel=$("hcEndGrade"); if(!sel) return num("hcEndRate",6);
+  const grade=sel.value, gsm=num("hcEndGsm",120);
+  if(grade==="") return num("hcEndRate",6);                       // manual
+  const hit=grade==="__auto"?lookupByGsm(gsm,w,h,$("hcEndTypeSel")?$("hcEndTypeSel").value:"")
+                            :(gsm>0?lookupPaperRate(grade,gsm,w,h):null);
+  if(hit){ $("hcEndRate").value=hit.rate;
+    const sub=(hit.gsm&&hit.gsm!==gsm)?` <b style="color:#c0392b">⚠ no ${gsm}gsm in list — used nearest ${hit.gsm}gsm rate (verify or enter manually)</b>`:"";
+    $("hcEndRateNote").innerHTML=`Auto ₹${hit.rate}/sheet @ ${hit.gsm||gsm}gsm ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).${sub}`; return hit.rate; }
+  $("hcEndRateNote").textContent=`No list price @ ${gsm}gsm ${w}×${h} — type the rate manually.`; return num("hcEndRate",6);
 }
 
 /* ---------- PURE CALCULATION (NKK sir corrected logic) ---------- */
@@ -1374,9 +1402,10 @@ function hardCasePlan(){
     const matCost=plcArea*books*num("hcMatRate",0.12)*waste;
     items.push({name:`Case material — ${mat} (${plcArea.toFixed(0)} sq.in/book)`,cost:matCost});
   }
-  // 3) endpapers (2/book), 4) labour, 5) extras
-  const endRate=num("hcEndRate",6), endCost=endRate*2*Math.ceil(books*waste);
-  items.push({name:`Endpapers (2/book × ${boards_in(books)})`,cost:endCost});
+  // 3) endpapers (2/book) — folded leaf, flat size ≈ board spread (covers both boards across the joint)
+  const endW=+(2*boardW/MM).toFixed(2), endH=+(boardH/MM).toFixed(2);
+  const endRate=endRateFor(endW,endH), endCost=endRate*2*Math.ceil(books*waste);
+  items.push({name:`Endpapers (${endW}×${endH} in, 2/book × ${boards_in(books)})`,cost:endCost});
   items.push({name:`Case-making + casing-in (₹${num("hcCaseLabour",95)}/book)`,cost:num("hcCaseLabour",95)*books});
   const hb=num("hcHeadband",0), rb=num("hcRibbon",0);
   if(hb>0) items.push({name:"Headband",cost:hb*books});
@@ -1816,6 +1845,7 @@ function printJobSheet(){
 }
 buildPaperPickers();
 buildCoverPickers();
+buildHcEndPickers();
 onProductChange();
 
 /* ---------- LIVE AUTO-RECALC: any input change re-runs automatically (no button click) ---------- */
