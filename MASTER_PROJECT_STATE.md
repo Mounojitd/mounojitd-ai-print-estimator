@@ -16,7 +16,14 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `1d82832` (production diagrams reflow + hard-case 2D cross-section). Recent chain:
+**Latest commit at save:** `050338e` (**A2 BOARD BOOK** / back-to-back paste estimator + 2D leaf diagram —
+sir's V3). A2 mirrors A1: select Binding=Back-to-back paste → `#boardbookFields` (toggleBoardbook); leaves =
+pages÷2; `boardBookPlan()` = greyboard cores + pasting/mounting + assembly/casing + optional corner-round
+(board weight into packing/freight); printed faces/printing/coating stay in the text job (tq). Own branch in
+`combinedPrice` + `showPrice` (x.boardbook) + `boardBookDiagramSVG()` (printed face+board+printed face leaf,
+stacked) in the picture stack. node-verified 24pp/2000 → 12 leaves, boards 61,740 + paste 48,000 + assembly
+30,000 = 139,740; no-board variant drops greyboard. **Rates editable, pending sir's board-book numbers.**
+`27eae47` sizesTable: Cut-sheet row reads "same as parent (no cut)" when sheet prints full. Recent chain:
 `85ee0a6` requirements PDF (what's needed to run the engine, on Pages) · `2da0f04` FIX margin-diagram unit
 bug (mm scaled by px-per-INCH → gripper/side-lay/bleed ~25× too big, bands collided with print boundary;
 now mm÷MM before scaling + small floors) · `7881f8a` A1 endpaper auto-prices from paper DB (endRateFor
@@ -39,9 +46,10 @@ finishing/coating rates, binding by pages·qty).
 
 **WHERE WE ARE (per ROADMAP.md two-track plan):** Track A (finish/validate offline engine) ≈ DONE — DB-audit,
 UI pass, testing matrix (122,304 assertions 0 fail + canonical 1,105/6,000/0.0929 hold). Now in **Track A —
-Grow Product Breadth (sir's V2–V7)**: **A1 hard case DONE** (32e00cc). Next: A2 back-to-back pasted (board)
-books, A3 calendars/notebooks/envelopes (wire-o/spiral/converting), A4 folders/sleeves/boxes (DIELINE —
-separate module), A5 wall calendars/stationery, A6 sets/bundles. Track B (backend + quotation DB) not started.
+Grow Product Breadth (sir's V2–V7)**: **A1 hard case DONE** (32e00cc) · **A2 board book / back-to-back paste
+DONE** (050338e). Next: A3 calendars/notebooks/envelopes (wire-o/spiral/converting), A4 folders/sleeves/boxes
+(DIELINE — separate module), A5 wall calendars/stationery, A6 sets/bundles. Track B (backend + quotation DB)
+not started.
 
 **IMMEDIATE PENDING (need sir's numbers):**
 - **A1 hard-case material rates** (board ₹0.05/sqin, rexine/cloth/velvet ₹0.12/sqin,
