@@ -1032,7 +1032,7 @@ function sizesTable(o){
     r("Finished size", `${I.W} × ${I.H} in`);
     r("Open size with bleed", `${(I.W+2*b).toFixed(2)} × ${(I.H+2*b).toFixed(2)} in`);
   }
-  r("Cut sheet (on press)", o.cutMachine?`${o.cutTo} in`:`${o.sw} × ${o.sh} in`);
+  r("Cut sheet (on press)", o.cutMachine?`${o.cutTo} in`:`<span style="color:#6b7480">— same as parent (prints full, no cut)</span>`);
   r("<b>Parent sheet (buy)</b>", `<b>${o.paperSheetW} × ${o.paperSheetH} in</b>`);
   r("Machine max sheet", SELECTED_MACHINE?`${SELECTED_MACHINE.max[0]} × ${SELECTED_MACHINE.max[1]} in`:"—");
   if(I.separateCover){ const cp=coverPlan(); if(cp&&cp.meta){const m=cp.meta;
