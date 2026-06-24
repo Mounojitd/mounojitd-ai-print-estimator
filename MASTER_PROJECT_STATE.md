@@ -16,7 +16,18 @@ Downloads, then `git push origin main` (or run `publish.ps1`). Pages rebuilds ~1
 **Verify before publish:** extract `<script>` → `node --check`; mirror functions into node to check math
 vs sir's hand numbers. Real Python: `C:\Users\AR04\AppData\Local\Programs\Python\Python312\python.exe`.
 
-**Latest commit at save:** `32e00cc` (A1 HARD CASE / case-bound book estimator — sir's V2). Recent chain:
+**Latest commit at save:** `1d82832` (production diagrams reflow + hard-case 2D cross-section). Recent chain:
+`85ee0a6` requirements PDF (what's needed to run the engine, on Pages) · `2da0f04` FIX margin-diagram unit
+bug (mm scaled by px-per-INCH → gripper/side-lay/bleed ~25× too big, bands collided with print boundary;
+now mm÷MM before scaling + small floors) · `7881f8a` A1 endpaper auto-prices from paper DB (endRateFor
+mirrors coverRateFor; flat size = board spread). **Diagram layout reworked (1d82832):** `📐 Production
+sizes & margins` now STACKS each picture full-width one-by-one (Inside margin, Inside cut, Cover margin,
+Cover cut, cover schematic, + hard-case cross-section) THEN the sizes/calc table — was cramped 2-col flex
+that overlapped. **New `hardCaseDiagramSVG()`** = 2D labelled cross-section (greyboards, spine board, text
+block, endpapers, case wrap + turn-in; material-themed PLC/rexine/cloth/velvet; labels=live mm; thickness
+exaggerated), shown when Binding=Hard case. QA'd by rendering SVG→PDF→PNG via PyMuPDF (cairosvg has no
+native lib on Windows). Earlier A1 chain:
+`32e00cc` (A1 HARD CASE / case-bound book estimator — sir's V2). Recent chain:
 `fce757f` UI readability pass (responsive, no h-scroll, label fixes) · `1a9455f` honest GSM substitution
 (fixes "130→128" silent mislabel) · `d0d19a8` ROADMAP.md (two-track plan + quotation DB schema) ·
 `fccf622` per-machine printing rate cards · `401f7f8` binding cost by pages·qty · `db30435` machine master
