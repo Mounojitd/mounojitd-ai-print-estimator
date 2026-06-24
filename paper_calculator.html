@@ -1080,6 +1080,57 @@ function marginDiagramSVG(o,job){
   s+=`<text x="${W/2}" y="${H+38}" font-size="8.5" text-anchor="middle" fill="#6b7480">Finished ${job.W}×${job.H} → Open ${job.openW}×${job.openH} → Print → Parent ${parW}×${parH}</text>`;
   return s+`</svg>`;
 }
+// HARD CASE 2D cross-section (NKK sir V2): top-down slice through the closed cased book — boards, spine board,
+// text block, endpapers and the case wrap with turn-in. Thickness axis exaggerated for clarity (labels = real mm).
+function hardCaseDiagramSVG(){
+  if(!LASTINP || !$("binding") || $("binding").value!=="case") return "";
+  const I=LASTINP;
+  const boardTh=num("hcBoard",2.5), square=num("hcSquare",3), joint=num("hcJoint",8), turnin=num("hcTurnin",15);
+  const spine=+(I.spineMM||0).toFixed(2), pages=I.pages||0;
+  const matSel=$("hcMaterial")?$("hcMaterial").value:"plc";
+  const matName={plc:"Printed paper (PLC)",rexine:"Rexine",cloth:"Cloth",velvet:"Velvet"}[matSel]||"PLC";
+  const matFill={plc:"#cfe6fb",rexine:"#9c6b3f",cloth:"#a7c79a",velvet:"#7a5a8c"}[matSel]||"#cfe6fb";
+  const matStrk={plc:"#1f4e78",rexine:"#5a3a1f",cloth:"#3a5a30",velvet:"#3a2a47"}[matSel]||"#1f4e78";
+  const W=470,H=252;
+  // geometry (px): horizontal = spine(left) → fore-edge(right); vertical(exaggerated) = book thickness
+  const spineX=118, spW=16, jt=14, foreX=400, sq=16, boardL=spineX+spW+jt, boardR=foreX+sq;
+  const cy=H/2, tt=84, tb=13, ep=5, skin=6, tin=32;        // text-thick, board, endpaper, case skin, turn-in flap (px)
+  const fbY=cy-tt/2-ep-tb, fbBot=fbY+tb, bbY=cy+tt/2+ep, bbBot=bbY+tb;
+  const txtL=boardL+12, txtR=foreX, txtT=cy-tt/2, txtB=cy+tt/2;
+  const bFill="#c7b693", bStrk="#8a795a", epFill="#f0d59a", epStrk="#c79b3f";
+  const lbl=(x,y,t,c,anc)=>`<text x="${x}" y="${y}" font-size="8" fill="${c||'#444'}" text-anchor="${anc||'start'}">${t}</text>`;
+  const lead=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#999" stroke-width="0.6"/>`;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #d9c69a;border-radius:6px;background:#fffdf8"><rect width="${W}" height="${H}" fill="#fffdf8"/>`;
+  // CASE WRAP (outer skin): top, spine (rounded), bottom + turn-in flaps folding inside at fore-edge
+  s+=`<path d="M ${boardR} ${fbY-skin} L ${spineX} ${fbY-skin} Q ${spineX-10} ${cy} ${spineX} ${bbBot+skin} L ${boardR} ${bbBot+skin} L ${boardR} ${bbBot} L ${boardR-tin} ${bbBot} L ${boardR-tin} ${bbBot-skin+0.5} L ${boardR-skin} ${bbBot-skin+0.5} L ${boardR-skin} ${fbBot+skin-0.5} L ${boardR-tin} ${fbBot+skin-0.5} L ${boardR-tin} ${fbBot} L ${boardR} ${fbBot} Z" fill="${matFill}" stroke="${matStrk}" stroke-width="0.8" stroke-linejoin="round"/>`;
+  // GREYBOARDS (front + back) — extend +square past the text block at the fore-edge
+  s+=`<rect x="${boardL}" y="${fbY}" width="${boardR-boardL}" height="${tb}" fill="${bFill}" stroke="${bStrk}"/>`;
+  s+=`<rect x="${boardL}" y="${bbY}" width="${boardR-boardL}" height="${tb}" fill="${bFill}" stroke="${bStrk}"/>`;
+  // SPINE BOARD (thin, hollow-back style) between the two boards near the spine
+  s+=`<rect x="${spineX+3}" y="${fbY}" width="${tb}" height="${bbBot-fbY}" fill="${bFill}" stroke="${bStrk}"/>`;
+  // ENDPAPERS (paste-down on board inner face + facing leaf onto text block)
+  s+=`<rect x="${txtL-6}" y="${fbBot}" width="${boardR-(txtL-6)}" height="${ep}" fill="${epFill}" stroke="${epStrk}" stroke-width="0.6"/>`;
+  s+=`<rect x="${txtL-6}" y="${bbY-ep}" width="${boardR-(txtL-6)}" height="${ep}" fill="${epFill}" stroke="${epStrk}" stroke-width="0.6"/>`;
+  // TEXT BLOCK (pages)
+  s+=`<rect x="${txtL}" y="${txtT}" width="${txtR-txtL}" height="${tt}" fill="#ffffff" stroke="#aab2bb"/>`;
+  for(let yy=txtT+6; yy<txtB-2; yy+=6) s+=`<line x1="${txtL}" y1="${yy}" x2="${txtR}" y2="${yy}" stroke="#e2e6ea" stroke-width="0.7"/>`;
+  // JOINT / GROOVE hinge gap (between spine board and cover board)
+  s+=`<line x1="${spineX+3+tb+jt/2}" y1="${fbY-skin}" x2="${spineX+3+tb+jt/2}" y2="${fbY+tb+3}" stroke="#c0392b" stroke-width="0.8" stroke-dasharray="2 2"/>`;
+  s+=`<line x1="${spineX+3+tb+jt/2}" y1="${bbBot+skin}" x2="${spineX+3+tb+jt/2}" y2="${bbY-3}" stroke="#c0392b" stroke-width="0.8" stroke-dasharray="2 2"/>`;
+  // SQUARE overhang marker (board extends past text block at fore-edge)
+  s+=`<line x1="${txtR}" y1="${fbBot+2}" x2="${boardR}" y2="${fbBot+2}" stroke="#c0392b" stroke-width="0.8"/>`;
+  // ---- LABELS (leader lines) ----
+  s+=lead(spineX-6,cy,40,cy)+lbl(8,cy-2,`Spine board`,matStrk)+lbl(8,cy+9,`${spine} mm`,'#666');
+  s+=lead((boardL+boardR)/2,fbY-skin,(boardL+boardR)/2,28)+lbl((boardL+boardR)/2,24,`Case wrap — ${matName}`,matStrk,'middle');
+  s+=lead(boardL+30,fbY,boardL+30,46)+lbl(boardL+30,42,`Board ${boardTh} mm`,bStrk,'middle');
+  s+=lead(boardR-tin/2,fbBot+skin,boardR+10,fbBot+skin-14)+lbl(boardR+12,fbBot+skin-15,`Turn-in`,matStrk)+lbl(boardR+12,fbBot+skin-5,`${turnin} mm`,'#666');
+  s+=lbl(W/2,txtT+tt/2-2,`Text block`,'#555','middle')+lbl(W/2,txtT+tt/2+9,`${pages}pp · ${spine} mm`,'#888','middle');
+  s+=lead(txtL+30,bbY-ep,txtL+30,bbY+tb+16)+lbl(txtL+30,bbY+tb+24,`Endpaper (×2)`,epStrk,'middle');
+  s+=lead((txtR+boardR)/2,fbBot+2,(txtR+boardR)/2+14,bbBot+30)+lbl((txtR+boardR)/2+16,bbBot+34,`Square ${square} mm`,'#c0392b');
+  s+=lead(spineX+3+tb+jt/2,bbY-3,spineX-2,bbBot+26)+lbl(8,bbBot+30,`Joint / groove ${joint} mm`,'#c0392b');
+  s+=lbl(W-6,H-6,`closed book · thickness not to scale`,'#aaa','end');
+  return s+`</svg>`;
+}
 // CUTTING DIAGRAM (NKK sir): show HOW the parent sheet is cut into press-size pieces — pieces tiled inside
 // the parent, leftover shown as trim. Makes the cut + pieces-per-parent visible on the job card.
 function cutDiagramSVG(o){
@@ -1154,14 +1205,18 @@ function renderDiagram(){
   const chipRow=`<div style="margin-bottom:8px"><span style="font-size:11px;color:#6b7480">Sheet:</span> ${chips}</div>`;
   // SIZE HIERARCHY + MARGIN diagram (sir's drawing) — TWO separate sections: Inside/Text and Cover.
   const cpD=(LASTINP.separateCover)?coverPlan():null, hasCoverD=cpD&&cpD.option;
-  const textCut=o.cutMachine?`<div style="margin-top:8px">${cutDiagramSVG(o)}</div>`:"";
-  const textCol=`<div style="flex:1;min-width:250px;border:1px solid #cbd8e5;border-radius:6px;padding:8px"><div style="font-weight:700;color:#13314f;font-size:12px;margin-bottom:6px">📄 Inside / Text</div>${marginDiagramSVG(o)}${textCut}${sizesTable(o)}</div>`;
-  let coverCol="";
+  // STACK each picture full-width, ONE BELOW ANOTHER, then the sizes/calculation table at the bottom (NKK sir's layout).
+  const picCard=(title,color,svg)=>`<div style="border:1px solid #cbd8e5;border-radius:6px;padding:8px;margin-bottom:10px"><div style="font-weight:700;color:${color};font-size:12px;margin-bottom:6px">${title}</div><div style="text-align:center;overflow-x:auto">${svg}</div></div>`;
+  let pics=picCard("📄 Inside / Text — print margins","#13314f",marginDiagramSVG(o));
+  if(o.cutMachine) pics+=picCard("✂ Inside / Text — cut from parent sheet","#7c3aed",cutDiagramSVG(o));
   if(hasCoverD){ const cm=cpD.meta, co=cpD.option, cjob={W:cm.coverW,H:cm.coverH,isSig:false,openW:cm.coverW,openH:cm.coverH};
-    const coverCut=co.cutMachine?`<div style="margin-top:8px">${cutDiagramSVG(co)}</div>`:"";
-    coverCol=`<div style="flex:1;min-width:250px;border:1px solid #efd9a6;border-radius:6px;padding:8px"><div style="font-weight:700;color:#b9770a;font-size:12px;margin-bottom:6px">📕 Cover (front + spine + back)</div>${marginDiagramSVG(co,cjob)}${coverCut}${coverSchematic(cpD)}</div>`; }
+    pics+=picCard("📕 Cover — print margins","#b9770a",marginDiagramSVG(co,cjob));
+    if(co.cutMachine) pics+=picCard("✂ Cover — cut from parent sheet","#7c3aed",cutDiagramSVG(co));
+    pics+=picCard("📕 Cover — front │ spine │ back layout","#b9770a",coverSchematic(cpD)); }
+  if($("binding")&&$("binding").value==="case"){ const hc=hardCaseDiagramSVG(); if(hc) pics+=picCard("📦 Hard case — cross-section (boards · spine · endpapers · case wrap)","#8a5a12",hc); }
+  const calcCard=`<div style="border:1.5px solid #13314f;border-radius:6px;padding:8px;background:#f6faff"><div style="font-weight:700;color:#13314f;font-size:12px;margin-bottom:6px">🧮 Sizes &amp; calculation</div>${sizesTable(o)}</div>`;
   const sizePanel=`<details class="pbox" style="margin-bottom:10px;border-color:#cbd8e5" open><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 Production sizes &amp; margins (finished → open → print → cut → parent)${hasCoverD?" — Inside/Text + Cover":""}</summary>`+
-    `<div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:8px">${textCol}${coverCol}</div></details>`;
+    `<div style="margin-top:8px">${pics}${calcCard}</div></details>`;
   const legend=`<div style="font-size:11px;color:#6b7480;margin-bottom:8px"><span style="color:#d99">▮</span>gripper&nbsp;<span style="color:#d9b94b">▮</span>side-lay${dbl&&bookletMode?'&nbsp;<span style="color:#c2410c">┄</span>fold&nbsp;<span style="color:#e08a2e">┄</span>zigzag&nbsp;<span style="color:#6b7480">┊</span>cut&nbsp;<span style="color:#1f4e78">↕</span>head direction':''}${o.cutMachine?`&nbsp;·&nbsp;<span style="color:#7c3aed">✂ cut to ${o.cutTo} for ${o.cutMachine}</span>`:''}</div>`;
   if(!dbl){ box.innerHTML=chipRow+sizePanel+legend+sheetPicture(o); return; }
   const L=Math.max(1,o.layouts||1);
