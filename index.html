@@ -245,6 +245,11 @@
             <div class="fld" style="grid-column:span 2"><div class="hint" id="hcEndRateNote" style="margin-top:8px">Auto rate from paper DB at the endpaper spread size.</div></div>
           </div>
           <div class="row3">
+            <div class="fld"><label>Endpaper printed?</label><select id="hcEndPrinted" onchange="showPrice()"><option value="no" selected>No (plain — buy &amp; cut)</option><option value="yes">Yes (printed)</option></select></div>
+            <div class="fld"><label>Endpaper front colours</label><input id="hcEndCf" type="number" value="1" oninput="showPrice()" /><div class="hint">only if printed</div></div>
+            <div class="fld"><label>Endpaper back colours</label><input id="hcEndCb" type="number" value="0" oninput="showPrice()" /></div>
+          </div>
+          <div class="row3">
             <div class="fld"><label>Headband ₹/book</label><input id="hcHeadband" type="number" step="0.5" value="0" oninput="showPrice()" /></div>
             <div class="fld"><label>Ribbon ₹/book</label><input id="hcRibbon" type="number" step="0.5" value="0" oninput="showPrice()" /></div>
             <div class="fld"><label>Dust jacket</label><select id="hcJacket" onchange="showPrice()"><option value="no" selected>No</option><option value="yes">Yes (printed wrap)</option></select></div>
@@ -1805,7 +1810,18 @@ function hardCasePlan(){
   // 3) endpapers (2/book) — folded leaf ≈ board spread; bought as parent sheets & cut (NKK sir 2026-06-24)
   const endW=+(2*boardW/MM).toFixed(2), endH=+(boardH/MM).toFixed(2);
   const ep=endpaperCost(endW,endH,books,waste); plcWt+=ep.wt;
-  items.push({name:`Endpapers (${endW}×${endH} in · ${ep.perParent}/sheet × ${ep.sheets} sheets @ ₹${ep.rate})`,cost:ep.cost});
+  const endPrinted=$("hcEndPrinted")&&$("hcEndPrinted").value==="yes";
+  items.push({name:`Endpapers (${endW}×${endH} in · ${ep.perParent}/sheet × ${ep.sheets} sheets @ ₹${ep.rate}${endPrinted?", printed":", plain"})`,cost:ep.cost});
+  // endpaper PRINTED (NKK sir 2026-06-24): if printed it runs on the press like any sheet — printing + plates;
+  // if non-printed, just buy + cut (above). Printed on the endpaper parent (25×36), same rate source as PLC.
+  if(endPrinted){
+    const eband=sizeBand(ep.parentW,ep.parentH), esrc=activePrint();
+    const ecf=Math.round(num("hcEndCf",1)), ecb=Math.round(num("hcEndCb",0));
+    const eprint=(ecf>0?sideCost(esrc,eband,ecf,ep.sheets):0)+(ecb>0?sideCost(esrc,eband,ecb,ep.sheets):0);
+    const eplateCount=ecf+ecb, eplates=eplateCount*plateRate(esrc,eband);
+    items.push({name:`Endpaper printing (${ecf}+${ecb} on ${ep.sheets} sheets)`,cost:eprint});
+    if(eplates>0) items.push({name:`Endpaper plates (${eplateCount})`,cost:eplates});
+  }
   items.push({name:`Case-making + casing-in (₹${num("hcCaseLabour",95)}/book)`,cost:num("hcCaseLabour",95)*books});
   const hb=num("hcHeadband",0), rb=num("hcRibbon",0);
   if(hb>0) items.push({name:"Headband",cost:hb*books});
