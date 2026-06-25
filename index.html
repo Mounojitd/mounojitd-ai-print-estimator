@@ -364,7 +364,7 @@
           <span></span>
         </div>
         <div class="prow">
-          <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="showPrice()">
+          <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="if(RESULT)run();else showPrice()">
             <option value="anderson" selected>Naba Mudran (agreement)</option>
             <option value="nabamudran">Nabamudran Heidelberg-102</option>
             <option value="komori_l40">Komori L-40</option>
@@ -926,12 +926,12 @@ function coverSchematic(cp){
       arrow(cw+sp+cw/2,y+rowH/2+8,true);
   }
   let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>`;
-  // WORK & TURN (NKK sir 2026-06-24): print the OUTSIDE, then turn the sheet left↔right on the SAME plate
-  // (gripper edge stays the same) and print the INSIDE. So the inside order MIRRORS the outside.
-  svg+=`<text x="2" y="9" font-size="8" fill="#6b7480">OUTSIDE (pass 1)</text>`+row(12,["BACK","FRONT"]);
+  // Opened-cover layout (NKK sir 2026-06-24): OUTSIDE = BACK | FRONT, INSIDE directly below = INSIDE BACK |
+  // INSIDE FRONT (natural reading positions). Printed Work & Turn (flip on the same plate, gripper unchanged).
+  svg+=`<text x="2" y="9" font-size="8" fill="#6b7480">OUTSIDE</text>`+row(12,["BACK","FRONT"]);
   const midY=12+rowH+7;
-  svg+=`<text x="${W/2}" y="${L(midY)}" font-size="7.5" text-anchor="middle" fill="#7c3aed">🔁 Work &amp; Turn — flip sheet left ↔ right (gripper edge unchanged)</text>`;
-  svg+=`<text x="2" y="${L(12+rowH+25)}" font-size="8" fill="#6b7480">INSIDE (pass 2, mirrored)</text>`+row(12+rowH+28,["INSIDE FRONT","INSIDE BACK"]);
+  svg+=`<text x="${W/2}" y="${L(midY)}" font-size="7.5" text-anchor="middle" fill="#7c3aed">🔁 printed Work &amp; Turn (flip on same plate, gripper edge unchanged)</text>`;
+  svg+=`<text x="2" y="${L(12+rowH+25)}" font-size="8" fill="#6b7480">INSIDE</text>`+row(12+rowH+28,["INSIDE BACK","INSIDE FRONT"]);
   // GRIPPER bar — the shared feed edge for both passes (sir: "the gripper has to be shown this side")
   const gy=12+2*rowH+30;
   svg+=`<rect x="0" y="${L(gy)}" width="${W}" height="9" fill="#f6d6d6" stroke="#c0392b" stroke-width="0.6"/>`;
@@ -1261,6 +1261,78 @@ function hardCaseDiagramSVG(){
   s+=lbl(W-6,H-6,`closed book · thickness not to scale`,'#aaa','end');
   return s+`</svg>`;
 }
+// HARD CASE — CHIP plan (NKK sir p2, 2026-06-24): open-case boards BACK | joint | SPINE board | joint | FRONT.
+// Each cover board = finished book + square overhang on the 3 outer sides; joint groove on the spine side.
+function hardCaseChipDiagramSVG(){
+  if(!LASTINP||!$("binding")||$("binding").value!=="case") return "";
+  const hc=hardCasePlan(); if(!hc) return ""; const S=hc.sizes, I=LASTINP;
+  const square=num("hcSquare",3), joint=num("hcJoint",8);
+  const bw=S.boardW, bh=S.boardH, sbw=S.spineBoardW, caseW=S.caseOpenW;          // inches
+  const W=460,H=250, pad=46, sc=Math.min((W-2*pad)/caseW,(H-96)/bh), oy=44, ox=(W-caseW*sc)/2;
+  const X=v=>ox+v*sc, Y=v=>oy+v*sc;
+  const bdF="#c7b693", bdS="#8a795a", pgS="#2c6fb3";
+  const lbl=(x,y,t,c,a)=>`<text x="${x}" y="${y}" font-size="8" fill="${c||'#444'}" text-anchor="${a||'middle'}">${t}</text>`;
+  const lead=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#999" stroke-width="0.6"/>`;
+  const jin=joint/MM;                                                             // joint groove in inches
+  const xBack=0, xSpine=bw+jin, xFront=bw+jin+sbw+jin;
+  const ov=Math.max(7,(square/MM)*sc);                                            // overhang px (min visible)
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #d9c69a;border-radius:6px;background:#fffdf8"><rect width="${W}" height="${H}" fill="#fffdf8"/>`;
+  s+=lbl(W/2,20,`Open-case boards (plan) — finished book ${I.W}×${I.H} in + ${square}mm overhang`,bdS);
+  // a cover board with the finished page dashed inside (overhang on top/bottom + the OUTER fore-edge)
+  function cover(xs,foreLeft,name){
+    s+=`<rect x="${X(xs)}" y="${Y(0)}" width="${bw*sc}" height="${bh*sc}" fill="${bdF}" stroke="${bdS}"/>`;
+    const px=X(xs)+(foreLeft?ov:0)+(foreLeft?0:0), pxL=X(xs)+(foreLeft?ov:0), pw=bw*sc-ov, ph=bh*sc-2*ov;
+    s+=`<rect x="${L2(pxL)}" y="${Y(0)+ov}" width="${L2(pw)}" height="${L2(ph)}" fill="none" stroke="${pgS}" stroke-dasharray="3 2"/>`;
+    s+=lbl(X(xs)+bw*sc/2,Y(0)+bh*sc/2-2,name,'#557')+lbl(X(xs)+bw*sc/2,Y(0)+bh*sc/2+9,`${bw.toFixed(2)}×${bh.toFixed(2)} in`,'#889');
+  }
+  function L2(v){return (+v).toFixed(1);}
+  cover(xBack,false,"BACK");
+  cover(xFront,true,"FRONT");
+  // spine board (slightly narrower than the spine, sir) — labelled below (board too narrow for inline text)
+  s+=`<rect x="${X(xSpine)}" y="${Y(0)}" width="${sbw*sc}" height="${bh*sc}" fill="${bdF}" stroke="${bdS}"/>`;
+  // joint grooves (red) between boards
+  const jg=x=>{const gx=X(x); s+=`<rect x="${gx-2}" y="${Y(0)}" width="4" height="${bh*sc}" fill="#fdecea" stroke="#c0392b" stroke-width="0.5" stroke-dasharray="2 2"/>`;};
+  jg(bw+jin/2); jg(bw+jin+sbw+jin/2);
+  // labels — overhang at TOP-LEFT, joint at TOP-CENTRE, spine-board below the spine, parent note at the bottom
+  s+=lead(X(bw+jin/2),Y(0),X(bw+jin/2),Y(0)-13)+lbl(X(bw+jin/2),Y(0)-15,`joint ${joint}mm`,'#c0392b');
+  s+=lead(X(xBack)+ov/2,Y(0)+ov+4,X(xBack)+ov/2,Y(0)-13)+lbl(X(xBack)+ov+2,Y(0)-15,`overhang ${square}mm (3 sides)`,pgS,"start");
+  s+=lbl(X(xSpine)+sbw*sc/2,Y(0)+bh*sc+13,`spine board ${sbw.toFixed(2)} in`,bdS)+lbl(X(xSpine)+sbw*sc/2,Y(0)+bh*sc+23,`(slightly under spine ${(I.spineMM||0).toFixed(1)}mm)`,'#888');
+  s+=lbl(W/2,H-6,`chipboard CUT from parent ${S.boardParentW}×${S.boardParentH} in → ${S.perCover} cover + ${S.perSpine} spine /parent`,'#8a6a1f');
+  return s+`</svg>`;
+}
+// HARD CASE — PLC plan (NKK sir p3): the printed wrap = case-open + 15mm turn-in on ALL 4 sides.
+function hardCasePLCDiagramSVG(){
+  if(!LASTINP||!$("binding")||$("binding").value!=="case") return "";
+  const hc=hardCasePlan(); if(!hc) return ""; const S=hc.sizes;
+  const turnin=num("hcTurnin",15), joint=num("hcJoint",8);
+  const caseW=S.caseOpenW, caseH=S.caseOpenH, plcW=S.plcW, plcH=S.plcH;          // inches
+  const W=460,H=270, pad=54, sc=Math.min((W-2*pad)/plcW,(H-80)/plcH), ox=(W-plcW*sc)/2, oy=40;
+  const X=v=>ox+v*sc, Y=v=>oy+v*sc, ti=(turnin/MM)*sc;
+  const matFill="#cfe6fb", matStrk="#1f4e78", bdF="#c7b693", bdS="#8a795a";
+  const lbl=(x,y,t,c,a)=>`<text x="${x}" y="${y}" font-size="8" fill="${c||'#444'}" text-anchor="${a||'middle'}">${t}</text>`;
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #d9c69a;border-radius:6px;background:#fffdf8"><rect width="${W}" height="${H}" fill="#fffdf8"/>`;
+  s+=lbl(W/2,20,`PLC printed wrap (plan) — case-open + ${turnin}mm turn-in on 4 sides`,matStrk);
+  // PLC outer (with turn-in border)
+  s+=`<rect x="${X(0)}" y="${Y(0)}" width="${plcW*sc}" height="${plcH*sc}" fill="${matFill}" stroke="${matStrk}" stroke-width="1.3"/>`;
+  // turn-in border (dashed inset = the case sits inside)
+  const ix=X(0)+ti, iy=Y(0)+ti, iw=plcW*sc-2*ti, ih=plcH*sc-2*ti;
+  s+=`<rect x="${ix.toFixed(1)}" y="${iy.toFixed(1)}" width="${iw.toFixed(1)}" height="${ih.toFixed(1)}" fill="#fff" stroke="${matStrk}" stroke-dasharray="4 2"/>`;
+  // boards inside the case-open: back | spine | front (proportional within case width)
+  const bw=hc.sizes.boardW, sbw=hc.sizes.spineBoardW, caseInW=iw;
+  const u=caseInW/caseW;                                                          // px per inch within case
+  let cx=ix;
+  const drawB=(wIn,nm,fill)=>{ s+=`<rect x="${cx.toFixed(1)}" y="${iy.toFixed(1)}" width="${(wIn*u).toFixed(1)}" height="${ih.toFixed(1)}" fill="${fill}" stroke="${bdS}" stroke-width="0.6"/>`; s+=lbl(cx+wIn*u/2,iy+ih/2,nm,'#557'); cx+=wIn*u; };
+  drawB(bw,"BACK",bdF); cx+=(joint/MM)*u; drawB(sbw,"SP",bdF); cx+=(joint/MM)*u; drawB(bw,"FRONT",bdF);
+  // turn-in arrows (inward) on 4 sides
+  const ar=(x1,y1,x2,y2)=>`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#c2410c" stroke-width="1.2" marker-end="url(#tah)"/>`;
+  s+=`<defs><marker id="tah" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#c2410c"/></marker></defs>`;
+  s+=ar(X(plcW/2),Y(0)+1,X(plcW/2),iy)+ar(X(plcW/2),Y(plcH)-1,X(plcW/2),iy+ih);
+  s+=ar(X(0)+1,Y(plcH/2),ix,Y(plcH/2))+ar(X(plcW)-1,Y(plcH/2),ix+iw,Y(plcH/2));
+  s+=lbl(X(plcW/2),Y(0)-3,`turn-in ${turnin}mm`,'#c2410c');
+  s+=lbl(W/2,H-20,`PLC finished ${plcW}×${plcH} in (= case ${caseW}×${caseH} + ${turnin}mm ×4)`,matStrk);
+  s+=lbl(W/2,H-7,`then extract raw paper like the cover (gripper · side-lay · bleed · parent)`,'#888');
+  return s+`</svg>`;
+}
 // BOARD BOOK 2D cross-section (A2): one leaf = printed face + greyboard core + printed face (back-to-back),
 // then the stack of leaves. Thickness exaggerated for clarity (labels = real values).
 function boardBookDiagramSVG(){
@@ -1460,7 +1532,11 @@ function renderDiagram(){
     pics+=picCard("📕 Cover — print margins","#b9770a",marginDiagramSVG(co,cjob));
     if(co.cutMachine) pics+=picCard("✂ Cover — cut from parent sheet","#7c3aed",cutDiagramSVG(co));
     pics+=picCard("📕 Cover — front │ spine │ back layout","#b9770a",coverSchematic(cpD)); }
-  if($("binding")&&$("binding").value==="case"){ const hc=hardCaseDiagramSVG(); if(hc) pics+=picCard("📦 Hard case — cross-section (boards · spine · endpapers · case wrap)","#8a5a12",hc); }
+  if($("binding")&&$("binding").value==="case"){
+    const chip=hardCaseChipDiagramSVG(); if(chip) pics+=picCard("📦 Hard case B — chip boards (plan: back · spine · front + overhang/joint)","#8a5a12",chip);
+    const plc=hardCasePLCDiagramSVG(); if(plc) pics+=picCard("📦 Hard case C — PLC printed wrap (plan: case + 15mm turn-in ×4)","#1f4e78",plc);
+    const hc=hardCaseDiagramSVG(); if(hc) pics+=picCard("📦 Hard case — cross-section (boards · spine · endpapers · case wrap)","#8a5a12",hc);
+  }
   if($("binding")&&$("binding").value==="b2b"){ const bbS=boardBookDiagramSVG(); if(bbS) pics+=picCard("📚 Board book — leaf build &amp; stack","#2c5a9c",bbS); }
   if($("binding")&&["wireo","spiral","comb"].includes($("binding").value)){ const mbS=mechBindDiagramSVG(); if(mbS) pics+=picCard("🌀 Mechanical binding — punched edge &amp; element","#6a4a7a",mbS); }
   if(LASTINP.dieline){ const dS=dielineDiagramSVG(); if(dS) pics+=picCard("📐 Dieline — flat blank (cut · crease · glue)","#8a5a12",dS); }
