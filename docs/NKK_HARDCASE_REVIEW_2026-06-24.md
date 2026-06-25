@@ -39,7 +39,9 @@ Job under review: 8.5 × 10.75 in, 80pp, 1000 copies, separate cover, coated 300
 - ✅ #4/#5 chip — parent-board extraction (hcBoardParentW/H, perCover/perSpine), commit 401df29.
 - ✅ #3 finishing make-ready — now PRINTED up front (paper + printing on spoilage), commit 88ed13b.
 - ✅ #6 PLC — dedicated plan diagram `hardCasePLCDiagramSVG` (case-open + 15mm turn-in ×4), commit 9873a59.
-- ⬜ #8 endpaper printed/non-printed toggle (+ colours/machine if printed) — still pending.
+- ✅ #8 endpaper printed/non-printed toggle (hcEndPrinted + colours; printing+plates when printed), commit 7c5a8fc.
+
+**ALL transcript items complete.** Pending only sir's NUMBERS: board parent size + DB board grade; exact spine-board reduction; confirm hard-case material/labour rates.
 
 ## 2026-06-24 follow-up list (2nd message) — all done
 - Text-colour dropdown (textColPreset) · press-source whole-system recalc · cover order BACK|FRONT /
