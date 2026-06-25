@@ -609,16 +609,27 @@ function onHcEndTypeChange(){ fillGradeList("hcEndGrade",$("hcEndTypeSel").value
 function onHcEndPick(){ $("hcEndRate").readOnly=($("hcEndGrade").value!==""); showPrice(); }
 function onHcEndRateEdit(){ $("hcEndGrade").value=""; $("hcEndRate").readOnly=false; $("hcEndRateNote").textContent="Manual rate."; showPrice(); }
 // endpaper ₹ per folded leaf at a given flat size (auto from DB by grade or GSM, else manual)
-function endRateFor(w,h){
-  const sel=$("hcEndGrade"); if(!sel) return num("hcEndRate",6);
-  const grade=sel.value, gsm=num("hcEndGsm",120);
-  if(grade==="") return num("hcEndRate",6);                       // manual
-  const hit=grade==="__auto"?lookupByGsm(gsm,w,h,$("hcEndTypeSel")?$("hcEndTypeSel").value:"")
-                            :(gsm>0?lookupPaperRate(grade,gsm,w,h):null);
-  if(hit){ $("hcEndRate").value=hit.rate;
-    const sub=(hit.gsm&&hit.gsm!==gsm)?` <b style="color:#c0392b">⚠ no ${gsm}gsm in list — used nearest ${hit.gsm}gsm rate (verify or enter manually)</b>`:"";
-    $("hcEndRateNote").innerHTML=`Auto ₹${hit.rate}/sheet @ ${hit.gsm||gsm}gsm ${w}×${h}${hit.grade?" · "+hit.grade:""} (${hit.via}).${sub}`; return hit.rate; }
-  $("hcEndRateNote").textContent=`No list price @ ${gsm}gsm ${w}×${h} — type the rate manually.`; return num("hcEndRate",6);
+// ENDPAPER cost (NKK sir 2026-06-24 fix): "like any paper calculation" — buy PARENT sheets at the real GSM
+// list price and cut N endpapers per sheet. (Was area-scaling the parent rate DOWN to the small piece → price
+// collapsed; sir: "the price decreased.") endW×endH = the folded-leaf flat size (a 4pp spread).
+function endpaperCost(endW,endH,books,waste){
+  const gsm=num("hcEndGsm",120), grade=$("hcEndGrade")?$("hcEndGrade").value:"__auto";
+  const need=Math.ceil(2*books*waste);                           // 2 endpapers/book
+  const PW=25, PH=36;                                            // standard endpaper parent sheet (buy + cut)
+  let rate, gsmUsed=gsm, via="manual", grd="";
+  if(grade===""){ rate=num("hcEndRate",6); }                     // manual ₹/sheet
+  else {
+    const hit=grade==="__auto"?lookupByGsm(gsm,PW,PH,$("hcEndTypeSel")?$("hcEndTypeSel").value:"")
+                              :(gsm>0?lookupPaperRate(grade,gsm,PW,PH):null);   // PARENT-size rate, not the piece
+    if(hit){ rate=hit.rate; gsmUsed=hit.gsm||gsm; via=hit.via; grd=hit.grade||grade; if($("hcEndRate"))$("hcEndRate").value=rate; }
+    else { rate=num("hcEndRate",6); via="manual (no list)"; }
+  }
+  const fit=(pw,ph,cw,ch)=>Math.max(0,Math.floor(pw/cw))*Math.max(0,Math.floor(ph/ch));
+  const perParent=Math.max(1,fit(PW,PH,endW,endH),fit(PW,PH,endH,endW));
+  const sheets=Math.ceil(need/perParent), cost=sheets*rate;
+  const wt=(PW*MM/1000)*(PH*MM/1000)*gsmUsed/1000*sheets;
+  if($("hcEndRateNote")) $("hcEndRateNote").innerHTML=`Auto ₹${rate}/sheet @ ${gsmUsed}gsm on ${PW}×${PH} parent (${via}${grd?" · "+grd:""}) → <b>${perParent} endpapers/sheet</b> → <b>${sheets} sheets</b> for ${need} endpapers.${gsmUsed!==gsm?` <b style="color:#c0392b">⚠ used ${gsmUsed}gsm (no ${gsm} in list)</b>`:""}`;
+  return {rate,perParent,sheets,cost,wt,gsm:gsmUsed,parentW:PW,parentH:PH,need};
 }
 
 /* ---------- PURE CALCULATION (NKK sir corrected logic) ---------- */
@@ -892,7 +903,7 @@ function explainHTML(o){
 // each panel with a head-direction arrow.
 function coverSchematic(cp){
   const m=cp.meta||cp.option, W=360, scale=W/Math.max(m.coverW,1), rowH=Math.max(34,Math.round(m.coverH*scale*0.5));
-  const H=rowH*2+30, pw=m.portrait?m.pageW*scale:(m.coverW*scale-0), sp=Math.max(6,m.spineIn*scale);
+  const H=rowH*2+58, pw=m.portrait?m.pageW*scale:(m.coverW*scale-0), sp=Math.max(6,m.spineIn*scale);
   const L=v=>v.toFixed(1);
   // For portrait the cover splits L→R: back | spine | front. (Landscape handled the same horizontally for clarity.)
   const cw=(W-sp)/2;
@@ -910,9 +921,17 @@ function coverSchematic(cp){
       arrow(cw+sp+cw/2,y+rowH/2+8,true);
   }
   let svg=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;border:1px solid #bbb;border-radius:6px"><rect width="${W}" height="${H}" fill="#fff"/>`;
-  svg+=`<text x="2" y="9" font-size="8" fill="#6b7480">OUTSIDE</text>`+row(12,["BACK","FRONT"]);
-  svg+=`<text x="2" y="${L(12+rowH+11)}" font-size="8" fill="#6b7480">INSIDE</text>`+row(12+rowH+14,["INSIDE BACK","INSIDE FRONT"]);
-  svg+=`<text x="${W/2}" y="${H-3}" font-size="8" text-anchor="middle" fill="#6b7480">Cover open ${m.coverW}×${m.coverH} in · spine ${m.spineMM}mm · arrows = head direction</text>`;
+  // WORK & TURN (NKK sir 2026-06-24): print the OUTSIDE, then turn the sheet left↔right on the SAME plate
+  // (gripper edge stays the same) and print the INSIDE. So the inside order MIRRORS the outside.
+  svg+=`<text x="2" y="9" font-size="8" fill="#6b7480">OUTSIDE (pass 1)</text>`+row(12,["BACK","FRONT"]);
+  const midY=12+rowH+7;
+  svg+=`<text x="${W/2}" y="${L(midY)}" font-size="7.5" text-anchor="middle" fill="#7c3aed">🔁 Work &amp; Turn — flip sheet left ↔ right (gripper edge unchanged)</text>`;
+  svg+=`<text x="2" y="${L(12+rowH+25)}" font-size="8" fill="#6b7480">INSIDE (pass 2, mirrored)</text>`+row(12+rowH+28,["INSIDE FRONT","INSIDE BACK"]);
+  // GRIPPER bar — the shared feed edge for both passes (sir: "the gripper has to be shown this side")
+  const gy=12+2*rowH+30;
+  svg+=`<rect x="0" y="${L(gy)}" width="${W}" height="9" fill="#f6d6d6" stroke="#c0392b" stroke-width="0.6"/>`;
+  svg+=`<text x="${W/2}" y="${L(gy+6.5)}" font-size="7" text-anchor="middle" fill="#a33">⬇ GRIPPER — same edge both passes</text>`;
+  svg+=`<text x="${W/2}" y="${H-3}" font-size="7.5" text-anchor="middle" fill="#6b7480">Cover open ${m.coverW}×${m.coverH} in · spine ${m.spineMM}mm · arrows = head direction</text>`;
   return svg+`</svg>`;
 }
 function coverExplainHTML(cp,cq){
@@ -1161,14 +1180,26 @@ function marginDiagramSVG(o,job){
   const px=sl, py=4, pw=W-2*sl, ph=H-g-py;
   s+=`<rect x="${L(px)}" y="${L(py)}" width="${L(pw)}" height="${L(ph)}" fill="none" stroke="#2c6fb3" stroke-width="1" stroke-dasharray="4 2"/>`;
   s+=`<text x="${L(px+4)}" y="${L(py+10)}" font-size="7.5" fill="#2c6fb3">print boundary</text>`;
-  // 4) one FINISHED page with bleed (dashed outside) + trim (solid) + fold line, centred in print area
-  const fpw=Math.min(pw*0.42,pw-8), fph=Math.min(ph*0.66,ph-8), fx=px+(pw-fpw)/2, fy=py+(ph-fph)/2;
+  // 4) the FINISHED PRINTED PIECE (NKK sir 2026-06-24): signature → the OPEN 2-page SPREAD that folds in the
+  //    middle (was drawn as ONE closed page — wrong); non-signature → the single finished piece. Sized to the
+  //    real aspect of the printed piece so a portrait book reads as a wide spread.
+  const pieceW=job.isSig?job.openW:job.W, pieceH=job.isSig?job.openH:job.H, ar=Math.max(0.2,pieceW/pieceH);
+  let fpw=pw*0.62, fph=fpw/ar; if(fph>ph*0.72){ fph=ph*0.72; fpw=fph*ar; } fpw=Math.min(fpw,pw-8);
+  const fx=px+(pw-fpw)/2, fy=py+(ph-fph)/2;
   s+=`<rect x="${L(fx-bl)}" y="${L(fy-bl)}" width="${L(fpw+2*bl)}" height="${L(fph+2*bl)}" fill="#eef6ff" stroke="#9bbbe0" stroke-dasharray="2 2"/>`;  // bleed
   s+=`<rect x="${L(fx)}" y="${L(fy)}" width="${L(fpw)}" height="${L(fph)}" fill="#dbeafe" stroke="#1f4e78"/>`;                                       // trim/finished
-  if(job.isSig) s+=`<line x1="${L(fx+fpw/2)}" y1="${L(fy)}" x2="${L(fx+fpw/2)}" y2="${L(fy+fph)}" stroke="#c2410c" stroke-width="1.2" stroke-dasharray="6 2 2 2"/>`; // fold
-  s+=`<text x="${L(fx+fpw/2)}" y="${L(fy+fph/2)}" font-size="7.5" text-anchor="middle" fill="#1f4e78">finished ${job.W}×${job.H}</text>`;
+  if(job.isSig){
+    s+=`<line x1="${L(fx+fpw/2)}" y1="${L(fy)}" x2="${L(fx+fpw/2)}" y2="${L(fy+fph)}" stroke="#c2410c" stroke-width="1.2" stroke-dasharray="6 2 2 2"/>`; // centre fold
+    s+=`<text x="${L(fx+fpw/2)}" y="${L(fy-bl-9)}" font-size="6.5" text-anchor="middle" fill="#c2410c">fold</text>`;
+    s+=`<text x="${L(fx+fpw/2)}" y="${L(fy+9)}" font-size="6.5" text-anchor="middle" fill="#1f4e78">open spread ${job.openW}×${job.openH}</text>`;
+    s+=`<text x="${L(fx+fpw/4)}" y="${L(fy+fph/2+2)}" font-size="6.5" text-anchor="middle" fill="#1f4e78">page</text>`;
+    s+=`<text x="${L(fx+fpw/4)}" y="${L(fy+fph/2+11)}" font-size="6" text-anchor="middle" fill="#5a7fb0">${job.W}×${job.H}</text>`;
+    s+=`<text x="${L(fx+3*fpw/4)}" y="${L(fy+fph/2+2)}" font-size="6.5" text-anchor="middle" fill="#1f4e78">page</text>`;
+    s+=`<text x="${L(fx+3*fpw/4)}" y="${L(fy+fph/2+11)}" font-size="6" text-anchor="middle" fill="#5a7fb0">${job.W}×${job.H}</text>`;
+  } else {
+    s+=`<text x="${L(fx+fpw/2)}" y="${L(fy+fph/2)}" font-size="7.5" text-anchor="middle" fill="#1f4e78">finished ${job.W}×${job.H}</text>`;
+  }
   s+=`<text x="${L(fx-bl-1)}" y="${L(fy-bl-2)}" font-size="6.5" fill="#9bbbe0">bleed ${I.margins.bleed}mm</text>`;
-  if(job.isSig) s+=`<text x="${L(fx+fpw/2)}" y="${L(fy-bl-9)}" font-size="6.5" text-anchor="middle" fill="#c2410c">fold</text>`;
   // 5) parent→cut yield note
   s+=`<text x="${W/2}" y="${H+25}" font-size="8.5" text-anchor="middle" fill="${isCut?'#7c3aed':'#6b7480'}">${isCut?`✂ cut to ${o.cutTo} (press) — ${o.cutsPerParent}/parent`:`prints full on ${o.sw}×${o.sh}`}</text>`;
   s+=`<text x="${W/2}" y="${H+38}" font-size="8.5" text-anchor="middle" fill="#6b7480">Finished ${job.W}×${job.H} → Open ${job.openW}×${job.openH} → Print → Parent ${parW}×${parH}</text>`;
@@ -1680,10 +1711,10 @@ function hardCasePlan(){
     const matCost=plcArea*books*num("hcMatRate",0.12)*waste;
     items.push({name:`Case material — ${mat} (${plcArea.toFixed(0)} sq.in/book)`,cost:matCost});
   }
-  // 3) endpapers (2/book) — folded leaf, flat size ≈ board spread (covers both boards across the joint)
+  // 3) endpapers (2/book) — folded leaf ≈ board spread; bought as parent sheets & cut (NKK sir 2026-06-24)
   const endW=+(2*boardW/MM).toFixed(2), endH=+(boardH/MM).toFixed(2);
-  const endRate=endRateFor(endW,endH), endCost=endRate*2*Math.ceil(books*waste);
-  items.push({name:`Endpapers (${endW}×${endH} in, 2/book × ${boards_in(books)})`,cost:endCost});
+  const ep=endpaperCost(endW,endH,books,waste); plcWt+=ep.wt;
+  items.push({name:`Endpapers (${endW}×${endH} in · ${ep.perParent}/sheet × ${ep.sheets} sheets @ ₹${ep.rate})`,cost:ep.cost});
   items.push({name:`Case-making + casing-in (₹${num("hcCaseLabour",95)}/book)`,cost:num("hcCaseLabour",95)*books});
   const hb=num("hcHeadband",0), rb=num("hcRibbon",0);
   if(hb>0) items.push({name:"Headband",cost:hb*books});
