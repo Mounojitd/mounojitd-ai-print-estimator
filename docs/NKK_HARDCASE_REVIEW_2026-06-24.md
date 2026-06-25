@@ -37,6 +37,11 @@ Job under review: 8.5 × 10.75 in, 80pp, 1000 copies, separate cover, coated 300
 - ✅ #1 Inside/Text diagram — open 2-page spread folding from the middle, b1c9d46.
 - ✅ #2 cover diagram — Work & Turn (mirrored inside) + gripper bar, b1c9d46.
 - ✅ #4/#5 chip — parent-board extraction (hcBoardParentW/H, perCover/perSpine), commit 401df29.
-- ⬜ #3 finishing make-ready → fold into initial print spoilage (run more up front).
-- ⬜ #6 PLC — dedicated flat-blank diagram (costing already correct: caseOpen + 15mm turn-in).
-- ⬜ #8 endpaper printed/non-printed toggle (+ colours/machine if printed).
+- ✅ #3 finishing make-ready — now PRINTED up front (paper + printing on spoilage), commit 88ed13b.
+- ✅ #6 PLC — dedicated plan diagram `hardCasePLCDiagramSVG` (case-open + 15mm turn-in ×4), commit 9873a59.
+- ⬜ #8 endpaper printed/non-printed toggle (+ colours/machine if printed) — still pending.
+
+## 2026-06-24 follow-up list (2nd message) — all done
+- Text-colour dropdown (textColPreset) · press-source whole-system recalc · cover order BACK|FRONT /
+  INSIDE BACK|INSIDE FRONT · chip & PLC plan diagrams matching p2/p3 · finishing folds into print run.
+- Cover-press selection (#4) confirmed already present (coverMachineHTML). Only #8 endpaper toggle remains.
