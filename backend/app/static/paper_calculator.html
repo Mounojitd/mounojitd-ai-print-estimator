@@ -220,6 +220,11 @@
             <div class="fld"><label>Square / overhang (mm)</label><input id="hcSquare" type="number" step="0.5" value="3" oninput="showPrice()" /><div class="hint">case extends past text</div></div>
           </div>
           <div class="row3">
+            <div class="fld"><label>Board parent sheet W (in)</label><input id="hcBoardParentW" type="number" step="0.5" value="32" oninput="showPrice()" /></div>
+            <div class="fld"><label>Board parent sheet H (in)</label><input id="hcBoardParentH" type="number" step="0.5" value="44" oninput="showPrice()" /><div class="hint">boards are CUT from this parent</div></div>
+            <div class="fld"></div>
+          </div>
+          <div class="row3">
             <div class="fld"><label>Joint / groove (mm)</label><input id="hcJoint" type="number" step="0.5" value="8" oninput="showPrice()" /></div>
             <div class="fld"><label>Cover turn-in (mm)</label><input id="hcTurnin" type="number" step="1" value="15" oninput="showPrice()" /></div>
             <div class="fld"><label>Case material</label><select id="hcMaterial" onchange="showPrice()"><option value="plc" selected>Printed paper (PLC)</option><option value="rexine">Rexine</option><option value="cloth">Cloth</option><option value="velvet">Velvet</option></select></div>
@@ -1690,11 +1695,21 @@ function hardCasePlan(){
   const plcW=(caseOpenW+2*turnin)/MM, plcH=(caseOpenH+2*turnin)/MM;          // PLC piece (in), with turn-in
   const boardAreaSqin=(2*boardW*boardH+spineBoardW*boardH)/MM2;              // chipboard per book
   const waste=1.05, items=[];
-  // 1) chipboard
-  const boardCost=boardAreaSqin*books*num("hcBoardRate",0.05)*waste;
-  items.push({name:`Chipboard (${boardAreaSqin.toFixed(0)} sq.in/book × ${boards_in(books)})`,cost:boardCost});
+  // 1) chipboard — CUT from a big PARENT board (NKK sir 2026-06-24: "from the big board, how many come out,
+  //    and according to price extract the cost"). Each book = 2 cover boards + 1 spine board.
+  const PWb=num("hcBoardParentW",32), PHb=num("hcBoardParentH",44), Pareab=PWb*PHb;
+  const cbW=boardW/MM, cbH=boardH/MM, sbW=spineBoardW/MM;                    // board piece sizes (in)
+  const fitb=(pw,ph,cw,ch)=>Math.max(0,Math.floor(pw/cw))*Math.max(0,Math.floor(ph/ch));
+  const perCover=Math.max(1,fitb(PWb,PHb,cbW,cbH),fitb(PWb,PHb,cbH,cbW));    // cover boards per parent
+  const perSpine=Math.max(1,fitb(PWb,PHb,sbW,cbH),fitb(PWb,PHb,cbH,sbW));    // spine boards per parent
+  const coverBoardsNeeded=Math.ceil(2*books*waste), spineBoardsNeeded=Math.ceil(books*waste);
+  const boardParents=Math.ceil(coverBoardsNeeded/perCover)+Math.ceil(spineBoardsNeeded/perSpine);
+  const boardRate=num("hcBoardRate",0.05)*Pareab;                           // ₹ per parent board (rate/sq.in × area)
+  const boardCost=boardParents*boardRate;
+  const boardWt=boardParents*(PWb*MM/1000)*(PHb*MM/1000)*(boardTh/10)*0.7;  // greyboard ~0.7 g/cm³ → kg
+  items.push({name:`Chipboard — ${boardParents} parent ${PWb}×${PHb} in (${perCover} cover + ${perSpine} spine /parent)`,cost:boardCost});
   // 2) PLC / case material
-  const mat=$("hcMaterial")?$("hcMaterial").value:"plc"; const plcArea=plcW*plcH; let plcWt=0;
+  const mat=$("hcMaterial")?$("hcMaterial").value:"plc"; const plcArea=plcW*plcH; let plcWt=boardWt;
   if(mat==="plc"){
     const gsm=num("coverGsm",300), rate=coverRateFor(plcW,plcH);             // PLC printed paper (uses cover fields)
     const plcSheets=Math.ceil(books*waste)+Math.round(num("coverSetup",150));
@@ -1722,7 +1737,7 @@ function hardCasePlan(){
   if($("hcJacket")&&$("hcJacket").value==="yes"){ const jW=I.W*2+1,jH=I.H+1, jr=coverRateFor(jW,jH), js=Math.ceil(books*waste)+150;
     items.push({name:"Dust jacket (printed wrap)",cost:jr*js}); }
   const total=items.reduce((s,i)=>s+i.cost,0);
-  return {items, total, plcWt, sizes:{boardW:+(boardW/MM).toFixed(2),boardH:+(boardH/MM).toFixed(2),spineBoardW:+(spineBoardW/MM).toFixed(2),plcW:+plcW.toFixed(2),plcH:+plcH.toFixed(2),caseOpenW:+(caseOpenW/MM).toFixed(2),caseOpenH:+(caseOpenH/MM).toFixed(2),boardAreaSqin:+boardAreaSqin.toFixed(0)}};
+  return {items, total, plcWt, sizes:{boardW:+(boardW/MM).toFixed(2),boardH:+(boardH/MM).toFixed(2),spineBoardW:+(spineBoardW/MM).toFixed(2),plcW:+plcW.toFixed(2),plcH:+plcH.toFixed(2),caseOpenW:+(caseOpenW/MM).toFixed(2),caseOpenH:+(caseOpenH/MM).toFixed(2),boardAreaSqin:+boardAreaSqin.toFixed(0),boardParents,perCover,perSpine,boardParentW:PWb,boardParentH:PHb}};
 }
 function boards_in(n){ return n.toLocaleString("en-IN")+" books"; }
 // BOARD BOOK / A2 (NKK sir): binding = back-to-back paste. Each leaf = two printed faces pasted around a
@@ -2075,7 +2090,7 @@ function showPrice(){
     h2+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
     h2+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
     h2+=`<tr><td>Per book</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
-    h2+=`<div class="hint" style="margin-top:8px">📦 Case sizes: boards <b>${S.boardW}×${S.boardH} in</b> (×2) + spine board <b>${S.spineBoardW} in</b> · case open ${S.caseOpenW}×${S.caseOpenH} · PLC wrap <b>${S.plcW}×${S.plcH} in</b> (with turn-in) · chipboard ${S.boardAreaSqin} sq.in/book. Rates editable — confirm with sir.</div>`;
+    h2+=`<div class="hint" style="margin-top:8px">📦 Case sizes: boards <b>${S.boardW}×${S.boardH} in</b> (×2) + spine board <b>${S.spineBoardW} in</b> · case open ${S.caseOpenW}×${S.caseOpenH} · PLC wrap <b>${S.plcW}×${S.plcH} in</b> (with turn-in). Chipboard CUT from <b>${S.boardParents} parent ${S.boardParentW}×${S.boardParentH} in</b> (${S.perCover} cover + ${S.perSpine} spine /parent). Rates editable — confirm with sir.</div>`;
     $("m_price").innerHTML=h2; return;
   }
   if(x.boardbook){                                 // BOARD BOOK / A2: text faces + board cores + pasting (own breakdown)
