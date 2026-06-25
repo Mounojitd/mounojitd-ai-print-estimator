@@ -317,7 +317,7 @@
         </div>
         <div class="row3">
           <div class="fld"><label id="paperRateLabel">Text paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onPaperRateEdit()" /></div>
-          <div class="fld"></div>
+          <div class="fld"><label>Text colours</label><select id="textColPreset" onchange="setColours(this.value); var c=document.getElementById('colpreset'); if(c) c.value=this.value;"><option value="1+0">1+0 (black)</option><option value="1+1">1+1</option><option value="2+0">2+0</option><option value="2+2">2+2</option><option value="4+0">4+0 (CMYK front)</option><option value="4+4" selected>4+4 (CMYK both)</option><option value="5+5">5+5</option><option value="6+6">6+6</option></select><div class="hint">drives Front/Back below</div></div>
           <div class="fld"></div>
         </div>
         <div class="hint" id="paperRateNote">Auto rate from the price list after you run.</div>
@@ -2060,7 +2060,10 @@ function coverMachineHTML(cp){
 // PER-OPERATION FINISHING MAKE-READY (NKK sir: 10 sheets min, 40–50 max per operation). Every finishing
 // operation (coating, folding, binding for text; coating + each embellishment for cover) spoils make-ready
 // sheets of the printed stock. These are added to paper consumption (extra parent sheets at parent rate/wt).
-function finishingMakeReady(textP,cp,p){
+// Finishing make-ready = spoilage sheets pulled for each finishing op (coat/fold/bind/emboss). NKK sir
+// 2026-06-24: this spoilage is PRINTED UP FRONT (you run extra sheets), so it costs paper AND printing —
+// not just a loose paper line. Pass tq/cq to also charge proportional printing on the finishing sheets.
+function finishingMakeReady(textP,cp,p,tq,cq){
   const perOp=Math.min(50,Math.max(10,Math.round(num("finishMR",25))));
   const bind=p.binding||"none";
   let textOps=0;
@@ -2073,7 +2076,12 @@ function finishingMakeReady(textP,cp,p){
     coverRate=cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh);
     coverWtSh=cp.option.paperWtSheet||cp.option.wt_sheet||0; coverSh=coverOps*perOp; }
   const sheets=textSh+coverSh, cost=textSh*textRate+coverSh*coverRate, wt=textSh*textWtSh+coverSh*coverWtSh;
-  return {perOp,textOps,coverOps,ops:textOps+coverOps,sheets,cost:+cost.toFixed(2),wt:+wt.toFixed(2)};
+  // printing on the spoilage sheets, proportional to the job's per-sheet printing (folds finishing into the run)
+  const txtPrinted=(CHOSEN&&CHOSEN.total)||0, cvPrinted=(cp&&cp.option&&cp.option.total)||0;
+  const printText=(tq&&txtPrinted>0)?tq.printing*(textSh/txtPrinted):0;
+  const printCover=(cq&&cvPrinted>0)?cq.printing*(coverSh/cvPrinted):0;
+  const print=+(printText+printCover).toFixed(2);
+  return {perOp,textOps,coverOps,ops:textOps+coverOps,sheets,cost:+cost.toFixed(2),print,total:+(cost+print).toFixed(2),wt:+wt.toFixed(2)};
 }
 function combinedPrice(){
   const p=currentPriceParams(), textP=Object.assign({},p), cp=coverPlan();
@@ -2089,10 +2097,10 @@ function combinedPrice(){
   // generic binding line. Text block = the section-sewn booklet (tq).
   const hc=hardCasePlan();
   if(hc){
-    const fmr=finishingMakeReady(textP,null,p);
+    const fmr=finishingMakeReady(textP,null,p,tq);
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(hc.plcWt||0)+fmr.wt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.cost+hc.total+packing+freight;
+    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.total+hc.total+packing+freight;
     const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
     const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,hardcase:hc.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
@@ -2101,10 +2109,10 @@ function combinedPrice(){
   // BOARD BOOK / A2 (back-to-back paste): board cores + pasting + assembly REPLACE the generic binding line.
   const bb=boardBookPlan();
   if(bb){
-    const fmr=finishingMakeReady(textP,null,p);
+    const fmr=finishingMakeReady(textP,null,p,tq);
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(bb.bbWt||0)+fmr.wt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.cost+bb.total+packing+freight;
+    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.total+bb.total+packing+freight;
     const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
     const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,boardbook:bb.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
@@ -2113,21 +2121,21 @@ function combinedPrice(){
   // DIELINE / A4 (carton · sleeve · folder · envelope): blank paper/print/coating from tq + die-cut + glue.
   const dl=LASTINP.dieline?dielinePlan():null;
   if(dl){
-    const fmr=finishingMakeReady(textP,null,p);
+    const fmr=finishingMakeReady(textP,null,p,tq);
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.cost+dl.total+packing+freight;
+    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.total+dl.total+packing+freight;
     const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
     const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,dieline:dl.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
     return {p,q,text:tq,cover:null,coverPlan:null,binding:0,fmr,dieline:dl};
   }
   if(!cp||!cp.option){
-    const fmr=finishingMakeReady(textP,null,p);
+    const fmr=finishingMakeReady(textP,null,p,tq);
     if(!bindCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt+mbWt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+fmr.cost+tq.printing+tq.plates+tq.lam+bindCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+    const base=tq.paper+fmr.total+tq.printing+tq.plates+tq.lam+bindCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
     return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding:bindCost,mech:mb,fmr};
   }
@@ -2137,8 +2145,8 @@ function combinedPrice(){
   // COVER EMBELLISHMENTS (combinable, on the cover printed sheets)
   const embItems=coverEmbCost(cp.option.sw*cp.option.sh, cp.option.total);
   const embTotal=embItems.reduce((s,e)=>s+e.cost,0);
-  const fmr=finishingMakeReady(textP,cp,p);
-  const paper=tq.paper+cq.paper+fmr.cost,printing=tq.printing+cq.printing,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
+  const fmr=finishingMakeReady(textP,cp,p,tq,cq);
+  const paper=tq.paper+cq.paper+fmr.cost,printing=tq.printing+cq.printing+fmr.print,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
   const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(cp.option.paperWeight||cp.option.total_wt)+fmr.wt+mbWt;
   const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+embTotal+bindCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
@@ -2156,7 +2164,7 @@ function showPrice(){
       [`Text printing (${x.text.formes} formes)`,x.text.printing],[`Text plates (${x.text.plateCount})`,x.text.plates]];
     if(x.text.lam) hrows.push(["Text coating",x.text.lam]);
     x.hardcase.items.forEach(i=>hrows.push(["Case — "+i.name,i.cost]));
-    if(x.fmr&&x.fmr.sheets>0)hrows.push([`Finishing make-ready (${x.fmr.ops} ops)`,x.fmr.cost]);
+    if(x.fmr&&x.fmr.sheets>0)hrows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
     hrows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h2='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
     hrows.forEach(([k,v])=>h2+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
@@ -2175,7 +2183,7 @@ function showPrice(){
       [`Printing (${x.text.formes} formes)`,x.text.printing],[`Plates (${x.text.plateCount})`,x.text.plates]];
     if(x.text.lam) brows.push(["Coating / lamination",x.text.lam]);
     x.boardbook.items.forEach(i=>brows.push(["Board book — "+i.name,i.cost]));
-    if(x.fmr&&x.fmr.sheets>0)brows.push([`Finishing make-ready (${x.fmr.ops} ops)`,x.fmr.cost]);
+    if(x.fmr&&x.fmr.sheets>0)brows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
     brows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h3='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
     brows.forEach(([k,v])=>h3+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
@@ -2194,7 +2202,7 @@ function showPrice(){
       [`Printing (${x.text.formes} formes)`,x.text.printing],[`Plates (${x.text.plateCount})`,x.text.plates]];
     if(x.text.lam) drows.push(["Coating / lamination",x.text.lam]);
     x.dieline.items.forEach(i=>drows.push(["Converting — "+i.name,i.cost]));
-    if(x.fmr&&x.fmr.sheets>0)drows.push([`Finishing make-ready (${x.fmr.ops} ops)`,x.fmr.cost]);
+    if(x.fmr&&x.fmr.sheets>0)drows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
     drows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h4='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
     drows.forEach(([k,v])=>h4+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
@@ -2228,7 +2236,7 @@ function showPrice(){
   }
   if(x.mech){ x.mech.items.forEach(i=>rows.push([`Binding — ${i.name}`,i.cost])); }
   else if(x.binding)rows.push([`Binding — ${$("binding").selectedOptions[0].text}`,x.binding]);
-  if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets)`,x.fmr.cost]);
+  if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets, printed + paper)`,x.fmr.total]);
   rows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
   rows.forEach(([k,v])=>h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
