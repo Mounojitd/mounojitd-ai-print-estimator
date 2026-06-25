@@ -32,5 +32,11 @@ Job under review: 8.5 × 10.75 in, 80pp, 1000 copies, separate cover, coated 300
 - Glue = consumable, folded into case-making charge (not a separate line). OK as-is.
 - Text/inside = same as soft case (no change to text block).
 
-## Status
-endpaper price bug FIXED. Remaining 2–7 queued.
+## Status (updated)
+- ✅ #7 endpaper price bug — parent-sheet extraction (`endpaperCost`), commit b1c9d46.
+- ✅ #1 Inside/Text diagram — open 2-page spread folding from the middle, b1c9d46.
+- ✅ #2 cover diagram — Work & Turn (mirrored inside) + gripper bar, b1c9d46.
+- ✅ #4/#5 chip — parent-board extraction (hcBoardParentW/H, perCover/perSpine), commit 401df29.
+- ⬜ #3 finishing make-ready → fold into initial print spoilage (run more up front).
+- ⬜ #6 PLC — dedicated flat-blank diagram (costing already correct: caseOpen + 15mm turn-in).
+- ⬜ #8 endpaper printed/non-printed toggle (+ colours/machine if printed).
