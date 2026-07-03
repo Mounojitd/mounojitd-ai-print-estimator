@@ -45,6 +45,10 @@ global.navigator = { userAgent: "node" };
 
 // ---- load the app ----
 try { (0, eval)(code); } catch (e) { console.log("LOAD ERROR:", e.message); process.exit(1); }
+// The real UI sets bindingEdited=true via the dropdown so the chosen binding sticks. This harness sets values
+// directly, so neutralise the spine auto-override — else binding-driven modes (case/b2b/wireo…) get silently
+// converted to saddle/perfect and never exercise their plans.
+global.autoBindingBySpine = function () {};
 console.log("app loaded OK\n");
 
 // ---- helpers ----

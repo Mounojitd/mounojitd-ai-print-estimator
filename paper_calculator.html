@@ -1897,7 +1897,7 @@ function boardBookPlan(){
   const paste=num("bbPaste",2)*leaves*books;
   items.push({name:`Pasting / mounting (₹${num("bbPaste",2)}/leaf × ${leaves} × ${boards_in(books)})`,cost:paste});
   // 3) book assembly / casing (join leaves into a book), per book
-  items.push({name:`Assembly / casing (₹${num("bbAssembly",15)}/book)`,cost:num("bbAssembly",15)*books});
+  items.push({name:`Assembly + cover score &amp; paste + 3-side trim (₹${num("bbAssembly",15)}/book)`,cost:num("bbAssembly",15)*books});
   // 4) corner rounding (optional)
   if($("bbCorner")&&$("bbCorner").value==="round"){ const cr=num("bbCornerRate",0); if(cr>0) items.push({name:"Corner rounding",cost:cr*books}); }
   const total=items.reduce((s,i)=>s+i.cost,0);
@@ -2198,13 +2198,17 @@ function combinedPrice(){
   const bb=boardBookPlan();
   if(bb){
     const fmr=finishingMakeReady(textP,null,p,tq);
-    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(bb.bbWt||0)+fmr.wt;
+    // NKK sir 2026-06-30: back-to-back forms are SINGLE-SIDE printed 2-page forms, pasted blank-to-blank →
+    // each leaf = 2 pasted sheets, so the text PAPER (and its weight) doubles vs a normal duplex book.
+    // Printing/plates stay (the same imaged pages), the extra is unbacked paper only.
+    const b2bPaper=tq.paper;                                  // 2nd single-side sheet of each pasted leaf
+    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)*2+(bb.bbWt||0)+fmr.wt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.total+bb.total+packing+freight;
+    const base=tq.paper+b2bPaper+tq.printing+tq.plates+tq.lam+fmr.total+bb.total+packing+freight;
     const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
-    const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,boardbook:bb.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
-    return {p,q,text:tq,cover:null,coverPlan:null,binding:0,fmr,boardbook:bb};
+    const q=Object.assign({},tq,{paper:tq.paper+b2bPaper,b2bPaper,packing,freight,fmr:fmr.cost,boardbook:bb.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
+    return {p,q,text:tq,cover:null,coverPlan:null,binding:0,fmr,boardbook:bb,b2bPaper};
   }
   // DIELINE / A4 (carton · sleeve · folder · envelope): blank paper/print/coating from tq + die-cut + glue.
   const dl=LASTINP.dieline?dielinePlan():null;
@@ -2267,8 +2271,9 @@ function showPrice(){
   }
   if(x.boardbook){                                 // BOARD BOOK / A2: text faces + board cores + pasting (own breakdown)
     const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt;
-    let brows=[[`Printed faces — paper (${txtWt.toFixed(1)} kg)`,x.text.paper],
-      [`Printing (${x.text.formes} formes)`,x.text.printing],[`Plates (${x.text.plateCount})`,x.text.plates]];
+    let brows=[[`Printed forms — paper, single-side (${txtWt.toFixed(1)} kg)`,x.text.paper]];
+    if(x.b2bPaper) brows.push([`+ 2nd pasted sheet per leaf (single-side ×2)`,x.b2bPaper]);
+    brows.push([`Printing (${x.text.formes} formes, single-side)`,x.text.printing],[`Plates (${x.text.plateCount})`,x.text.plates]);
     if(x.text.lam) brows.push(["Coating / lamination",x.text.lam]);
     x.boardbook.items.forEach(i=>brows.push(["Board book — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)brows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
@@ -2281,7 +2286,7 @@ function showPrice(){
     h3+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
     h3+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
     h3+=`<tr><td>Per book</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
-    h3+=`<div class="hint" style="margin-top:8px">📚 Board book: <b>${B.leaves} leaves</b> (pages ÷ 2) · leaf <b>${B.leafW}×${B.leafH} in</b> (${B.leafAreaSqin} sq.in) · ${B.core==="board"?`greyboard core ${B.boardTh} mm`:"no board core (2 sheets pasted)"}. Printed faces use the Text fields. Rates editable — confirm with sir.</div>`;
+    h3+=`<div class="hint" style="margin-top:8px">📚 Back-to-back pasted: <b>${B.leaves} leaves</b> (pages ÷ 2) · <b>single-side printed forms</b> pasted blank-to-blank (paper ×2) · 1st form = endpaper · cover scored + pasted · 3-side trim. Leaf <b>${B.leafW}×${B.leafH} in</b> · ${B.core==="board"?`greyboard core ${B.boardTh} mm`:"no board core (paper pasted)"}. Rates editable — confirm with sir.</div>`;
     $("m_price").innerHTML=h3; return;
   }
   if(x.dieline){                                   // DIELINE / A4: blank print + die-cut + glue (own breakdown)
