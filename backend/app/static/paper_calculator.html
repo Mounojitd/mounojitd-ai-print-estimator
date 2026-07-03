@@ -157,6 +157,9 @@
               <option value="folder">Presentation folder</option>
               <option value="envelope">Envelope</option>
             </optgroup>
+            <optgroup label="Case / packaging (board + PLC)">
+              <option value="slipcase">Slipcase / book sleeve</option>
+            </optgroup>
           </select></div>
         <div class="fld"><label>Orientation</label>
           <select id="orientation"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></div>
@@ -313,6 +316,26 @@
         </div>
         <div class="hint" id="dlBlankHint" style="margin-top:2px">Blank size shown after calculation. Printing/coating use the Paper fields. Rates editable — confirm with sir.</div>
       </div>
+      <div id="slipcaseFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
+        <div class="ptitle">📦 Slipcase / book sleeve — chipboard + PLC wrap + inside paste</div>
+        <div class="hint" style="margin:-2px 0 6px">Enter the <b>book</b> it holds (Width=A, Height=B above) + depth. The PLC wrap prints like the Paper fields; board + inside paper + making added below.</div>
+        <div class="row3">
+          <div class="fld"><label>Book depth / thickness (C)</label><input id="scDepth" type="number" step="0.1" value="1" oninput="if(RESULT)run()" /></div>
+          <div class="fld"><label>Case type</label><select id="scType" onchange="if(RESULT)run()"><option value="hard" selected>Hard (chipboard)</option><option value="soft">Soft (card only)</option></select></div>
+          <div class="fld"><label>Wrap turn-in (mm)</label><input id="scTurnin" type="number" step="1" value="15" oninput="if(RESULT)run()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Board thickness (mm)</label><input id="scBoard" type="number" step="0.5" value="2.5" oninput="showPrice()" /></div>
+          <div class="fld"><label>Board ₹/sq.in</label><input id="scBoardRate" type="number" step="0.01" value="0.05" oninput="showPrice()" /></div>
+          <div class="fld"><label>Board parent W×H (in)</label><input id="scBoardParentW" type="number" step="0.5" value="32" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Board parent H (in)</label><input id="scBoardParentH" type="number" step="0.5" value="44" oninput="showPrice()" /></div>
+          <div class="fld"><label>Inside paper ₹/sq.in</label><input id="scInsideRate" type="number" step="0.01" value="0.02" oninput="showPrice()" /><div class="hint">lining so raw board doesn't show</div></div>
+          <div class="fld"><label>Making / assembly ₹/piece</label><input id="scMaking" type="number" step="0.5" value="20" oninput="showPrice()" /></div>
+        </div>
+        <div class="hint" id="scHint" style="margin-top:2px">Wrap blank + board surface shown after calculation. Rates editable — confirm with sir.</div>
+      </div>
       <div class="pbox" style="margin:0 0 10px">
         <div class="ptitle" id="textCompTitle">Text component</div>
         <div class="row3">
@@ -458,6 +481,17 @@ const MM=25.4;
    Non-signature   → size → ups → quantity → wastage → paper (NO signature, NO extent). */
 const SIGNATURE_PRODUCTS=new Set(["booklet","catalogue","magazine","manual","annual","brochure_multi"]);
 const isSig=p=>SIGNATURE_PRODUCTS.has(p);
+// SLIPCASE / book sleeve (NKK sir p3): rigid book case = chipboard + PLC wrap (cut to shape) + inside-paper
+// paste. Holds a book H(height)×W(width)×D(depth). The PLC wrap prints like a dieline blank; the board +
+// inside paper + making are added like the hard case.
+const isSlipcase=p=>p==="slipcase";
+// PLC wrap flat blank + panel surface (inches). H,W,D = book dims; t = board thickness (in); ti = turn-in (in).
+function slipcaseGeom(H,W,D,t,ti){
+  const surface=2*H*W+2*H*D+W*D;                       // 5 panels (open one end): 2 faces + 2 sides + closed end
+  const blankW=+(W+2*D+2*ti).toFixed(2);               // side | face | side + turn-ins
+  const blankH=+(2*H+D+2*ti).toFixed(2);               // front face + closed end + back face + turn-ins
+  return {surface:+surface.toFixed(1),blankW,blankH};
+}
 // DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
 const DIELINE_PRODUCTS=new Set(["carton_tuck","sleeve","folder","envelope"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
@@ -502,6 +536,11 @@ function onProductChange(){
     if($("dlTitle")) $("dlTitle").textContent="📐 "+({carton_tuck:"Carton / box (tuck-end)",sleeve:"Sleeve / wrap",folder:"Presentation folder",envelope:"Envelope"}[$("product").value]||"Dieline")+" — flat blank → die-cut → fold";
   } else { const Wlab=$("W").parentElement.querySelector("label"), Hlab=$("H").parentElement.querySelector("label");
     if(Wlab) Wlab.textContent="Width"; if(Hlab) Hlab.textContent="Height"; }
+  // SLIPCASE: show its panel + relabel W/H to the book width/height it holds
+  const slc=isSlipcase($("product").value);
+  if($("slipcaseFields")) $("slipcaseFields").style.display=slc?"block":"none";
+  if(slc){ const Wlab=$("W").parentElement.querySelector("label"), Hlab=$("H").parentElement.querySelector("label");
+    if(Wlab) Wlab.textContent="Book width (A)"; if(Hlab) Hlab.textContent="Book height (B)"; }
   onCoverChange();
 }
 function onCoverChange(){
@@ -757,6 +796,14 @@ function run(){
     inp.dieline=Object.assign({},bl,{A:+A.toFixed(2),B:+B.toFixed(2),C:+C.toFixed(2),g:+g.toFixed(2),f:+f.toFixed(2),unit});
     inp.W=bl.blankW; inp.H=bl.blankH; inp.isSig=false;
     if($("dlBlankHint")) $("dlBlankHint").innerHTML=`<b>Flat blank ${bl.blankW} × ${bl.blankH} in</b> (${bl.desc}). Printing/coating use the Paper fields. Rates editable — confirm with sir.`;
+  }
+  // SLIPCASE (NKK sir p3): the printed piece is the PLC WRAP blank; board + inside paper + making added later.
+  if(isSlipcase(inp.product)){ const ti=v=>toIn(v,unit);
+    const H=inp.H, W=inp.W, D=ti(num("scDepth",1)), t=num("scBoard",2.5)/MM, tin=num("scTurnin",15)/MM;
+    const g=slipcaseGeom(H,W,D,t,tin);
+    inp.slipcase={H:+H.toFixed(2),W:+W.toFixed(2),D:+D.toFixed(2),surface:g.surface,blankW:g.blankW,blankH:g.blankH,unit};
+    inp.W=g.blankW; inp.H=g.blankH; inp.isSig=false;
+    if($("scHint")) $("scHint").innerHTML=`Book ${W.toFixed(1)}×${H.toFixed(1)}×${D.toFixed(1)} in → PLC wrap blank <b>${g.blankW}×${g.blankH} in</b> · board surface <b>${g.surface} sq.in</b>/case. Rates editable — confirm with sir.`;
   }
 
   inp.separateCover=booklet&&$("separateCover").checked;
@@ -1498,6 +1545,42 @@ function dielineDiagramSVG(){
   s+=lbl(W-6,H-6,"blank · to scale",'#aaa','end');
   return s+`</svg>`;
 }
+// SLIPCASE PLC-WRAP blank (NKK sir p3): unfolded box — back face | closed end | front face, with side walls
+// as flaps, turn-in around. Cut (solid) / score-fold (dashed).
+function slipcaseDiagramSVG(){
+  if(!LASTINP||!LASTINP.slipcase) return "";
+  const sc=LASTINP.slipcase, H=sc.H, W=sc.W, D=sc.D, bw=sc.blankW, bh=sc.blankH;
+  const CV=470,HT=250,pad=52,scl=Math.min((CV-2*pad)/bw,(HT-70)/bh),ox=(CV-bw*scl)/2,oy=36;
+  const X=v=>ox+v*scl,Y=v=>oy+v*scl,ti=(num("scTurnin",15)/MM)*scl;
+  const cut="#13314f",score="#c0392b",faceF="#dce9f7",sideF="#eef3f8";
+  const lbl=(x,y,t,c,a)=>`<text x="${x}" y="${y}" font-size="8" fill="${c||'#444'}" text-anchor="${a||'middle'}">${t}</text>`;
+  let s=`<svg viewBox="0 0 ${CV} ${HT}" width="100%" style="max-width:${CV}px;border:1px solid #d9c69a;border-radius:6px;background:#fffdf8"><rect width="${CV}" height="${HT}" fill="#fffdf8"/>`;
+  s+=lbl(CV/2,20,`Slipcase PLC wrap (plan) — book ${W}×${H}×${D} in`,cut);
+  // outer cut outline
+  s+=`<rect x="${X(0)}" y="${Y(0)}" width="${bw*scl}" height="${bh*scl}" fill="#f4f8fc" stroke="${cut}" stroke-width="1.4"/>`;
+  // interior columns: side wall (D) | face (W) | side wall (D)  ; rows: face (H) | closed end (D) | face (H) — inset by turn-in
+  const ix=X(0)+ti,iy=Y(0)+ti,iw=bw*scl-2*ti,ih=bh*scl-2*ti;
+  const cD=D*scl,cW=W*scl,cH=H*scl;
+  // vertical score lines (between side walls and centre face)
+  const vx1=ix+cD, vx2=ix+cD+cW;
+  const hy1=iy+cH, hy2=iy+cH+cD;
+  [vx1,vx2].forEach(x=>s+=`<line x1="${x.toFixed(1)}" y1="${iy.toFixed(1)}" x2="${x.toFixed(1)}" y2="${(iy+ih).toFixed(1)}" stroke="${score}" stroke-width="1" stroke-dasharray="5 3"/>`);
+  [hy1,hy2].forEach(y=>s+=`<line x1="${ix.toFixed(1)}" y1="${y.toFixed(1)}" x2="${(ix+iw).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${score}" stroke-width="1" stroke-dasharray="5 3"/>`);
+  // shade the centre column faces
+  s+=`<rect x="${vx1.toFixed(1)}" y="${iy.toFixed(1)}" width="${cW.toFixed(1)}" height="${cH.toFixed(1)}" fill="${faceF}"/>`;
+  s+=`<rect x="${vx1.toFixed(1)}" y="${hy2.toFixed(1)}" width="${cW.toFixed(1)}" height="${cH.toFixed(1)}" fill="${faceF}"/>`;
+  s+=lbl(vx1+cW/2,iy+cH/2,"front face","#557")+lbl(vx1+cW/2,hy2+cH/2,"back face","#557");
+  s+=lbl(vx1+cW/2,hy1+cD/2+3,"closed end","#8a6a1f");
+  s+=lbl(ix+cD/2,iy+cH/2,"side","#557")+lbl(ix+iw-cD/2,iy+cH/2,"side","#557");
+  // turn-in band (outer)
+  s+=`<rect x="${X(0)}" y="${Y(0)}" width="${bw*scl}" height="${ti.toFixed(1)}" fill="#e7c98a" opacity="0.4"/>`;
+  s+=lbl(CV/2,Y(0)+ti-2,`turn-in ${num("scTurnin",15)}mm`,'#8a6a1f');
+  // legend
+  s+=`<line x1="40" y1="${HT-14}" x2="60" y2="${HT-14}" stroke="${cut}" stroke-width="1.4"/>`+lbl(64,HT-11,"cut",cut,'start');
+  s+=`<line x1="110" y1="${HT-14}" x2="130" y2="${HT-14}" stroke="${score}" stroke-width="1" stroke-dasharray="5 3"/>`+lbl(134,HT-11,"score / fold",score,'start');
+  s+=lbl(CV-6,HT-6,`board surface ${sc.surface} sq.in`,'#aaa','end');
+  return s+`</svg>`;
+}
 // CUTTING DIAGRAM (NKK sir): show HOW the parent sheet is cut into press-size pieces — pieces tiled inside
 // the parent, leftover shown as trim. Makes the cut + pieces-per-parent visible on the job card.
 function cutDiagramSVG(o){
@@ -1588,6 +1671,7 @@ function renderDiagram(){
   if($("binding")&&$("binding").value==="b2b"){ const bbS=boardBookDiagramSVG(); if(bbS) pics+=picCard("📚 Board book — leaf build &amp; stack","#2c5a9c",bbS); }
   if($("binding")&&["wireo","spiral","comb"].includes($("binding").value)){ const mbS=mechBindDiagramSVG(); if(mbS) pics+=picCard("🌀 Mechanical binding — punched edge &amp; element","#6a4a7a",mbS); }
   if(LASTINP.dieline){ const dS=dielineDiagramSVG(); if(dS) pics+=picCard("📐 Dieline — flat blank (cut · crease · glue)","#8a5a12",dS); }
+  if(LASTINP.slipcase){ const scS=slipcaseDiagramSVG(); if(scS) pics+=picCard("📦 Slipcase — PLC wrap blank (panels · score · turn-in)","#8a5a12",scS); }
   const calcCard=`<div style="border:1.5px solid #13314f;border-radius:6px;padding:8px;background:#f6faff"><div style="font-weight:700;color:#13314f;font-size:12px;margin-bottom:6px">🧮 Sizes &amp; calculation</div>${sizesTable(o)}</div>`;
   const sizePanel=`<details class="pbox" style="margin-bottom:10px;border-color:#cbd8e5" open><summary style="cursor:pointer;font-weight:700;color:var(--brand);font-size:12.5px">📐 Production sizes &amp; margins (finished → open → print → cut → parent)${hasCoverD?" — Inside/Text + Cover":""}</summary>`+
     `<div style="margin-top:8px">${pics}${calcCard}</div></details>`;
@@ -1945,6 +2029,28 @@ function dielinePlan(){
   return {items,total,sizes:{blankW:dln.blankW,blankH:dln.blankH,desc:dln.desc,type:dln.type,sheets,pieces,
     A:dln.A,B:dln.B,C:dln.C,g:dln.g,f:dln.f,unit:dln.unit}};
 }
+// SLIPCASE / A6 (NKK sir p3): PLC wrap paper+printing come from the normal flow (blank set as W/H); this adds
+// the chipboard (cut from a parent board), the inside-paper lining and the making labour.
+function slipcasePlan(){
+  if(!LASTINP||!LASTINP.slipcase||!CHOSEN) return null;
+  const I=LASTINP, sc=I.slipcase, pieces=I.copies, waste=1.15, items=[]; let scWt=0;
+  const hard=($("scType")?$("scType").value:"hard")==="hard";
+  // 1) chipboard — surface of the 5 panels, cut from a parent board (hard case only)
+  if(hard){
+    const PWb=num("scBoardParentW",32), PHb=num("scBoardParentH",44), Pareab=PWb*PHb, boardTh=num("scBoard",2.5);
+    const totalArea=sc.surface*pieces*waste, boardParents=Math.ceil(totalArea/Pareab);
+    const boardCost=boardParents*num("scBoardRate",0.05)*Pareab;
+    scWt=boardParents*(PWb*MM/1000)*(PHb*MM/1000)*(boardTh/10)*0.7;
+    items.push({name:`Chipboard (${sc.surface} sq.in/case × ${pieces.toLocaleString("en-IN")} → ${boardParents} parent ${PWb}×${PHb})`,cost:boardCost});
+  }
+  // 2) inside paper lining (so raw board doesn't show) — same surface
+  const insideCost=sc.surface*pieces*num("scInsideRate",0.02)*waste;
+  items.push({name:`Inside paper lining (${sc.surface} sq.in/case)`,cost:insideCost});
+  // 3) making / assembly (cut board, paste PLC wrap, tuck turn-ins, line inside) — per piece
+  items.push({name:`Making / assembly (₹${num("scMaking",20)}/piece × ${pieces.toLocaleString("en-IN")})`,cost:num("scMaking",20)*pieces});
+  const total=items.reduce((s,i)=>s+i.cost,0);
+  return {items,total,scWt,hard,sizes:{H:sc.H,W:sc.W,D:sc.D,surface:sc.surface,blankW:sc.blankW,blankH:sc.blankH}};
+}
 // SPINE-DRIVEN recommendation (NKK sir's rules — RECOMMEND, never silently assume; user can override):
 //   spine ≤ 2.5mm → Saddle stitch · spine > 3mm → warn (Section sewn / Perfect) · spine > 4.5mm → error+override.
 function autoBindingBySpine(spineMM){
@@ -2222,6 +2328,18 @@ function combinedPrice(){
     const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,dieline:dl.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
     return {p,q,text:tq,cover:null,coverPlan:null,binding:0,fmr,dieline:dl};
   }
+  // SLIPCASE (NKK sir p3): PLC wrap paper/print/coating from tq + chipboard + inside paper + making.
+  const sc=LASTINP.slipcase?slipcasePlan():null;
+  if(sc){
+    const fmr=finishingMakeReady(textP,null,p,tq);
+    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(sc.scWt||0)+fmr.wt;
+    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.total+sc.total+packing+freight;
+    const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+    const margin=prod*p.margin/100,pretax=prod+margin,gst=pretax*p.gst/100,grand=pretax+gst;
+    const q=Object.assign({},tq,{packing,freight,fmr:fmr.cost,slipcase:sc.total,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books});
+    return {p,q,text:tq,cover:null,coverPlan:null,binding:0,fmr,slipcase:sc};
+  }
   if(!cp||!cp.option){
     const fmr=finishingMakeReady(textP,null,p,tq);
     if(!bindCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
@@ -2306,6 +2424,24 @@ function showPrice(){
     h4+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
     h4+=`<div class="hint" style="margin-top:8px">📐 ${D.desc} → <b>flat blank ${D.blankW}×${D.blankH} in</b> · ${D.sheets.toLocaleString("en-IN")} press sheets · ${D.pieces.toLocaleString("en-IN")} pieces. Paper/print/coating use the Paper fields. Rates editable — confirm with sir.</div>`;
     $("m_price").innerHTML=h4; return;
+  }
+  if(x.slipcase){                                  // SLIPCASE: PLC wrap print + chipboard + inside paper + making
+    const S=x.slipcase.sizes, pw=CHOSEN.paperWeight||CHOSEN.total_wt;
+    let srows=[[`PLC wrap paper (${pw.toFixed(1)} kg)`,x.text.paper],
+      [`Wrap printing (${x.text.formes} formes)`,x.text.printing],[`Wrap plates (${x.text.plateCount})`,x.text.plates]];
+    if(x.text.lam) srows.push(["Wrap lamination",x.text.lam]);
+    x.slipcase.items.forEach(i=>srows.push(["Slipcase — "+i.name,i.cost]));
+    if(x.fmr&&x.fmr.sheets>0)srows.push([`Finishing make-ready (${x.fmr.ops} ops)`,x.fmr.total]);
+    srows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    let h5='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
+    srows.forEach(([k,v])=>h5+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+    h5+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
+    h5+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
+    h5+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
+    h5+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
+    h5+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
+    h5+=`<div class="hint" style="margin-top:8px">📦 ${x.slipcase.hard?"Hard":"Soft"} slipcase for book <b>${S.W}×${S.H}×${S.D} in</b> · board surface <b>${S.surface} sq.in</b> · PLC wrap blank <b>${S.blankW}×${S.blankH} in</b>. Rates editable — confirm with sir.</div>`;
+    $("m_price").innerHTML=h5; return;
   }
   if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
   const totalWt=(CHOSEN.paperWeight||CHOSEN.total_wt)+((x.coverPlan&&x.coverPlan.option)?(x.coverPlan.option.paperWeight||x.coverPlan.option.total_wt):0);

@@ -78,6 +78,8 @@ const BASE = {
   mbPunch: "1.5", mbElement: "", mbHang: "none", mbHangRate: "0", mbBoard: "none", mbBoardTh: "2", mbBoardRate: "0.05",
   // dieline
   dlC: "0", dlGlue: "15", dlFlap: "30", dlDie: "3500", dlCut: "350", dlGlueRate: "0.5",
+  // slipcase
+  scDepth: "1", scType: "hard", scTurnin: "15", scBoard: "2.5", scBoardRate: "0.05", scBoardParentW: "32", scBoardParentH: "44", scInsideRate: "0.02", scMaking: "20",
 };
 
 const TESTS = [
@@ -101,6 +103,8 @@ const TESTS = [
   { name: "Sleeve / wrap", f: { product: "sleeve", W: "4", H: "2", dlC: "5", dlGlue: "0.5", copies2: "3000" } },
   { name: "Presentation folder", f: { product: "folder", W: "9", H: "12", dlC: "0.3", dlGlue: "0.5", dlFlap: "3", copies2: "1000" } },
   { name: "Envelope", f: { product: "envelope", W: "9", H: "4", dlGlue: "0.5", dlFlap: "1.5", copies2: "5000" } },
+  // case / packaging
+  { name: "Slipcase (book sleeve)", f: { product: "slipcase", W: "8.5", H: "11", scDepth: "1", copies2: "1000" } },
   // binding-driven modes (signature base)
   { name: "Hard case book", f: { product: "booklet", W: "8.5", H: "10.75", pages: "200", copies: "1000", coverType: "separate", binding: "case" } },
   { name: "Board book (b2b)", f: { product: "booklet", W: "7", H: "7", pages: "24", copies: "2000", coverType: "self", binding: "b2b" } },

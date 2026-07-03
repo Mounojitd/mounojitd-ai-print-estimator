@@ -20,9 +20,11 @@ Decoded from the Hindi/English transcript. This is the end-to-end vision + the n
    doubles (2 pasted sheets/leaf), printing/plates unchanged; 1st form = endpaper; cover scored + pasted;
    3-side trim (notes). Rates editable — NEEDS SIR'S HAND-NUMBER CHECK. (A full separate printed b2b cover
    component is still a follow-up — currently priced via the pasting/assembly labour line.)
-3. **Sleeve / slipcase** — NEW component. **Chipboard + PLC (cut to shape) + inside-paper pasting** (so raw
-   board doesn't show; no endpaper). Can be **hard or soft**. Standalone OR **bundled** with a book (any book:
-   soft/hard/b2b). Components: chip, PLC, inside paste.
+3. ✅ **Sleeve / slipcase** — DONE (2026-07-03, sir's drawing p3). Product type "Slipcase / book sleeve":
+   PLC wrap prints like a dieline blank (5-panel box: 2 faces + 2 sides + closed end), + chipboard (parent
+   extraction) + inside-paper lining + making. Hard/soft toggle. slipcaseGeom/slipcasePlan + plan diagram
+   (panels · score · turn-in). Verified ₹59–72/piece. NEEDS SIR'S HAND-NUMBER CHECK. TODO: bundling a slipcase
+   WITH a book (sets), and per-panel (not area-based) board nesting if sir wants it.
 4. **Sets / bundles** — cost each item separately, then bundle into a set (e.g. school forms: 8–10 form types).
    Packing options to ADD: ① individual shrink-wrap + combined shrink-wrap, ② individual poly-sleeve insertion,
    then standard carton packing. (Export later: special carton, palletization.)
