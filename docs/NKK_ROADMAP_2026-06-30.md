@@ -16,11 +16,10 @@ Decoded from the Hindi/English transcript. This is the end-to-end vision + the n
 
 ## PHASE 1 — product breadth (sir's build order, "step by step")
 1. ✅ Soft cover · ✅ Hard cover
-2. **Back-to-back pasted book** — REFINE. Key logic (sir): forms are **2-page (or 4/8/12/16-pp) ONE-SIDE-printed
-   forms**, the unprinted side glued to the next form's back, pasted in sequence. First form acts as the
-   **endpaper**. Cover printed/laminated separately, **scored** (2 score lines for spine) + pasted. **3-side
-   trim** at the end. The printed form is **bigger than finished** (trim after pasting). No sewing/binding.
-   → My A2 board-book exists but the *pasted-forms / single-side imposition* is the real model; align it.
+2. ✅ **Back-to-back pasted book** — DONE (commit 3a6200a). Single-side-forms model: text PAPER (+weight)
+   doubles (2 pasted sheets/leaf), printing/plates unchanged; 1st form = endpaper; cover scored + pasted;
+   3-side trim (notes). Rates editable — NEEDS SIR'S HAND-NUMBER CHECK. (A full separate printed b2b cover
+   component is still a follow-up — currently priced via the pasting/assembly labour line.)
 3. **Sleeve / slipcase** — NEW component. **Chipboard + PLC (cut to shape) + inside-paper pasting** (so raw
    board doesn't show; no endpaper). Can be **hard or soft**. Standalone OR **bundled** with a book (any book:
    soft/hard/b2b). Components: chip, PLC, inside paste.
