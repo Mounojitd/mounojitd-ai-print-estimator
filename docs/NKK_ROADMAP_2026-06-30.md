@@ -25,9 +25,12 @@ Decoded from the Hindi/English transcript. This is the end-to-end vision + the n
    extraction) + inside-paper lining + making. Hard/soft toggle. slipcaseGeom/slipcasePlan + plan diagram
    (panels · score · turn-in). Verified ₹59–72/piece. NEEDS SIR'S HAND-NUMBER CHECK. TODO: bundling a slipcase
    WITH a book (sets), and per-panel (not area-based) board nesting if sir wants it.
-4. **Sets / bundles** — cost each item separately, then bundle into a set (e.g. school forms: 8–10 form types).
-   Packing options to ADD: ① individual shrink-wrap + combined shrink-wrap, ② individual poly-sleeve insertion,
-   then standard carton packing. (Export later: special carton, palletization.)
+4. ✅ **Sets / bundles** — DONE (2026-07-06). "🧺 Set / bundle builder" panel under the price: price any job →
+   "Add current quote to set" (items persist in localStorage); per-item pcs/set; set assembly ₹/set;
+   packing per sir = individual shrink-wrap ₹/pc + combined shrink-wrap ₹/set + poly-sleeve ₹/pc + carton
+   (sets/carton × ₹/carton); SET TOTAL + per-set + printable set quotation. Verified: 2 items →
+   ₹38,591 exact (items+assembly+shrink+poly+cartons). Rates editable — confirm with sir.
+   (Export later: special carton, palletization.)
 5. **Table calendar** — leaves (separate) + **wire-o** (part-wiro OR full-wiro) + **back stand** (chip + PLC +
    backing-paper paste — same as sleeve/hard-case build).
 6. **Envelope** — add **gusseted** vs non-gusseted (I built basic non-gusseted). Printed on a bigger rectangular
