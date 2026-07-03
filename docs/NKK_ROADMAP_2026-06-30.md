@@ -31,12 +31,16 @@ Decoded from the Hindi/English transcript. This is the end-to-end vision + the n
    (sets/carton × ₹/carton); SET TOTAL + per-set + printable set quotation. Verified: 2 items →
    ₹38,591 exact (items+assembly+shrink+poly+cartons). Rates editable — confirm with sir.
    (Export later: special carton, palletization.)
-5. **Table calendar** — leaves (separate) + **wire-o** (part-wiro OR full-wiro) + **back stand** (chip + PLC +
-   backing-paper paste — same as sleeve/hard-case build).
-6. **Envelope** — add **gusseted** vs non-gusseted (I built basic non-gusseted). Printed on a bigger rectangular
-   blank, folded (flaps) + pasted.
-7. **Mono carton** — die-cut + score + fold + paste + **bottom sealing** (2–3 carton styles). Printed on board
-   (rectangular, small ones gang), then **die** (cut + score + fold-crease together), strip, paste.
+5. ✅ **Table calendar** — DONE (2026-07-06). Panel for product=Table calendar: wire-o **part (2 short
+   pieces, default ₹8) / full (₹12)** + punching, and **tent back stand** = chip + PLC + backing-paper paste
+   (surface ≈ 2.2 × leaf) + making. Defaults OFF so plain leaf jobs unchanged. tableCalPlan().
+6. ✅ **Envelope gusset** — DONE. C-field = gusset depth (0 = flat): blank grows +2×gusset W, +1×gusset H
+   (9×4 flap 1.5: flat 10×7 → gusset-2 14×9). Verified.
+7. ✅ **Mono carton** — DONE (as carton_tuck refinement): option relabelled "Carton / mono carton (tuck-end)"
+   + **Bottom sealing ₹/pc** input in the dieline panel (dielinePlan). Other carton styles later if sir wants.
+8. ✅ **Local CSV save** — DONE. "💾 Save quote (CSV + log)" downloads the current quote as CSV AND appends a
+   summary row to a local quote log (localStorage QUOTE_LOG); "📤 Export all saved quotes (CSV)" downloads the
+   whole log — paste straight into a Google Sheet. (Auto Google-Sheet push needs internet/Apps-Script — later.)
 
 ## PHASE 2 — templates / masters
 Save any filled job as a named **template/master** (like an Excel master). "Open a template for a hard case
