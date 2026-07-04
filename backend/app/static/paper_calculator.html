@@ -483,8 +483,13 @@
         <div style="margin-top:10px">
           <button class="mbtn p" onclick="printQuotation()">Print quotation</button>
           <button class="mbtn s" onclick="printJobSheet()">Print internal job sheet</button>
-          <button class="mbtn s" onclick="saveQuoteCSV()">💾 Save quote (CSV + log)</button>
+          <button class="mbtn s" onclick="saveQuoteCSV()">💾 Save quote (CSV + cloud)</button>
           <button class="mbtn s" onclick="exportLogCSV()">📤 Export all saved quotes (CSV)</button>
+          <span id="saveStatus" style="font-size:12px;color:#1c7a52;margin-left:6px"></span>
+        </div>
+        <div style="margin-top:6px;display:flex;gap:6px;align-items:center;font-size:12px;color:#6b7480">
+          <label style="white-space:nowrap">☁ Cloud save URL (Google Sheet):</label>
+          <input id="cloudUrl" type="text" placeholder="paste your Apps Script /exec URL — see docs" style="flex:1;min-width:0" oninput="setCloudUrl(this.value)" />
         </div>
         <div style="margin-top:10px"><button class="mbtn p" onclick="printSheet()">🖨 Print cut sheet</button></div>
         <div class="pbox" style="margin-top:12px;border-color:#8aa6c9;background:#f3f7fc">
@@ -2693,6 +2698,16 @@ function quoteSummary(){                                  // one flat record of 
 }
 const QUOTE_COLS=["date","quoteNo","customer","product","name","size","pages","qty","gsm","sheet","machine",
   "paper","printing","plates","coating","packing","freight","overhead","margin","gst","grand","unit"];
+// Cloud save (NKK sir: quotes → one central Google Sheet the AI can read). Set once; stored in localStorage.
+function setCloudUrl(v){ try{ localStorage.setItem("CLOUD_URL",(v||"").trim()); }catch(e){} }
+function getCloudUrl(){ try{ return (localStorage.getItem("CLOUD_URL")||"").trim(); }catch(e){ return ""; } }
+// POST the quote to the Apps Script web app. no-cors + text/plain avoids the CORS preflight Apps Script can't
+// answer; the row still reaches the Sheet (response is opaque, so we report "sent" optimistically).
+function cloudSend(rec){
+  const url=getCloudUrl(); if(!/^https?:\/\//.test(url)) return false;
+  try{ fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(rec)}); return true; }
+  catch(e){ return false; }
+}
 function saveQuoteCSV(){
   const s=quoteSummary(); if(!s){ alert("Price a job first, then save it."); return; }
   // 1) append to the local log
@@ -2701,6 +2716,9 @@ function saveQuoteCSV(){
   // 2) download this quote as its own CSV (field,value rows — easy to read + import)
   const lines=[csvRow(["field","value"])].concat(QUOTE_COLS.map(k=>csvRow([k,s[k]])));
   downloadText((s.quoteNo||"quote")+"_"+(s.name||s.product||"job").replace(/[^\w-]+/g,"_")+".csv",lines.join("\n"));
+  // 3) send to the central Google Sheet if a cloud URL is set
+  const sent=cloudSend(s);
+  if($("saveStatus")) $("saveStatus").textContent=sent?"✓ saved · CSV downloaded · sent to Google Sheet":"✓ saved · CSV downloaded"+(getCloudUrl()?"":" (set a Cloud save URL to also log to Google Sheet)");
 }
 function exportLogCSV(){
   let log=[]; try{ log=JSON.parse(localStorage.getItem("QUOTE_LOG")||"[]")||[]; }catch(e){}
@@ -2816,6 +2834,7 @@ buildCoverPickers();
 buildHcEndPickers();
 onProductChange();
 renderSet();               // restore any saved set items (localStorage)
+if($("cloudUrl")) $("cloudUrl").value=getCloudUrl();   // restore the cloud save URL
 
 /* ---------- LIVE AUTO-RECALC: any input change re-runs automatically (no button click) ---------- */
 function formReady(){
