@@ -2580,7 +2580,8 @@ function money(n){ return "Rs. "+Math.round(n).toLocaleString("en-IN"); }
 function coatingName(v){ const e=$("lam"); return [...e.options].find(o=>o.value===v)?.text||v; }
 function quoteMeta(){
   const now=new Date(), valid=new Date(now); valid.setDate(valid.getDate()+Math.max(0,Math.round(num("validDays",15))));
-  const stamp=now.getFullYear()+String(now.getMonth()+1).padStart(2,"0")+String(now.getDate()).padStart(2,"0");
+  const p2=n=>String(n).padStart(2,"0");
+  const stamp=now.getFullYear()+p2(now.getMonth()+1)+p2(now.getDate())+"-"+p2(now.getHours())+p2(now.getMinutes())+p2(now.getSeconds());
   return {customer:$("customer").value.trim()||"Valued customer", no:$("quoteNo").value.trim()||("Q-"+stamp),
     date:now.toLocaleDateString("en-IN"), valid:valid.toLocaleDateString("en-IN"), notes:$("quoteNotes").value.trim()};
 }
