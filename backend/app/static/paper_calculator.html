@@ -491,6 +491,10 @@
           <label style="white-space:nowrap">☁ Cloud save URL (Google Sheet):</label>
           <input id="cloudUrl" type="text" placeholder="paste your Apps Script /exec URL — see docs" style="flex:1;min-width:0" oninput="setCloudUrl(this.value)" />
         </div>
+        <details class="pbox" style="margin-top:10px;border-color:#8aa6c9" open>
+          <summary style="cursor:pointer;font-weight:700;color:#2c5a9c;font-size:12.5px">📋 Saved quotes (this device)</summary>
+          <div id="quoteLog" style="margin-top:8px"></div>
+        </details>
         <div style="margin-top:10px"><button class="mbtn p" onclick="printSheet()">🖨 Print cut sheet</button></div>
         <div class="pbox" style="margin-top:12px;border-color:#8aa6c9;background:#f3f7fc">
           <div class="ptitle">🧺 Set / bundle builder — cost each item separately, then bundle (NKK sir)</div>
@@ -2708,11 +2712,52 @@ function cloudSend(rec){
   try{ fetch(url,{method:"POST",mode:"no-cors",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(rec)}); return true; }
   catch(e){ return false; }
 }
+// snapshot / restore all input fields so a saved quote can be re-opened (also the base for templates, phase 2)
+function snapshotInputs(){
+  const snap={};
+  document.querySelectorAll("#inputCard input[id], #inputCard select[id]").forEach(e=>{
+    snap[e.id]=(e.type==="checkbox")?{c:!!e.checked}:{v:e.value};
+  });
+  return snap;
+}
+function restoreInputs(snap){
+  if(!snap) return;
+  for(const id in snap){ const e=$(id); if(!e) continue; const s=snap[id];
+    if("c" in s) e.checked=s.c; else e.value=s.v; }
+  bindingEdited=true; spineEdited=false;            // respect the restored binding; let spine auto-recompute
+  onProductChange(); run();
+  try{ $("m_price").scrollIntoView({behavior:"smooth"}); }catch(e){}
+}
+function loadLog(){ try{ return JSON.parse(localStorage.getItem("QUOTE_LOG")||"[]")||[]; }catch(e){ return []; } }
+function saveLog(log){ try{ localStorage.setItem("QUOTE_LOG",JSON.stringify(log)); }catch(e){} }
+function openSavedQuote(i){ const q=loadLog()[i]; if(!q||!q._inputs){ alert("This saved quote has no inputs to re-open."); return; } restoreInputs(q._inputs); }
+function deleteSavedQuote(i){ const log=loadLog(); log.splice(i,1); saveLog(log); renderQuoteLog(); }
+function exportSavedQuote(i){ const q=loadLog()[i]; if(!q) return;
+  const lines=[csvRow(["field","value"])].concat(QUOTE_COLS.map(k=>csvRow([k,q[k]])));
+  downloadText((q.quoteNo||"quote")+"_"+(q.name||q.product||"job").replace(/[^\w-]+/g,"_")+".csv",lines.join("\n")); }
+function renderQuoteLog(){
+  const box=$("quoteLog"); if(!box) return;
+  const log=loadLog();
+  if(!log.length){ box.innerHTML='<span style="color:#6b7480">No saved quotes on this device yet — price a job and click 💾 Save quote.</span>'; return; }
+  const inr=n=>"₹"+Math.round(n||0).toLocaleString("en-IN");
+  let h='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left">Date</th><th style="text-align:left">Customer</th><th style="text-align:left">Job</th><th>Qty</th><th style="text-align:right">Grand</th><th></th></tr></thead><tbody>';
+  log.forEach((q,i)=>{
+    h+=`<tr><td style="padding:3px 0">${esc(q.date||"")}</td><td>${esc(q.customer||"")}</td><td>${esc(q.name||q.product||"")}</td>`+
+       `<td style="text-align:center">${q.qty!=null?q.qty:""}</td><td style="text-align:right">${inr(q.grand)}</td>`+
+       `<td style="text-align:right;white-space:nowrap">`+
+       (q._inputs?`<button class="mbtn s" style="padding:2px 7px" onclick="openSavedQuote(${i})">Open</button> `:``)+
+       `<button class="mbtn s" style="padding:2px 7px" onclick="exportSavedQuote(${i})">CSV</button> `+
+       `<button class="mbtn s" style="padding:2px 7px" onclick="deleteSavedQuote(${i})">✕</button></td></tr>`;
+  });
+  h+='</tbody></table>';
+  box.innerHTML=h;
+}
 function saveQuoteCSV(){
   const s=quoteSummary(); if(!s){ alert("Price a job first, then save it."); return; }
-  // 1) append to the local log
+  // 1) append to the local log (with a full input snapshot so it can be re-opened)
   let log=[]; try{ log=JSON.parse(localStorage.getItem("QUOTE_LOG")||"[]")||[]; }catch(e){}
-  log.push(s); try{ localStorage.setItem("QUOTE_LOG",JSON.stringify(log)); }catch(e){}
+  log.push(Object.assign({},s,{_inputs:snapshotInputs()})); try{ localStorage.setItem("QUOTE_LOG",JSON.stringify(log)); }catch(e){}
+  renderQuoteLog();
   // 2) download this quote as its own CSV (field,value rows — easy to read + import)
   const lines=[csvRow(["field","value"])].concat(QUOTE_COLS.map(k=>csvRow([k,s[k]])));
   downloadText((s.quoteNo||"quote")+"_"+(s.name||s.product||"job").replace(/[^\w-]+/g,"_")+".csv",lines.join("\n"));
@@ -2834,6 +2879,7 @@ buildCoverPickers();
 buildHcEndPickers();
 onProductChange();
 renderSet();               // restore any saved set items (localStorage)
+renderQuoteLog();          // show saved quotes (localStorage)
 if($("cloudUrl")) $("cloudUrl").value=getCloudUrl();   // restore the cloud save URL
 
 /* ---------- LIVE AUTO-RECALC: any input change re-runs automatically (no button click) ---------- */
