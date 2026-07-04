@@ -500,6 +500,7 @@
           <div class="ptitle">🧺 Set / bundle builder — cost each item separately, then bundle (NKK sir)</div>
           <div style="margin:4px 0 8px"><button class="mbtn p" onclick="addQuoteToSet()">➕ Add current quote to set</button>
             <button class="mbtn s" onclick="clearSet()">Clear set</button>
+            <button class="mbtn s" onclick="saveSetCSV()">💾 Save set (CSV + cloud)</button>
             <button class="mbtn s" onclick="printSetQuote()">🖨 Print set quotation</button></div>
           <div id="setItems" class="hint">No items yet — price a job, then click “Add current quote to set”.</div>
           <div class="row3" style="margin-top:8px">
@@ -2842,6 +2843,24 @@ function printSetQuote(){
     `<tr style="font-weight:bold"><td colspan="3">SET TOTAL — ${T.sets.toLocaleString("en-IN")} sets</td><td style="text-align:right">${money(T.total)}</td></tr>`+
     `<tr><td colspan="3">Per set</td><td style="text-align:right">₹${T.perSetCost.toFixed(2)}</td></tr></tbody></table>`;
   openPrintDocument((m.no||"SET")+" set quotation",body);
+}
+// a set summarised into the same QUOTE_COLS shape, so sets land in the same quotation database
+function setSummary(){
+  if(!SET_ITEMS.length) return null;
+  const T=setTotals(), m=quoteMeta();
+  return {date:new Date().toISOString().slice(0,10), quoteNo:m.no, customer:m.customer, product:"SET",
+    name:`Set of ${SET_ITEMS.length} items`, size:"", pages:"", qty:T.sets, gsm:"", sheet:"", machine:"",
+    paper:Math.round(T.items), printing:0, plates:0, coating:0,
+    packing:Math.round(T.shrinkPc+T.polyPc+T.shrinkSet+T.carton+T.assembly), freight:0, overhead:0,
+    margin:0, gst:0, grand:Math.round(T.total), unit:+T.perSetCost.toFixed(2)};
+}
+function saveSetCSV(){
+  const s=setSummary(); if(!s){ alert("Add items to the set first."); return; }
+  const log=loadLog(); log.push(Object.assign({},s)); saveLog(log); renderQuoteLog();
+  const lines=[csvRow(["field","value"])].concat(QUOTE_COLS.map(k=>csvRow([k,s[k]])));
+  downloadText((s.quoteNo||"set")+"_set.csv",lines.join("\n"));
+  const sent=cloudSend(s);
+  if($("setTotal")) $("setTotal").insertAdjacentHTML("afterbegin",`<div style="color:#1c7a52;font-size:12px">✓ set saved · CSV downloaded${sent?" · sent to Google Sheet":(getCloudUrl()?"":"")}</div>`);
 }
 function printQuotation(){
   if(!CHOSEN||!LASTINP||!printablePlanReady())return;
