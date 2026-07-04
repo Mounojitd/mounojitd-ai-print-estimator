@@ -28,22 +28,46 @@ To test: price any job → **Save quote** → you should see a new row appear in
 
 ## The Apps Script (paste this)
 
+This version also assigns a **global sequential number** (`global_no` = G-00001, G-00002 …) to every quote,
+**atomically across all devices** — so no matter who saves from which phone or laptop, the Sheet has one
+shared, never-repeating sequence. (The app still shows its own local `Q-…` number on the printed quote; the
+`global_no` column is the authoritative shared ID for the database.)
+
 ```javascript
-// Receives a quote from the estimator (JSON) and appends it as a row to the "Quotes" tab.
+// Receives a quote from the estimator (JSON), assigns a GLOBAL sequential number, appends a row to "Quotes".
 function doPost(e) {
   var COLS = ["date","quoteNo","customer","product","name","size","pages","qty","gsm","sheet","machine",
     "paper","printing","plates","coating","packing","freight","overhead","margin","gst","grand","unit"];
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sh = ss.getSheetByName("Quotes") || ss.insertSheet("Quotes");
-  if (sh.getLastRow() === 0) sh.appendRow(["received_at"].concat(COLS));   // header row, once
-  var d = {};
-  try { d = JSON.parse(e.postData.contents); } catch (err) { d = {}; }
-  var row = [new Date()].concat(COLS.map(function (c) { return d[c] != null ? d[c] : ""; }));
-  sh.appendRow(row);
-  return ContentService.createTextOutput(JSON.stringify({ ok: true }))
-                       .setMimeType(ContentService.MimeType.JSON);
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);                              // one save at a time -> no duplicate numbers
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sh = ss.getSheetByName("Quotes") || ss.insertSheet("Quotes");
+    if (sh.getLastRow() === 0) sh.appendRow(["received_at","global_no"].concat(COLS));   // header row, once
+    var props = PropertiesService.getScriptProperties();
+    var seq = (parseInt(props.getProperty("SEQ") || "0", 10) || 0) + 1;
+    props.setProperty("SEQ", String(seq));
+    var globalNo = "G-" + ("00000" + seq).slice(-5);
+    var d = {};
+    try { d = JSON.parse(e.postData.contents); } catch (err) { d = {}; }
+    var row = [new Date(), globalNo].concat(COLS.map(function (c) { return d[c] != null ? d[c] : ""; }));
+    sh.appendRow(row);
+    return ContentService.createTextOutput(JSON.stringify({ ok: true, global_no: globalNo }))
+                         .setMimeType(ContentService.MimeType.JSON);
+  } finally { lock.releaseLock(); }
 }
 ```
+
+To **start the global counter at a specific number** (say you want it to begin at 1000): in the Apps Script
+editor run this once — `function seed(){ PropertiesService.getScriptProperties().setProperty("SEQ","999"); }`
+(next save becomes G-01000). Leave it out to start at G-00001.
+
+## Already deployed the first version? Just update it
+1. Apps Script editor → replace all the code with the version above → **Save**.
+2. **Deploy → Manage deployments → pencil ✏️ → Version: New version → Deploy.** The **URL stays the same**, so
+   nothing changes in the app.
+3. New saves now get a `global_no`. (Old rows keep their existing columns; only new rows get the global number
+   — that's fine.) You may want to delete the earlier `TEST-PIPELINE` row.
 
 ## Notes
 - Column order matches the app's `QUOTE_COLS` exactly, so the sheet stays tidy.
