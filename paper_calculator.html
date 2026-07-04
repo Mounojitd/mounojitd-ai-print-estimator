@@ -2578,11 +2578,15 @@ function showPrice(){
 function esc(v){ return String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function money(n){ return "Rs. "+Math.round(n).toLocaleString("en-IN"); }
 function coatingName(v){ const e=$("lam"); return [...e.options].find(o=>o.value===v)?.text||v; }
+// AUTO QUOTE NUMBER: a running counter (localStorage), a fresh one for every new quote. peek = next pending
+// number (used for print/save without consuming it); bump = advance it after a quote is saved.
+function peekQuoteSeq(){ let n=0; try{ n=parseInt(localStorage.getItem("QUOTE_SEQ")||"0",10)||0; }catch(e){} return n+1; }
+function bumpQuoteSeq(){ const n=peekQuoteSeq(); try{ localStorage.setItem("QUOTE_SEQ",String(n)); }catch(e){} return n; }
+function autoQuoteNo(){ return "Q-"+String(peekQuoteSeq()).padStart(5,"0"); }
+function refreshQuoteNo(){ const f=$("quoteNo"); if(f) f.placeholder=autoQuoteNo()+" (auto)"; }   // show next pending
 function quoteMeta(){
   const now=new Date(), valid=new Date(now); valid.setDate(valid.getDate()+Math.max(0,Math.round(num("validDays",15))));
-  const p2=n=>String(n).padStart(2,"0");
-  const stamp=now.getFullYear()+p2(now.getMonth()+1)+p2(now.getDate())+"-"+p2(now.getHours())+p2(now.getMinutes())+p2(now.getSeconds());
-  return {customer:$("customer").value.trim()||"Valued customer", no:$("quoteNo").value.trim()||("Q-"+stamp),
+  return {customer:$("customer").value.trim()||"Valued customer", no:$("quoteNo").value.trim()||autoQuoteNo(),
     date:now.toLocaleDateString("en-IN"), valid:valid.toLocaleDateString("en-IN"), notes:$("quoteNotes").value.trim()};
 }
 function docCSS(){
@@ -2767,7 +2771,9 @@ function saveQuoteCSV(){
   downloadText((s.quoteNo||"quote")+"_"+(s.name||s.product||"job").replace(/[^\w-]+/g,"_")+".csv",lines.join("\n"));
   // 3) send to the central Google Sheet if a cloud URL is set
   const sent=cloudSend(s);
-  if($("saveStatus")) $("saveStatus").textContent=sent?"✓ saved · CSV downloaded · sent to Google Sheet":"✓ saved · CSV downloaded"+(getCloudUrl()?"":" (set a Cloud save URL to also log to Google Sheet)");
+  // 4) advance the auto quote number so the NEXT quote gets a fresh one (only if this used the auto number)
+  if(!$("quoteNo").value.trim()){ bumpQuoteSeq(); refreshQuoteNo(); }
+  if($("saveStatus")) $("saveStatus").textContent=(sent?"✓ saved "+s.quoteNo+" · sent to Google Sheet":"✓ saved "+s.quoteNo+" · CSV downloaded")+" · next: "+autoQuoteNo();
 }
 function exportLogCSV(){
   let log=[]; try{ log=JSON.parse(localStorage.getItem("QUOTE_LOG")||"[]")||[]; }catch(e){}
@@ -2863,7 +2869,8 @@ function saveSetCSV(){
   const lines=[csvRow(["field","value"])].concat(QUOTE_COLS.map(k=>csvRow([k,s[k]])));
   downloadText((s.quoteNo||"set")+"_set.csv",lines.join("\n"));
   const sent=cloudSend(s);
-  if($("setTotal")) $("setTotal").insertAdjacentHTML("afterbegin",`<div style="color:#1c7a52;font-size:12px">✓ set saved · CSV downloaded${sent?" · sent to Google Sheet":(getCloudUrl()?"":"")}</div>`);
+  if(!$("quoteNo").value.trim()){ bumpQuoteSeq(); refreshQuoteNo(); }
+  if($("setTotal")) $("setTotal").insertAdjacentHTML("afterbegin",`<div style="color:#1c7a52;font-size:12px">✓ set saved ${s.quoteNo}${sent?" · sent to Google Sheet":""} · next: ${autoQuoteNo()}</div>`);
 }
 function printQuotation(){
   if(!CHOSEN||!LASTINP||!printablePlanReady())return;
@@ -2902,6 +2909,7 @@ buildHcEndPickers();
 onProductChange();
 renderSet();               // restore any saved set items (localStorage)
 renderQuoteLog();          // show saved quotes (localStorage)
+refreshQuoteNo();          // show the next auto quote number
 if($("cloudUrl")) $("cloudUrl").value=getCloudUrl();   // restore the cloud save URL
 
 /* ---------- LIVE AUTO-RECALC: any input change re-runs automatically (no button click) ---------- */
