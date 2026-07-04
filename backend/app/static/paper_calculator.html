@@ -2703,9 +2703,11 @@ function quoteSummary(){                                  // one flat record of 
 }
 const QUOTE_COLS=["date","quoteNo","customer","product","name","size","pages","qty","gsm","sheet","machine",
   "paper","printing","plates","coating","packing","freight","overhead","margin","gst","grand","unit"];
-// Cloud save (NKK sir: quotes → one central Google Sheet the AI can read). Set once; stored in localStorage.
+// Cloud save (NKK sir: quotes → ONE central Google Sheet the AI can read). Baked-in default so EVERY user of
+// the live app posts to the same sheet automatically; a person can still override it in the field for their own.
+const DEFAULT_CLOUD_URL="https://script.google.com/macros/s/AKfycbzymu3fAwPSpAnG1Hfkr7HZ2L6kaMJkUIWsF97U0pa_dtkwe9677mN6dUr-dIQZew9n_A/exec";
 function setCloudUrl(v){ try{ localStorage.setItem("CLOUD_URL",(v||"").trim()); }catch(e){} }
-function getCloudUrl(){ try{ return (localStorage.getItem("CLOUD_URL")||"").trim(); }catch(e){ return ""; } }
+function getCloudUrl(){ try{ const u=(localStorage.getItem("CLOUD_URL")||"").trim(); return u||DEFAULT_CLOUD_URL; }catch(e){ return DEFAULT_CLOUD_URL; } }
 // POST the quote to the Apps Script web app. no-cors + text/plain avoids the CORS preflight Apps Script can't
 // answer; the row still reaches the Sheet (response is opaque, so we report "sent" optimistically).
 function cloudSend(rec){
