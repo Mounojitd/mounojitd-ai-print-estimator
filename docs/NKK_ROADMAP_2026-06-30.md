@@ -43,10 +43,13 @@ Decoded from the Hindi/English transcript. This is the end-to-end vision + the n
    summary row to a local quote log (localStorage QUOTE_LOG); "📤 Export all saved quotes (CSV)" downloads the
    whole log — paste straight into a Google Sheet. (Auto Google-Sheet push needs internet/Apps-Script — later.)
 
-## PHASE 2 — templates / masters
-Save any filled job as a named **template/master** (like an Excel master). "Open a template for a hard case
-book" / "for XYZ company's hard case book" / "what templates exist for hard case?" → open, tweak size/paper/
-pages → quotation. Requires save + list + open templates.
+## PHASE 2 — templates / masters ✅ DONE (2026-07-06, commit 917b2e7)
+"📁 Templates / masters" panel under the price. Name a job + **Save current as template** → snapshots ALL
+inputs (snapshotInputs). Searchable list with **Open** (restoreInputs → product/size/paper/pages/colours/
+binding restored + re-run) and delete. **Export/Import** templates as JSON so masters move between devices.
+Stored in localStorage (TEMPLATES). Central/shared templates come with the phase-4 backend (localStorage is
+per-device; export/import bridges devices for now). Verified: save/filter/open-restores/export/import-dedupe/
+delete. NEXT: phase 3 (historical job DB + smart suggestion), phase 4 (AI loop + web/app + lead capture).
 
 ## PHASE 3 — historical job DB + smart suggestion
 Store past jobs; suggest closest match.
