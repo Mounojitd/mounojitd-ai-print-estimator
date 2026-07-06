@@ -36,8 +36,9 @@ Decoded from the Hindi/English transcript. This is the end-to-end vision + the n
    (surface ≈ 2.2 × leaf) + making. Defaults OFF so plain leaf jobs unchanged. tableCalPlan().
 6. ✅ **Envelope gusset** — DONE. C-field = gusset depth (0 = flat): blank grows +2×gusset W, +1×gusset H
    (9×4 flap 1.5: flat 10×7 → gusset-2 14×9). Verified.
-7. ✅ **Mono carton** — DONE (as carton_tuck refinement): option relabelled "Carton / mono carton (tuck-end)"
-   + **Bottom sealing ₹/pc** input in the dieline panel (dielinePlan). Other carton styles later if sir wants.
+7. ✅ **Mono carton** — DONE. Two styles: **tuck-end** (carton_tuck, "Carton / mono carton (tuck-end)") and
+   **seal-end / glued bottom** (carton_seal, added 2026-07-06: blank bh=C+2.5·B, "glued bottom seal" in the
+   diagram; gluing priced via the dieline glue rate). Both flow through the dieline engine.
 8. ✅ **Local CSV save** — DONE. "💾 Save quote (CSV + log)" downloads the current quote as CSV AND appends a
    summary row to a local quote log (localStorage QUOTE_LOG); "📤 Export all saved quotes (CSV)" downloads the
    whole log — paste straight into a Google Sheet. (Auto Google-Sheet push needs internet/Apps-Script — later.)

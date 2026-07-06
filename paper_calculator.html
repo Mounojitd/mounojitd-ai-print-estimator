@@ -153,6 +153,7 @@
             </optgroup>
             <optgroup label="Dieline / converting (blank → die-cut → fold)">
               <option value="carton_tuck">Carton / mono carton (tuck-end)</option>
+              <option value="carton_seal">Mono carton (seal-end / glued bottom)</option>
               <option value="sleeve">Sleeve / wrap</option>
               <option value="folder">Presentation folder</option>
               <option value="envelope">Envelope</option>
@@ -547,12 +548,13 @@ function slipcaseGeom(H,W,D,t,ti){
   return {surface:+surface.toFixed(1),blankW,blankH};
 }
 // DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
-const DIELINE_PRODUCTS=new Set(["carton_tuck","sleeve","folder","envelope"]);
+const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
 // blank size (inches) from the assembled dims A,B,C + glue flap g + tuck/flap/pocket f (all inches)
 function dielineBlank(type,A,B,C,g,f){
   let bw,bh,desc;
   if(type==="carton_tuck"){ bw=2*A+2*B+g; bh=C+2*B; desc=`Tuck-end carton ${A}×${B}×${C}`; }
+  else if(type==="carton_seal"){ bw=2*A+2*B+g; bh=C+2.5*B; desc=`Seal-end mono carton ${A}×${B}×${C} (glued bottom)`; }
   else if(type==="sleeve"){ bw=2*A+2*B+g; bh=C;     desc=`Sleeve ${A}×${B}×${C}`; }
   else if(type==="folder"){ bw=2*A+C+2*g; bh=B+f;   desc=`Folder ${A}×${B}, spine ${C}, pocket ${f}`; }
   // ENVELOPE (NKK sir 2026-06-30): gusseted vs non-gusseted. C = gusset depth (0 = flat). A gusset adds
@@ -563,6 +565,7 @@ function dielineBlank(type,A,B,C,g,f){
 // per-type meaning of the three dims (drives the W/H field labels + dieline panel)
 const DIELINE_DIMS={
   carton_tuck:{A:"Length",B:"Width / depth",C:"Height",cLbl:"Height (C)",fLbl:"(n/a)",useF:false},
+  carton_seal:{A:"Length",B:"Width / depth",C:"Height",cLbl:"Height (C)",fLbl:"(n/a)",useF:false},
   sleeve:{A:"Length",B:"Width / depth",C:"Height",cLbl:"Height (C)",fLbl:"(n/a)",useF:false},
   folder:{A:"Closed width",B:"Closed height",C:"Spine capacity",cLbl:"Spine capacity",fLbl:"Pocket depth",useF:true},
   envelope:{A:"Closed width",B:"Closed height",C:"Gusset depth",cLbl:"Gusset depth (0 = flat)",fLbl:"Flap depth",useF:true}
@@ -589,7 +592,7 @@ function onProductChange(){
     const Wlab=$("W").parentElement.querySelector("label"), Hlab=$("H").parentElement.querySelector("label");
     if(Wlab) Wlab.textContent=D.A+" (A)"; if(Hlab) Hlab.textContent=D.B+" (B)";
     if($("dlCLbl")) $("dlCLbl").textContent=D.cLbl; if($("dlFLbl")) $("dlFLbl").textContent=D.fLbl;
-    if($("dlTitle")) $("dlTitle").textContent="📐 "+({carton_tuck:"Carton / box (tuck-end)",sleeve:"Sleeve / wrap",folder:"Presentation folder",envelope:"Envelope"}[$("product").value]||"Dieline")+" — flat blank → die-cut → fold";
+    if($("dlTitle")) $("dlTitle").textContent="📐 "+({carton_tuck:"Carton / box (tuck-end)",carton_seal:"Mono carton (seal-end)",sleeve:"Sleeve / wrap",folder:"Presentation folder",envelope:"Envelope"}[$("product").value]||"Dieline")+" — flat blank → die-cut → fold";
   } else { const Wlab=$("W").parentElement.querySelector("label"), Hlab=$("H").parentElement.querySelector("label");
     if(Wlab) Wlab.textContent="Width"; if(Hlab) Hlab.textContent="Height"; }
   // SLIPCASE: show its panel + relabel W/H to the book width/height it holds
@@ -1576,14 +1579,14 @@ function dielineDiagramSVG(){
   const A=d.A,B=d.B,C=d.C,g=d.g,f=d.f;
   const vcre=x=>`<line x1="${X(x)}" y1="${Y(0)}" x2="${X(x)}" y2="${Y(bh)}" stroke="${crease}" stroke-width="1" stroke-dasharray="5 3"/>`;
   const hcre=y=>`<line x1="${X(0)}" y1="${Y(y)}" x2="${X(bw)}" y2="${Y(y)}" stroke="${crease}" stroke-width="1" stroke-dasharray="5 3"/>`;
-  if(type==="carton_tuck"||type==="sleeve"){
+  if(type==="carton_tuck"||type==="carton_seal"||type==="sleeve"){
     // vertical panel creases: A | B | A | B | glue
     let xs=[A,A+B,2*A+B,2*A+2*B]; xs.forEach(x=>s+=vcre(x));
     // glue flap shaded (last strip)
     s+=`<rect x="${X(2*A+2*B)}" y="${Y(0)}" width="${g*sc}" height="${bh*sc}" fill="${glueF}" opacity="0.7"/>`;
-    if(type==="carton_tuck"){ s+=hcre(B)+hcre(bh-B);          // top/bottom closure creases
-      s+=lbl((X(0)+X(2*A+2*B))/2,Y(B)-3,"top tuck / dust flaps",'#a8820f');
-      s+=lbl((X(0)+X(2*A+2*B))/2,Y(bh-B)+10,"bottom closure",'#a8820f'); }
+    if(type==="carton_tuck"||type==="carton_seal"){ s+=hcre(B)+hcre(bh-B);   // top/bottom closure creases
+      s+=lbl((X(0)+X(2*A+2*B))/2,Y(B)-3,type==="carton_seal"?"top tuck":"top tuck / dust flaps",'#a8820f');
+      s+=lbl((X(0)+X(2*A+2*B))/2,Y(bh-B)+10,type==="carton_seal"?"glued bottom seal":"bottom closure",'#a8820f'); }
     // panel labels
     s+=lbl(X(A/2),Y(bh/2),"back",'#557')+lbl(X(A+B/2),Y(bh/2),"side",'#557')+lbl(X(1.5*A+B),Y(bh/2),"front",'#557')+lbl(X(2*A+1.5*B),Y(bh/2),"side",'#557');
     s+=lbl(X(2*A+2*B+g/2),Y(bh/2),"glue",'#8a6a1f');

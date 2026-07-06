@@ -102,7 +102,9 @@ const TESTS = [
   { name: "Carton (tuck-end)", f: { product: "carton_tuck", W: "3.5", H: "2", dlC: "6", dlGlue: "0.5", copies2: "2000" } },
   { name: "Sleeve / wrap", f: { product: "sleeve", W: "4", H: "2", dlC: "5", dlGlue: "0.5", copies2: "3000" } },
   { name: "Presentation folder", f: { product: "folder", W: "9", H: "12", dlC: "0.3", dlGlue: "0.5", dlFlap: "3", copies2: "1000" } },
-  { name: "Envelope", f: { product: "envelope", W: "9", H: "4", dlGlue: "0.5", dlFlap: "1.5", copies2: "5000" } },
+  { name: "Envelope", f: { product: "envelope", W: "9", H: "4", dlC: "0", dlGlue: "0.5", dlFlap: "1.5", copies2: "5000" } },
+  { name: "Envelope (gusseted)", f: { product: "envelope", W: "9", H: "4", dlC: "1", dlGlue: "0.5", dlFlap: "1.5", copies2: "5000" } },
+  { name: "Mono carton (seal-end)", f: { product: "carton_seal", W: "3.5", H: "2", dlC: "6", dlGlue: "0.5", copies2: "2000" } },
   // case / packaging
   { name: "Slipcase (book sleeve)", f: { product: "slipcase", W: "8.5", H: "11", scDepth: "1", copies2: "1000" } },
   // binding-driven modes (signature base)
