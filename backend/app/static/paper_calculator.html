@@ -496,6 +496,19 @@
           <summary style="cursor:pointer;font-weight:700;color:#2c5a9c;font-size:12.5px">📋 Saved quotes (this device)</summary>
           <div id="quoteLog" style="margin-top:8px"></div>
         </details>
+        <details class="pbox" style="margin-top:10px;border-color:#c9a96a;background:#fbf7ef" open>
+          <summary style="cursor:pointer;font-weight:700;color:#8a5a12;font-size:12.5px">📁 Templates / masters (save a job, reopen &amp; tweak)</summary>
+          <div style="margin:8px 0 6px">
+            <input id="tplName" type="text" placeholder="Template name — e.g. XYZ hard-case book" style="width:60%;min-width:180px" />
+            <button class="mbtn p" onclick="saveTemplate()">💾 Save current as template</button>
+          </div>
+          <div style="margin:0 0 6px;display:flex;gap:6px;align-items:center;font-size:12px;color:#6b7480">
+            <input id="tplSearch" type="text" placeholder="filter templates…" style="flex:1;min-width:0" oninput="renderTemplates()" />
+            <button class="mbtn s" onclick="exportTemplates()">📤 Export</button>
+            <label class="mbtn s" style="cursor:pointer">📥 Import<input id="tplImport" type="file" accept=".json" style="display:none" onchange="importTemplates(this)" /></label>
+          </div>
+          <div id="tplList"></div>
+        </details>
         <div style="margin-top:10px"><button class="mbtn p" onclick="printSheet()">🖨 Print cut sheet</button></div>
         <div class="pbox" style="margin-top:12px;border-color:#8aa6c9;background:#f3f7fc">
           <div class="ptitle">🧺 Set / bundle builder — cost each item separately, then bundle (NKK sir)</div>
@@ -2763,6 +2776,53 @@ function renderQuoteLog(){
   h+='</tbody></table>';
   box.innerHTML=h;
 }
+/* ---------- TEMPLATES / MASTERS (NKK sir phase 2): save a whole job as a named, reusable template; open it,
+   tweak size/paper/pages, quote. Built on snapshotInputs/restoreInputs. Stored in localStorage; export/import
+   as JSON so masters can be shared between devices (central sharing comes with the backend, phase 4). ---------- */
+function loadTemplates(){ try{ return JSON.parse(localStorage.getItem("TEMPLATES")||"[]")||[]; }catch(e){ return []; } }
+function saveTemplates(t){ try{ localStorage.setItem("TEMPLATES",JSON.stringify(t)); }catch(e){} }
+function saveTemplate(){
+  if(!CHOSEN||!LASTINP){ alert("Price a job first, then save it as a template."); return; }
+  let name=($("tplName")&&$("tplName").value.trim())||"";
+  if(!name){ name=($("product_name")&&$("product_name").value.trim())||($("product")&&$("product").selectedOptions[0]?$("product").selectedOptions[0].text:"Template"); }
+  const prod=$("product")?($("product").selectedOptions[0]?$("product").selectedOptions[0].text:$("product").value):"";
+  const t=loadTemplates();
+  const existing=t.findIndex(x=>x.name.toLowerCase()===name.toLowerCase());
+  const rec={name, product:prod, productVal:($("product")?$("product").value:""), created:new Date().toISOString().slice(0,10), inputs:snapshotInputs()};
+  if(existing>=0){ if(!confirm(`A template named “${name}” exists — overwrite it?`)) return; t[existing]=rec; }
+  else t.push(rec);
+  saveTemplates(t); if($("tplName")) $("tplName").value=""; renderTemplates();
+}
+function openTemplate(i){ const t=loadTemplates()[i]; if(!t||!t.inputs){ alert("This template has no inputs."); return; } restoreInputs(t.inputs); }
+function deleteTemplate(i){ const t=loadTemplates(); const n=t[i]&&t[i].name; if(n&&!confirm(`Delete template “${n}”?`)) return; t.splice(i,1); saveTemplates(t); renderTemplates(); }
+function renderTemplates(){
+  const box=$("tplList"); if(!box) return;
+  let t=loadTemplates();
+  const q=(($("tplSearch")&&$("tplSearch").value)||"").trim().toLowerCase();
+  const view=t.map((x,i)=>({x,i})).filter(o=>!q||((o.x.name+" "+o.x.product).toLowerCase().indexOf(q)>=0));
+  if(!t.length){ box.innerHTML='<span style="color:#6b7480">No templates yet — price a job, name it above, and click “Save current as template”.</span>'; return; }
+  if(!view.length){ box.innerHTML='<span style="color:#6b7480">No templates match your filter.</span>'; return; }
+  let h='<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr><th style="text-align:left">Template</th><th style="text-align:left">Product</th><th>Saved</th><th></th></tr></thead><tbody>';
+  view.forEach(o=>{
+    h+=`<tr><td style="padding:3px 0"><b>${esc(o.x.name)}</b></td><td>${esc(o.x.product||"")}</td><td style="text-align:center">${esc(o.x.created||"")}</td>`+
+       `<td style="text-align:right;white-space:nowrap"><button class="mbtn p" style="padding:2px 8px" onclick="openTemplate(${o.i})">Open</button> `+
+       `<button class="mbtn s" style="padding:2px 7px" onclick="deleteTemplate(${o.i})">✕</button></td></tr>`;
+  });
+  h+='</tbody></table>';
+  box.innerHTML=h;
+}
+function exportTemplates(){ const t=loadTemplates(); if(!t.length){ alert("No templates to export."); return; }
+  downloadText("templates_"+new Date().toISOString().slice(0,10)+".json", JSON.stringify(t,null,1)); }
+function importTemplates(input){
+  const f=input&&input.files&&input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=function(){ try{ const imp=JSON.parse(r.result); if(!Array.isArray(imp)) throw 0;
+    const t=loadTemplates(); const byName={}; t.forEach(x=>byName[x.name.toLowerCase()]=true);
+    let added=0; imp.forEach(x=>{ if(x&&x.name&&x.inputs&&!byName[x.name.toLowerCase()]){ t.push(x); byName[x.name.toLowerCase()]=true; added++; } });
+    saveTemplates(t); renderTemplates(); alert("Imported "+added+" new template(s).");
+  }catch(e){ alert("That file isn't a valid templates export."); } };
+  r.readAsText(f); input.value="";
+}
 function saveQuoteCSV(){
   const s=quoteSummary(); if(!s){ alert("Price a job first, then save it."); return; }
   // 1) append to the local log (with a full input snapshot so it can be re-opened)
@@ -2912,6 +2972,7 @@ buildHcEndPickers();
 onProductChange();
 renderSet();               // restore any saved set items (localStorage)
 renderQuoteLog();          // show saved quotes (localStorage)
+renderTemplates();         // show saved templates / masters (localStorage)
 refreshQuoteNo();          // show the next auto quote number
 if($("cloudUrl")) $("cloudUrl").value=getCloudUrl();   // restore the cloud save URL
 
