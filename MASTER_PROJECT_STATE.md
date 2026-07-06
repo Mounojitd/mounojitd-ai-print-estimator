@@ -2,7 +2,22 @@
 
 > Single source of truth for resuming work. Keep this updated. A brand-new session
 > should be able to continue from this file alone.
-> Last updated: 2026-06-18
+> Last updated: 2026-07-06
+
+---
+
+## ⭐ RESUME 2026-07-06 (latest — read before the older section below)
+Phase-1 product breadth COMPLETE (soft/hard case, back-to-back, slipcase, sets/bundles, table-calendar stand,
+envelope flat+gusseted, mono carton tuck+seal-end) + full QUOTATION DATABASE (local CSV/log + Saved-quotes
+table with Open-restores-job + central Google Sheet via baked-in Apps Script URL that assigns global G-NNNNN;
+local auto Q-NNNNN) + Phase-2 TEMPLATES (save/open/export-import). See `docs/NKK_ROADMAP_2026-06-30.md` (build
+order + phases) and `docs/GOOGLE_SHEET_QUOTE_STORE.md` (Apps Script). Test: `node tools/smoke_test_products.js`
+(25/25). Fixed a Pages deploy failure by dropping the 52MB tools/cloudflared.exe + adding .nojekyll.
+**OPEN:** ① NKK sir "500 pages / amount too low" — engine does NOT cut pages (500→32 forms of 16pp→32,000
+sheets/1000; paper invariant across signatures via ganging). The low amount is the AUTO-optimised signature/
+sheet/ganging beating sir's manual calc. NEED ONE concrete job + sir's SHEET/SIGNATURE + his amount to
+reproduce; then fix a real gap or add a "lock signature / no-gang" control. ② Rates still editable defaults
+pending sir. ③ Phase 3 (historical+smart) & Phase 4 (AI/web/lead) not started.
 
 ---
 
