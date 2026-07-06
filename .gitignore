@@ -7,5 +7,6 @@ venv/
 *.log
 _probe/
 _xlsx_probe/
-tools/                 # cloudflared.exe etc. — don't commit binaries
+tools/*.exe
+!tools/smoke_test_products.js
 # NOTE: db/files/*.xlsx ARE committed on purpose — they are the master data.
