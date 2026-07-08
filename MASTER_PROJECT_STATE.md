@@ -6,7 +6,20 @@
 
 ---
 
-## ⭐ RESUME 2026-07-06 (latest — read before the older section below)
+## ⭐ RESUME 2026-07-08 (latest — NKK sir udyoki-job review fixes, now LIVE)
+Decoded sir's 2026-07-08 voice review (udyoki brochure, 40pp+cover, 10k, 170/300gsm C2S). App was over-quoting.
+**FIXED & node-verified:** ① **Paper ₹/sheet formula** — vendor `Price_Per_Sheet` used `area(sqin)×gsm×₹kg÷1,000,000`
+(sq-inch mislabelled sq-metre) = 1.55× too high; recomputed 311/457 coated rows from the real ₹/kg via
+`(w×h×gsm÷3100÷500)×₹kg` (`tools/fix_paper_rates.py`), leaving 145 special-paper rows (correct per-sheet, garbage
+per-kg) alone. ART PAPER 170 25×36 12.09→**7.80** (sir's number). ② **Running waste** was per-forme (front+back
+doubled) → now per PAPER sheet once: `runWaste=ceil(good*running/100)` in computePaper. ③ **Margin** was
+markup-on-cost → now on SALE price `sale=cost/(1−m%)` in priceJob + all 7 combinedPrice branches. Smoke 25/25.
+**Canonical 204pp/12pp shifts 1,105→1,063 — CORRECT now (old = doubled waste), not a regression.**
+**PENDING sir's numbers:** A5 machine master sizes (L-32 19×25 vs 20×30; plates→88), A6 cover 300gsm rate (he said
+₹100/kg, vendor says 79–83), B1 quantity-tiered waste table, A3 cover "29×19" press-cut display, B2 ₹sheet↔₹kg
+input-lock (his Google Sheet). Repro harness `tools/repro_nkk.js`. Detail in memory `nkk_review_2026-07-08.md`.
+
+## ⭐ RESUME 2026-07-06 (read before the older section below)
 Phase-1 product breadth COMPLETE (soft/hard case, back-to-back, slipcase, sets/bundles, table-calendar stand,
 envelope flat+gusseted, mono carton tuck+seal-end) + full QUOTATION DATABASE (local CSV/log + Saved-quotes
 table with Open-restores-job + central Google Sheet via baked-in Apps Script URL that assigns global G-NNNNN;
