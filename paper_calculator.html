@@ -2963,13 +2963,22 @@ function snapshotInputs(){
   document.querySelectorAll("#inputCard input[id], #inputCard select[id]").forEach(e=>{
     snap[e.id]=(e.type==="checkbox")?{c:!!e.checked}:{v:e.value};
   });
+  // NKK sir: also persist the MANUAL PRESS pick — it's JS state, not a form field, so without this a reopened
+  // job silently reverts to the AUTO press and the price no longer matches what was saved.
+  snap.__machine={ mode:MACHINE_MODE, pick:(MANUAL_PICK&&MANUAL_PICK.name)||null,
+                   coverMode:COVER_MACHINE_MODE, coverPick:(COVER_MANUAL_PICK&&COVER_MANUAL_PICK.name)||null };
   return snap;
 }
 function restoreInputs(snap){
   if(!snap) return;
-  for(const id in snap){ const e=$(id); if(!e) continue; const s=snap[id];
+  for(const id in snap){ if(id==="__machine") continue; const e=$(id); if(!e) continue; const s=snap[id];
     if("c" in s) e.checked=s.c; else e.value=s.v; }
   bindingEdited=true; spineEdited=false;            // respect the restored binding; let spine auto-recompute
+  const mc=snap.__machine;                          // restore the press selection (text + cover)
+  MACHINE_MODE=(mc&&mc.mode)||"auto";
+  MANUAL_PICK=(mc&&mc.pick)?(MACHINES.find(m=>m.name===mc.pick)||null):null;
+  COVER_MACHINE_MODE=(mc&&mc.coverMode)||"auto";
+  COVER_MANUAL_PICK=(mc&&mc.coverPick)?(MACHINES.find(m=>m.name===mc.coverPick)||null):null;
   onProductChange(); run();
   try{ $("m_price").scrollIntoView({behavior:"smooth"}); }catch(e){}
 }
