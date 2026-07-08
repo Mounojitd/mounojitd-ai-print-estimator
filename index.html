@@ -2533,9 +2533,16 @@ function parseSpec(raw){
   else { const gs=[...t.matchAll(/(\d{2,3})\s*gsm/g)].map(m=>+m[1]); if(gs.length){ g1=gs[0]; g2=gs[1]||null; } }
   if(g1){ f.gsm=g1; notes.push("text "+g1+"gsm"); if(g2){ f.coverGsm=g2; notes.push("cover "+g2+"gsm (swap if reversed)"); } }
   // PAGES / extent — "cover plus 40", "4 plus 40", "40 pages/pp"
-  let pg=t.match(/(?:cover|\d)\s*(?:plus|\+|and)\s*(\d{1,4})\s*(?:page|pages|pp)\b/) || t.match(/(\d{1,4})\s*(?:page|pages|pp)\b/);
+  let pg=t.match(/(?:cover|\d{1,2})\s*(?:plus|\+|and)\s*(\d{1,4})\s*(?:page|pages|pp)\b/) || t.match(/(\d{1,4})\s*(?:page|pages|pp)\b/);
   if(pg) f.pages=+pg[1];
   else { const pl=t.match(/(?:cover|extent)\s*(?:plus|\+|and)\s*(\d{1,4})\b/); if(pl) f.pages=+pl[1]; }
+  if(f.pages==null){ // "4 plus 40" = small cover count + extent (not a gsm pair, not a colour pair)
+    for(const m of t.matchAll(/(\d{1,2})\s*(?:plus|\+|and)\s*(\d{1,4})/g)){
+      const a=+m[1], b=+m[2]; if(a<=8 && b>=9 && b<=999 && b!==f.gsm && b!==f.coverGsm){ f.pages=b; break; } }
+  }
+  // ORIENTATION
+  if(/\bportrait\b/.test(t)) f.orientation="portrait"; else if(/\blandscape\b/.test(t)) f.orientation="landscape";
+  if(f.orientation) notes.push(f.orientation);
   // COLOURS — only when clearly stated (avoid clashing with "4 plus 40" pages)
   const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/) || (/(4\s*colou?r|four\s*colou?r|cmyk)/.test(t)?[null,4,4]:null);
   if(cm){ f.cf=+cm[1]||4; f.cb=+cm[2]||4; notes.push("colours "+f.cf+"+"+f.cb); }
@@ -2543,10 +2550,10 @@ function parseSpec(raw){
   // PAPER TYPE (test uncoated first — "uncoated" contains "coated")
   if(/maplitho|uncoated|natural|cream|\bbond\b/.test(t)){ f.paperType="Uncoated"; notes.push("uncoated / maplitho"); }
   else if(/\bart\b|coated|c2s|cs2|c 2 s/.test(t)){ f.paperType="Coated Paper (C2S)"; notes.push("art / coated C2S"); }
-  // BINDING
-  const B=[[/(section\s*sew|sewn|thread).*(perfect)|\bssp\b|sewn\s*perfect/,"sewn_perfect","Section sewn + Perfect"],
+  // BINDING (abbreviations too: SS = section sewn, PB = perfect binding, SSP = both)
+  const B=[[/(?:\bss\b|section\s*sew|sewn|thread\s*sew).*(?:perfect|\bpb\b)|\bssp\b|sewn\s*perfect|\bss\b\s*\bpb\b/,"sewn_perfect","Section sewn + Perfect"],
     [/perfect|\bpb\b|glue\s*bind/,"perfect","Perfect binding"],
-    [/section\s*sew|sewn|thread\s*sew/,"sewn","Section sewn"],
+    [/section\s*sew|sewn|thread\s*sew|\bss\b/,"sewn","Section sewn"],
     [/saddle|centre\s*stitch|center\s*stitch|centre\s*pin|wire\s*stitch/,"saddle","Saddle stitch"],
     [/side\s*stitch/,"side","Side stitch"],
     [/wire\s*[-o0]|wiro|spiral\s*o/,"wireo","Wire-O"],[/spiral/,"spiral","Spiral"],[/\bcomb\b/,"comb","Comb"],
@@ -2565,11 +2572,17 @@ function parseSpec(raw){
     [/slipcase/,"slipcase"],[/booklet|brochure|book\b/,"booklet"]];
   for(const [re,v] of P){ if(re.test(t)){ f.product=v; break; } }
   if(f.product==null && (f.pages||f.binding)) f.product="booklet";
-  // COVER — if a cover is mentioned or a separate cover gsm was found
-  if(/\bcover\b/.test(t) || f.coverGsm){ f.coverType="separate"; notes.push("separate cover"); }
+  // COVER — self / none / separate
+  if(/self\s*cover/.test(t)){ f.coverType="self"; notes.push("self cover"); }
+  else if(/no\s*cover|without\s*cover/.test(t)){ f.coverType="none"; notes.push("no cover"); }
+  else if(/\bcover\b/.test(t) || f.coverGsm){ f.coverType="separate"; notes.push("separate cover"); }
   // JOB NAME — a "<number> <producttype>" phrase, else the leading words
   const nm=raw.match(/([A-Za-z0-9]+\s*)?\d{2,4}\s*(brochure|booklet|catalogue|catalog|magazine|book)/i);
   if(nm) f.product_name=nm[0].trim();
+  // QUANTITY fallback — if no qty keyword was spoken, take the largest standalone number ≥1000 that isn't
+  // already a gsm or page count (e.g. "…10000" at the end).
+  if(f.copies==null){ const nums=[...t.matchAll(/\b(\d{3,9})\b/g)].map(m=>+m[1]).filter(n=>n>=1000&&n!==f.gsm&&n!==f.coverGsm&&n!==f.pages);
+    if(nums.length){ f.copies=Math.max(...nums); notes.push("qty "+f.copies.toLocaleString("en-IN")+" (assumed)"); } }
   return {fields:f, notes};
 }
 // Apply a parsed spec to the form and re-run. Returns the notes for display.
@@ -2578,6 +2591,7 @@ function applyVoiceSpec(raw){
   const setV=(id,v)=>{ const el=$(id); if(el&&v!=null){ el.value=v; return true; } return false; };
   if(f.product){ setV("product",f.product); if(typeof onProductChange==="function") onProductChange(); }
   setV("product_name",f.product_name);
+  if(f.orientation) setV("orientation",f.orientation);
   if(f.unit) setV("unit",f.unit);
   setV("W",f.W); setV("H",f.H);
   setV("pages",f.pages); setV("copies",f.copies);
@@ -2596,18 +2610,32 @@ function applyVoiceSpec(raw){
   return notes;
 }
 function voiceApplyText(){ const el=$("voiceText"); if(el&&el.value.trim()) applyVoiceSpec(el.value.trim()); }
-let VOICE_REC=null, VOICE_ON=false;
+// CONTINUOUS listening (NKK sir: catch the WHOLE spec even when spoken slowly with pauses). We keep
+// recognition running across silences — every finalised chunk is appended to VOICE_FINAL, and if the engine
+// auto-stops on silence we RESTART it (unless the user tapped stop). Nothing is applied until the user taps
+// the button to finish, so a slow, paused dictation is captured in full.
+let VOICE_REC=null, VOICE_ON=false, VOICE_FINAL="", VOICE_STOP=false;
 function voiceToggle(){
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   const btn=$("voiceBtn"), st=$("voiceStatus");
   if(!SR){ if(st) st.innerHTML='<b style="color:#c0392b">Speech recognition isn’t available in this browser</b> — use Chrome/Edge, or type the spec in the box below.'; return; }
-  if(VOICE_ON && VOICE_REC){ VOICE_REC.stop(); return; }
-  const rec=new SR(); VOICE_REC=rec; rec.lang="en-IN"; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=1;
-  rec.onstart=()=>{ VOICE_ON=true; if(btn){btn.textContent="● Listening… tap to stop";btn.style.background="#c0392b";} if(st) st.textContent="Listening — say the job spec, then pause…"; };
-  rec.onerror=e=>{ if(st) st.innerHTML=`<b style="color:#c0392b">Mic error: ${e.error}</b> — allow microphone access, or type the spec below.`; };
-  rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; const box=$("voiceText"); if(box) box.value=txt;
-    if(st) st.textContent="Heard: "+txt; if(e.results[e.results.length-1].isFinal) applyVoiceSpec(txt); };
-  rec.onend=()=>{ VOICE_ON=false; if(btn){btn.textContent="🎤 Speak the job";btn.style.background="#2456c7";} };
+  if(VOICE_ON && VOICE_REC){ VOICE_STOP=true; if(st) st.textContent="Finishing…"; try{ VOICE_REC.stop(); }catch(e){} return; }   // manual stop → apply
+  VOICE_FINAL=""; VOICE_STOP=false;
+  const rec=new SR(); VOICE_REC=rec; rec.lang="en-IN"; rec.interimResults=true; rec.continuous=true; rec.maxAlternatives=1;
+  const live=()=>{ const el=$("voiceText"); return (el?el.value:"")||VOICE_FINAL; };
+  rec.onstart=()=>{ VOICE_ON=true; if(btn){btn.textContent="● Listening… tap when done";btn.style.background="#c0392b";}
+    if(st) st.textContent="Listening — speak the whole spec slowly, pause whenever you like. Tap the button when you’ve finished."; };
+  rec.onerror=e=>{ if(e.error==="no-speech"||e.error==="aborted") return;   // ignore silence timeouts (we restart)
+    if(st) st.innerHTML=`<b style="color:#c0392b">Mic: ${e.error}</b> — allow microphone access, or type the spec below.`; };
+  rec.onresult=e=>{ let interim="";
+    for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) VOICE_FINAL+=r[0].transcript+" "; else interim+=r[0].transcript; }
+    const heard=(VOICE_FINAL+interim).replace(/\s+/g," ").trim();
+    const box=$("voiceText"); if(box) box.value=heard;
+    if(st) st.textContent="Heard: "+heard; };
+  rec.onend=()=>{
+    if(VOICE_ON && !VOICE_STOP){ try{ rec.start(); return; }catch(err){} }   // engine auto-stopped on silence → keep going
+    VOICE_ON=false; if(btn){btn.textContent="🎤 Speak the job";btn.style.background="#2456c7";}
+    const txt=(VOICE_FINAL.trim()||live().trim()); if(txt) applyVoiceSpec(txt); };
   try{ rec.start(); }catch(err){ if(st) st.textContent="Could not start mic: "+err.message; }
 }
 // Render price rows: each row is [label, value] or [label, value, why]. `why` shows a muted breakdown
