@@ -1781,14 +1781,14 @@ function printSheet(){
 /* ---------- MACHINE engine (your real presses) ---------- */
 // MACHINE MASTER — real presses from Process master data (sizes mm→in; max=max paper, print=max print area, grip mm)
 // MACHINE MASTER — rebuilt from NKK sir's PRINTING_MACHINE_RATES_2026 sheet (real sizes/colours/speeds).
-// (Corrected the bad inherited records: L-40 is 20×30 not 28×40, L-32 is 19×25, Parva is 25×36, etc.)
+// (Corrected the bad inherited records: L-40 is 20×30 not 28×40, L-32 is 20×30 (NKK sir 2026-07-08), Parva is 25×36, etc.)
 const MACHINES=[
   {name:"Heidelberg-102 · Nabamudran",   id:"M001", vendor:"Nabamudran", loc:"Sector 5", max:[28,40], print:[27.6,39.6], min:[13,19], col:4, speed:9000,  grip:12},
   {name:"MAN Roland R-200 · Nabamudran", id:"M002", vendor:"Nabamudran", loc:"Sector 5", max:[20,30], print:[19.6,29.6], min:[9,12],  col:5, speed:8000,  grip:12},
   {name:"MAN Roland Parva · Nabamudran", id:"M003", vendor:"Nabamudran", loc:"Sector 5", max:[25,36], print:[24.6,35.6], min:[12,17], col:2, speed:7000,  grip:12},
   {name:"Planeta Super Variant · Nabamudran", id:"M004", vendor:"Nabamudran", loc:"Sector 5", max:[28,40], print:[27.6,39.6], min:[13,19], col:4, speed:7000, grip:12},
   {name:"Komori L-40 · Balaji",          id:"M005", vendor:"Balaji",     loc:"Ultodanga",max:[20,30], print:[19.6,29.6], min:[9,12],  col:4, speed:15000, grip:12},
-  {name:"Komori L-32 · Balaji",          id:"M006", vendor:"Balaji",     loc:"Ultodanga",max:[19,25], print:[18.6,24.6], min:[9,12],  col:4, speed:13000, grip:12},
+  {name:"Komori L-32 · Balaji",          id:"M006", vendor:"Balaji",     loc:"Ultodanga",max:[20,30], print:[19.6,29.6], min:[9,12],  col:4, speed:13000, grip:12},   // NKK sir 2026-07-08: L-32 is 20×30 (was wrongly 19×25 → blew plates to 88)
   {name:"Komori · Florence",             id:"M007", vendor:"Florence",   loc:"Esplanade",max:[18,25], print:[17.6,24.6], min:[8,11],  col:4, speed:13000, grip:12},
   {name:"Dyre · Florence",               id:"M008", vendor:"Florence",   loc:"Esplanade",max:[25,36], print:[24.6,35.6], min:[12,17], col:1, speed:13000, grip:12},
   // DIGITAL production presses (Digital_Production_Presses.xlsx) — 13" web, long/banner sheets; no plates
