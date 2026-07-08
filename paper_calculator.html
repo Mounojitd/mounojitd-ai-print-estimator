@@ -2511,9 +2511,45 @@ function combinedPrice(){
   return {p,q,text:tq,cover:cq,coverPlan:cp,binding:bindCost,mech:mb,embItems,embTotal,fmr};
 }
 /* ---------- VOICE FILL (NKK sir): speak/type a job spec → parse → fill the form ---------- */
+// CORRECTION MAP — browser speech engines mishear printing jargon; normalise common errors before parsing.
+// Ordered, word-bounded, conservative (each maps a mishearing to the real term; no-op on already-correct text).
+function voiceCorrect(s){
+  let t=" "+String(s||"").toLowerCase().replace(/[,]/g," ").replace(/\s+/g," ")+" ";
+  const MAP=[
+    // GSM: "170 jism/gism/gm/g s m" → "170 gsm"
+    [/\b(\d{2,3})\s*(?:jism|gism|jsm|g\s*s\s*m|g\.s\.m\.?|gm|grams?)\b/g,"$1 gsm"],
+    // sizes: "a four" → a4 etc.
+    [/\ba[\s-]*(?:four|4)\b/g,"a4"],[/\ba[\s-]*(?:three|3)\b/g,"a3"],[/\ba[\s-]*(?:five|5)\b/g,"a5"],[/\ba[\s-]*(?:six|6)\b/g,"a6"],
+    // paper
+    [/\baart\b|\bart\s*pepper\b|\bart\s*peppa\b/g,"art paper"],
+    [/\bc\s*(?:to|two|2)\s*(?:s|ess|es)\b|\bsee\s*too?\s*ess\b|\bcs\s*2\b|\bsit\s*us\b/g,"c2s"],
+    [/\bmap\s*litho\b|\bmap\s*little\b|\bmaplito\b/g,"maplitho"],
+    // lamination / coating
+    [/\blimit(?:ation|ations)?\b|\bdomination\b|\blamentation\b|\blaminating\b|\blaminate\b/g,"lamination"],
+    [/\bmat\b|\bmatte\b|\bmath\b(?=\s*(?:lam|coat|uv))/g,"matt"],
+    [/\bglass\b(?=\s*(?:lam|coat|uv|art|paper))/g,"gloss"],
+    // binding
+    [/\bsad(?:d?le|al|hal|el)\b|\bsettle\b(?=\s*stitch)|\bsaddle\s*stich\b/g,"saddle"],
+    [/\bsection\s*(?:soan|sown|sun|so\s*on|shown|sewing|swan)\b/g,"section sewn"],
+    [/\bperfect\s*(?:binging|bending|bindings)\b/g,"perfect binding"],
+    [/\bwire\s*(?:oh|o|row|hoe)\b|\bvairo\b|\bwiro\b|\bwhy\s*row\b|\bwireless\b(?=\s*note)/g,"wire-o"],
+    [/\bspinal\b|\bviral\b(?=\s*bind)/g,"spiral"],
+    // products
+    [/\bbro\s*sure\b|\bbroacher\b|\bbroucher\b|\bbroachure\b|\bbroshure\b/g,"brochure"],
+    [/\bcat\s*log\b|\bcatalog\b|\bcata\s*log\b/g,"catalogue"],
+    [/\bbook\s*let\b/g,"booklet"],[/\benvelop\b/g,"envelope"],[/\bfolder\s*presentation\b/g,"presentation folder"],
+    // misc
+    [/\bport\s*rate\b|\bportray\b/g,"portrait"],[/\bland\s*escape\b/g,"landscape"],
+    [/\bquantit(?:iy|ies|i)\b/g,"quantity"],[/\bplush\b(?=\s*\d)/g,"plus"],
+  ];
+  for(const [re,rep] of MAP) t=t.replace(re,rep);
+  return t.replace(/\s+/g," ").trim();
+}
 // Pure parser (no DOM) so it is unit-testable. Returns {fields, notes} from a free-text/spoken spec.
 function parseSpec(raw){
-  const t=" "+String(raw||"").toLowerCase().replace(/[,]/g," ").replace(/\s+/g," ")+" ";
+  const plain=String(raw||"").toLowerCase().replace(/[,]/g," ").replace(/\s+/g," ").trim();
+  const corrected=voiceCorrect(raw);
+  const t=" "+corrected+" ";
   const f={}, notes=[];
   const digits=s=>parseInt(String(s).replace(/[^0-9]/g,""),10);
   // SIZE — standard names first, then a custom "W x H unit"
@@ -2583,6 +2619,7 @@ function parseSpec(raw){
   // already a gsm or page count (e.g. "…10000" at the end).
   if(f.copies==null){ const nums=[...t.matchAll(/\b(\d{3,9})\b/g)].map(m=>+m[1]).filter(n=>n>=1000&&n!==f.gsm&&n!==f.coverGsm&&n!==f.pages);
     if(nums.length){ f.copies=Math.max(...nums); notes.push("qty "+f.copies.toLocaleString("en-IN")+" (assumed)"); } }
+  if(corrected!==plain) notes.push("auto-corrected speech");
   return {fields:f, notes};
 }
 // Apply a parsed spec to the form and re-run. Returns the notes for display.
