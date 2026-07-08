@@ -130,6 +130,19 @@
     <!-- INPUTS -->
     <div class="card" id="inputCard">
       <h2>Job</h2>
+      <!-- VOICE FILL (NKK sir): speak the job spec → auto-fill the form. Browser Web Speech API (no server);
+           falls back to a typed box where the same parser runs. Always shows what it parsed for verification. -->
+      <div id="voiceBox" class="pbox" style="margin:0 0 10px;background:#f4f8ff;border:1px solid #c7d6f0">
+        <div class="prow" style="align-items:center;gap:8px;flex-wrap:wrap">
+          <button type="button" id="voiceBtn" onclick="voiceToggle()" style="background:#2456c7;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer">🎤 Speak the job</button>
+          <span id="voiceStatus" style="font-size:11.5px;color:#6b7480;flex:1;min-width:180px">e.g. “Udyogi 360 brochure, A4, cover plus 40 pages, 300 and 170 gsm art, section sewn perfect, cover matte lamination, 10000 quantity”</span>
+        </div>
+        <div class="prow" style="margin-top:6px;gap:6px">
+          <input id="voiceText" type="text" placeholder="…or type / paste the job spec here" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter'){event.preventDefault();voiceApplyText();}" />
+          <button type="button" onclick="voiceApplyText()" style="cursor:pointer">Fill form</button>
+        </div>
+        <div id="voiceParsed" style="font-size:12px;margin-top:6px"></div>
+      </div>
       <div class="fld"><label>Product / job name</label><input id="product_name" type="text" placeholder="e.g. Annual brochure" /></div>
       <div class="row">
         <div class="fld"><label>Product type</label>
@@ -2496,6 +2509,106 @@ function combinedPrice(){
   const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
   const q={band:tq.band+" text / "+cq.band+" cover",paper,printing,plates,plateCount,impressions,lam,embTotal,embItems,fmr:fmr.cost,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books};
   return {p,q,text:tq,cover:cq,coverPlan:cp,binding:bindCost,mech:mb,embItems,embTotal,fmr};
+}
+/* ---------- VOICE FILL (NKK sir): speak/type a job spec → parse → fill the form ---------- */
+// Pure parser (no DOM) so it is unit-testable. Returns {fields, notes} from a free-text/spoken spec.
+function parseSpec(raw){
+  const t=" "+String(raw||"").toLowerCase().replace(/[,]/g," ").replace(/\s+/g," ")+" ";
+  const f={}, notes=[];
+  const digits=s=>parseInt(String(s).replace(/[^0-9]/g,""),10);
+  // SIZE — standard names first, then a custom "W x H unit"
+  const SIZES={a2:[16.54,23.39],a3:[11.69,16.54],a4:[8.27,11.69],a5:[5.83,8.27],a6:[4.13,5.83],letter:[8.5,11],legal:[8.5,14]};
+  for(const k in SIZES){ if(new RegExp("\\b"+k+"\\b").test(t)){ f.unit="in"; f.W=SIZES[k][0]; f.H=SIZES[k][1]; notes.push("size "+k.toUpperCase()); break; } }
+  const mSize=t.match(/(\d+(?:\.\d+)?)\s*(?:x|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|mm|cm)\b/);
+  if(mSize && f.W==null){ f.W=+mSize[1]; f.H=+mSize[2]; f.unit=/mm/.test(mSize[3])?"mm":/cm/.test(mSize[3])?"cm":"in"; notes.push("size "+f.W+"×"+f.H+" "+f.unit); }
+  // QUANTITY — a number tagged qty/copies/pcs, or "N thousand/k"
+  const qm=t.match(/(\d[\d ]{0,9})\s*(?:quantity|qty|copies|pieces|pcs|nos|run\b)/);
+  if(qm) f.copies=digits(qm[1]);
+  const km=t.match(/(\d+(?:\.\d+)?)\s*(?:thousand|k)\b/);
+  if(km && f.copies==null) f.copies=Math.round(parseFloat(km[1])*1000);
+  // GSM — "300 and 170 gsm", "300 plus 170", or single "300 gsm". First = text, second = cover.
+  let g1=null,g2=null;
+  const gp=t.match(/(\d{2,3})\s*(?:gsm)?\s*(?:plus|and|\+|&|by|\/)\s*(\d{2,3})\s*(?:gsm|art|paper|coated)/);
+  if(gp){ g1=+gp[1]; g2=+gp[2]; }
+  else { const gs=[...t.matchAll(/(\d{2,3})\s*gsm/g)].map(m=>+m[1]); if(gs.length){ g1=gs[0]; g2=gs[1]||null; } }
+  if(g1){ f.gsm=g1; notes.push("text "+g1+"gsm"); if(g2){ f.coverGsm=g2; notes.push("cover "+g2+"gsm (swap if reversed)"); } }
+  // PAGES / extent — "cover plus 40", "4 plus 40", "40 pages/pp"
+  let pg=t.match(/(?:cover|\d)\s*(?:plus|\+|and)\s*(\d{1,4})\s*(?:page|pages|pp)\b/) || t.match(/(\d{1,4})\s*(?:page|pages|pp)\b/);
+  if(pg) f.pages=+pg[1];
+  else { const pl=t.match(/(?:cover|extent)\s*(?:plus|\+|and)\s*(\d{1,4})\b/); if(pl) f.pages=+pl[1]; }
+  // COLOURS — only when clearly stated (avoid clashing with "4 plus 40" pages)
+  const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/) || (/(4\s*colou?r|four\s*colou?r|cmyk)/.test(t)?[null,4,4]:null);
+  if(cm){ f.cf=+cm[1]||4; f.cb=+cm[2]||4; notes.push("colours "+f.cf+"+"+f.cb); }
+  else if(/single\s*colou?r|one\s*colou?r|1\s*colou?r|black\s*(?:and\s*white|only)|b\/?w/.test(t)){ f.cf=1; f.cb=1; notes.push("colours 1+1"); }
+  // PAPER TYPE (test uncoated first — "uncoated" contains "coated")
+  if(/maplitho|uncoated|natural|cream|\bbond\b/.test(t)){ f.paperType="Uncoated"; notes.push("uncoated / maplitho"); }
+  else if(/\bart\b|coated|c2s|cs2|c 2 s/.test(t)){ f.paperType="Coated Paper (C2S)"; notes.push("art / coated C2S"); }
+  // BINDING
+  const B=[[/(section\s*sew|sewn|thread).*(perfect)|\bssp\b|sewn\s*perfect/,"sewn_perfect","Section sewn + Perfect"],
+    [/perfect|\bpb\b|glue\s*bind/,"perfect","Perfect binding"],
+    [/section\s*sew|sewn|thread\s*sew/,"sewn","Section sewn"],
+    [/saddle|centre\s*stitch|center\s*stitch|centre\s*pin|wire\s*stitch/,"saddle","Saddle stitch"],
+    [/side\s*stitch/,"side","Side stitch"],
+    [/wire\s*[-o0]|wiro|spiral\s*o/,"wireo","Wire-O"],[/spiral/,"spiral","Spiral"],[/\bcomb\b/,"comb","Comb"],
+    [/hard\s*case|case\s*bound|case\s*bind|hardbound|hardback/,"case","Hard case book"],
+    [/back\s*to\s*back|board\s*book|b2b/,"b2b","Back-to-back paste"]];
+  for(const [re,v,lbl] of B){ if(re.test(t)){ f.binding=v; notes.push("binding: "+lbl); break; } }
+  // LAMINATION (cover)
+  const L=[[/matt\s*(?:uv)/,"mattuv","Matt UV"],[/matt|matte/,"matt","Matt lam"],[/gloss\s*uv/,"uv","Gloss UV"],
+    [/gloss/,"gloss","Gloss lam"],[/bopp/,"bopp","BOPP"],[/drip/,"drip","Drip-off UV"],[/varnish/,"varnish","Varnish"],[/\buv\b/,"uv","Gloss UV"]];
+  if(/lamination|lam\b|coating|\buv\b|varnish|bopp/.test(t)) for(const [re,v,lbl] of L){ if(re.test(t)){ f.coverLam=v; notes.push("cover coating: "+lbl); break; } }
+  // PRODUCT TYPE
+  const P=[[/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/manual/,"manual"],[/annual/,"annual"],
+    [/leaflet|flyer/,"leaflet"],[/poster/,"poster"],[/visiting|greeting|\bcard\b/,"card"],
+    [/table\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],[/dangler|tent/,"dangler"],
+    [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve/,"sleeve"],[/carton|box/,"carton_tuck"],
+    [/slipcase/,"slipcase"],[/booklet|brochure|book\b/,"booklet"]];
+  for(const [re,v] of P){ if(re.test(t)){ f.product=v; break; } }
+  if(f.product==null && (f.pages||f.binding)) f.product="booklet";
+  // COVER — if a cover is mentioned or a separate cover gsm was found
+  if(/\bcover\b/.test(t) || f.coverGsm){ f.coverType="separate"; notes.push("separate cover"); }
+  // JOB NAME — a "<number> <producttype>" phrase, else the leading words
+  const nm=raw.match(/([A-Za-z0-9]+\s*)?\d{2,4}\s*(brochure|booklet|catalogue|catalog|magazine|book)/i);
+  if(nm) f.product_name=nm[0].trim();
+  return {fields:f, notes};
+}
+// Apply a parsed spec to the form and re-run. Returns the notes for display.
+function applyVoiceSpec(raw){
+  const {fields:f,notes}=parseSpec(raw);
+  const setV=(id,v)=>{ const el=$(id); if(el&&v!=null){ el.value=v; return true; } return false; };
+  if(f.product){ setV("product",f.product); if(typeof onProductChange==="function") onProductChange(); }
+  setV("product_name",f.product_name);
+  if(f.unit) setV("unit",f.unit);
+  setV("W",f.W); setV("H",f.H);
+  setV("pages",f.pages); setV("copies",f.copies);
+  setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
+  setV("cf",f.cf); setV("cb",f.cb);
+  if(f.coverType){ setV("coverType",f.coverType); if(typeof onCoverChange==="function") onCoverChange(); }
+  if(f.paperType){ const ps=$("paperTypeSel"); if(ps){ ps.value=f.paperType; if(typeof onPaperTypeChange==="function") onPaperTypeChange(); }
+    const cs=$("coverTypeSel"); if(cs){ cs.value=f.paperType; if(typeof onCoverTypeChange==="function") onCoverTypeChange(); } }
+  if(f.coverLam) setV("coverLam",f.coverLam);
+  if(f.binding){ setV("binding",f.binding); bindingEdited=true; if(typeof setBinding==="function") setBinding(f.binding); }
+  if(typeof run==="function") run();
+  const box=$("voiceParsed");
+  if(box){ box.innerHTML = notes.length
+    ? `<b style="color:#1c7a52">✓ Parsed & filled:</b> ${notes.map(n=>`<span style="background:#e7f0ff;border-radius:4px;padding:1px 6px;margin:2px;display:inline-block">${n}</span>`).join("")}<div style="color:#6b7480;margin-top:3px">Heard: “${String(raw).replace(/</g,"&lt;")}”. Check the fields and adjust anything the parser missed.</div>`
+    : `<span style="color:#c0392b">Couldn't extract job details from “${String(raw).replace(/</g,"&lt;")}”. Try: name, size (A4), pages, gsm, paper, binding, lamination, quantity.</span>`; }
+  return notes;
+}
+function voiceApplyText(){ const el=$("voiceText"); if(el&&el.value.trim()) applyVoiceSpec(el.value.trim()); }
+let VOICE_REC=null, VOICE_ON=false;
+function voiceToggle(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  const btn=$("voiceBtn"), st=$("voiceStatus");
+  if(!SR){ if(st) st.innerHTML='<b style="color:#c0392b">Speech recognition isn’t available in this browser</b> — use Chrome/Edge, or type the spec in the box below.'; return; }
+  if(VOICE_ON && VOICE_REC){ VOICE_REC.stop(); return; }
+  const rec=new SR(); VOICE_REC=rec; rec.lang="en-IN"; rec.interimResults=true; rec.continuous=false; rec.maxAlternatives=1;
+  rec.onstart=()=>{ VOICE_ON=true; if(btn){btn.textContent="● Listening… tap to stop";btn.style.background="#c0392b";} if(st) st.textContent="Listening — say the job spec, then pause…"; };
+  rec.onerror=e=>{ if(st) st.innerHTML=`<b style="color:#c0392b">Mic error: ${e.error}</b> — allow microphone access, or type the spec below.`; };
+  rec.onresult=e=>{ let txt=""; for(const r of e.results) txt+=r[0].transcript; const box=$("voiceText"); if(box) box.value=txt;
+    if(st) st.textContent="Heard: "+txt; if(e.results[e.results.length-1].isFinal) applyVoiceSpec(txt); };
+  rec.onend=()=>{ VOICE_ON=false; if(btn){btn.textContent="🎤 Speak the job";btn.style.background="#2456c7";} };
+  try{ rec.start(); }catch(err){ if(st) st.textContent="Could not start mic: "+err.message; }
 }
 // Render price rows: each row is [label, value] or [label, value, why]. `why` shows a muted breakdown
 // sub-line under the label (NKK sir 2026-07-08: "show the logic/source beside every cost line").
