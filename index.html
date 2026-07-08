@@ -2271,7 +2271,26 @@ function priceJob(o,p,machine){
   // price → sale = cost ÷ (1 − margin%). e.g. cost 100 @ 20% sells at 125 (margin 25 = 20% of 125), not 120.
   const mpct=Math.min(Math.max(p.margin||0,0),99);
   const pretax=prod/(1-mpct/100), margin=pretax-prod, gst=pretax*p.gst/100, grand=pretax+gst;
-  return {band,paper,buySheets,printing,plates,plateCount,impressions,formes,formeRun,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1),digital,digitalRate};
+  // PER-LINE EXPLANATIONS (NKK sir 2026-07-08: "show the logic/source beside every cost line").
+  const explain={};
+  explain.paper=`${buySheets.toLocaleString("en-IN")} sheets × ₹${(p.paperRate||0).toFixed(2)}/sheet`+(o.paperSheetW?` · ${o.paperSheetW}×${o.paperSheetH} parent`:"");
+  if(digital){
+    explain.printing=`${sheets.toLocaleString("en-IN")} sheets × ₹${digitalRate}/sheet (digital, both sides — no plates)`;
+  } else {
+    const cardE=PRESS_RATES[press&&press.id];
+    const side=cols=>{ if(cols<=0)return null;
+      if(cardE){ const scale=cols/4, lot=cardE.lot4*scale, perForme=Math.round(pressSideCost(cardE,cols,formeRun));
+        if(formeRun<=cardE.lotQty) return `${sigs} form(s) × ₹${Math.round(lot)} lot (${formeRun.toLocaleString("en-IN")} ≤ ${cardE.lotQty})`;
+        const t=cardE.tiers.find(tt=>formeRun<=tt.upTo)||cardE.tiers[cardE.tiers.length-1];
+        return `${sigs} form(s) × [₹${Math.round(lot)} lot (first ${cardE.lotQty}) + ₹${t.r}/1000 × ${((formeRun-cardE.lotQty)/1000).toFixed(1)}k = ₹${perForme}]`; }
+      return `${sigs} form(s) × band ${band} rate`; };
+    explain.printing=[p.cf>0?"F "+side(p.cf):null,p.cb>0?"B "+side(p.cb):null].filter(Boolean).join("  ·  ");
+    const plateUnit=cardE?cardE.plate:plateRate(src,band);
+    const workNote=work==="back"?"work&back → separate front + back plates":"work&"+work+" → one shared plate set";
+    explain.plates=`${plateCount} plates × ₹${plateUnit} — (cf ${Math.max(0,p.cf)} + cb ${Math.max(0,p.cb)}) × ${sigs} layouts · ${workNote}`;
+  }
+  if(p.lam&&p.lam!=="none") explain.lam=`${coatSheets.toLocaleString("en-IN")} sheets × ₹${c.r}/100sq.in × ${Math.round(o.sw*o.sh)} sq.in${Math.abs(lam-c.min)<0.5?` (min ₹${c.min})`:""}`;
+  return {band,paper,buySheets,printing,plates,plateCount,impressions,formes,formeRun,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1),digital,digitalRate,explain};
 }
 function currentPriceParams(){
   return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
@@ -2478,20 +2497,32 @@ function combinedPrice(){
   const q={band:tq.band+" text / "+cq.band+" cover",paper,printing,plates,plateCount,impressions,lam,embTotal,embItems,fmr:fmr.cost,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books};
   return {p,q,text:tq,cover:cq,coverPlan:cp,binding:bindCost,mech:mb,embItems,embTotal,fmr};
 }
+// Render price rows: each row is [label, value] or [label, value, why]. `why` shows a muted breakdown
+// sub-line under the label (NKK sir 2026-07-08: "show the logic/source beside every cost line").
+function priceRowsHTML(rows,inr){
+  return rows.map(r=>`<tr><td style="padding:4px 0;vertical-align:top">${r[0]}${r[2]?`<div style="font-size:11px;color:#6b7480;font-weight:400;margin-top:1px">↳ ${r[2]}</div>`:""}</td><td style="text-align:right;vertical-align:top">${inr(r[1])}</td></tr>`).join("");
+}
+// Packing = ⌈wt÷15⌉ boxes × ₹35; Freight = wt × ₹8/kg (min ₹300). Back-derive the weight from the charge so
+// the shown logic matches exactly what was billed. (Rates editable — pending sir's confirmed packing/freight.)
+function packFreightWhy(q,fallbackWt){
+  const shipWt=q.freight>300?q.freight/8:(fallbackWt||0);
+  return { pack:`⌈ ${shipWt.toFixed(0)} kg ÷ 15 ⌉ = ${Math.max(1,Math.round(q.packing/35))} box(es) × ₹35`,
+           freight:q.freight>300?`${shipWt.toFixed(0)} kg × ₹8/kg`:`minimum ₹300` };
+}
 function showPrice(){
   if(!CHOSEN)return;
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
   const x=combinedPrice(),p=x.p,q=x.q,inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   if(x.hardcase){                                  // HARD CASE: text block + case components (own breakdown)
-    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt;
-    let hrows=[[`Text block paper (${txtWt.toFixed(1)} kg, section-sewn)`,x.text.paper],
-      [`Text printing (${x.text.formes} formes)`,x.text.printing],[`Text plates (${x.text.plateCount})`,x.text.plates]];
-    if(x.text.lam) hrows.push(["Text coating",x.text.lam]);
+    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt, hE=x.text&&x.text.explain||{}, hpf=packFreightWhy(q,txtWt);
+    let hrows=[[`Text block paper (${txtWt.toFixed(1)} kg, section-sewn)`,x.text.paper,hE.paper],
+      [`Text printing (${x.text.formes} formes)`,x.text.printing,hE.printing],[`Text plates (${x.text.plateCount})`,x.text.plates,hE.plates]];
+    if(x.text.lam) hrows.push(["Text coating",x.text.lam,hE.lam]);
     x.hardcase.items.forEach(i=>hrows.push(["Case — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)hrows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
-    hrows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    hrows.push(["Packing",q.packing,hpf.pack],["Freight",q.freight,hpf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h2='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
-    hrows.forEach(([k,v])=>h2+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+    h2+=priceRowsHTML(hrows,inr);
     const S=x.hardcase.sizes;
     h2+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
     h2+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
@@ -2502,16 +2533,16 @@ function showPrice(){
     $("m_price").innerHTML=h2; return;
   }
   if(x.boardbook){                                 // BOARD BOOK / A2: text faces + board cores + pasting (own breakdown)
-    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt;
-    let brows=[[`Printed forms — paper, single-side (${txtWt.toFixed(1)} kg)`,x.text.paper]];
+    const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt, bE=x.text&&x.text.explain||{}, bpf=packFreightWhy(q,txtWt);
+    let brows=[[`Printed forms — paper, single-side (${txtWt.toFixed(1)} kg)`,x.text.paper,bE.paper]];
     if(x.b2bPaper) brows.push([`+ 2nd pasted sheet per leaf (single-side ×2)`,x.b2bPaper]);
-    brows.push([`Printing (${x.text.formes} formes, single-side)`,x.text.printing],[`Plates (${x.text.plateCount})`,x.text.plates]);
-    if(x.text.lam) brows.push(["Coating / lamination",x.text.lam]);
+    brows.push([`Printing (${x.text.formes} formes, single-side)`,x.text.printing,bE.printing],[`Plates (${x.text.plateCount})`,x.text.plates,bE.plates]);
+    if(x.text.lam) brows.push(["Coating / lamination",x.text.lam,bE.lam]);
     x.boardbook.items.forEach(i=>brows.push(["Board book — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)brows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
-    brows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    brows.push(["Packing",q.packing,bpf.pack],["Freight",q.freight,bpf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h3='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
-    brows.forEach(([k,v])=>h3+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+    h3+=priceRowsHTML(brows,inr);
     const B=x.boardbook.sizes;
     h3+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
     h3+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
@@ -2522,15 +2553,15 @@ function showPrice(){
     $("m_price").innerHTML=h3; return;
   }
   if(x.dieline){                                   // DIELINE / A4: blank print + die-cut + glue (own breakdown)
-    const D=x.dieline.sizes, pw=CHOSEN.paperWeight||CHOSEN.total_wt;
-    let drows=[[`Blank paper (${pw.toFixed(1)} kg)`,x.text.paper],
-      [`Printing (${x.text.formes} formes)`,x.text.printing],[`Plates (${x.text.plateCount})`,x.text.plates]];
-    if(x.text.lam) drows.push(["Coating / lamination",x.text.lam]);
+    const D=x.dieline.sizes, pw=CHOSEN.paperWeight||CHOSEN.total_wt, dE=x.text&&x.text.explain||{}, dpf=packFreightWhy(q,pw);
+    let drows=[[`Blank paper (${pw.toFixed(1)} kg)`,x.text.paper,dE.paper],
+      [`Printing (${x.text.formes} formes)`,x.text.printing,dE.printing],[`Plates (${x.text.plateCount})`,x.text.plates,dE.plates]];
+    if(x.text.lam) drows.push(["Coating / lamination",x.text.lam,dE.lam]);
     x.dieline.items.forEach(i=>drows.push(["Converting — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)drows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
-    drows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    drows.push(["Packing",q.packing,dpf.pack],["Freight",q.freight,dpf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h4='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
-    drows.forEach(([k,v])=>h4+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+    h4+=priceRowsHTML(drows,inr);
     h4+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
     h4+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
     h4+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
@@ -2540,15 +2571,15 @@ function showPrice(){
     $("m_price").innerHTML=h4; return;
   }
   if(x.slipcase){                                  // SLIPCASE: PLC wrap print + chipboard + inside paper + making
-    const S=x.slipcase.sizes, pw=CHOSEN.paperWeight||CHOSEN.total_wt;
-    let srows=[[`PLC wrap paper (${pw.toFixed(1)} kg)`,x.text.paper],
-      [`Wrap printing (${x.text.formes} formes)`,x.text.printing],[`Wrap plates (${x.text.plateCount})`,x.text.plates]];
-    if(x.text.lam) srows.push(["Wrap lamination",x.text.lam]);
+    const S=x.slipcase.sizes, pw=CHOSEN.paperWeight||CHOSEN.total_wt, sE=x.text&&x.text.explain||{}, spf=packFreightWhy(q,pw);
+    let srows=[[`PLC wrap paper (${pw.toFixed(1)} kg)`,x.text.paper,sE.paper],
+      [`Wrap printing (${x.text.formes} formes)`,x.text.printing,sE.printing],[`Wrap plates (${x.text.plateCount})`,x.text.plates,sE.plates]];
+    if(x.text.lam) srows.push(["Wrap lamination",x.text.lam,sE.lam]);
     x.slipcase.items.forEach(i=>srows.push(["Slipcase — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)srows.push([`Finishing make-ready (${x.fmr.ops} ops)`,x.fmr.total]);
-    srows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    srows.push(["Packing",q.packing,spf.pack],["Freight",q.freight,spf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h5='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
-    srows.forEach(([k,v])=>h5+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+    h5+=priceRowsHTML(srows,inr);
     h5+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
     h5+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
     h5+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
@@ -2561,32 +2592,38 @@ function showPrice(){
   const totalWt=(CHOSEN.paperWeight||CHOSEN.total_wt)+((x.coverPlan&&x.coverPlan.option)?(x.coverPlan.option.paperWeight||x.coverPlan.option.total_wt):0);
   const perKg=totalWt>0?(q.paper/totalWt):0;
   const wlabel=p.work==="back"?"W&amp;back":"W&amp;"+p.work;
+  const tE=x.text&&x.text.explain||{}, cE=x.cover&&x.cover.explain||{};
+  const pf=packFreightWhy(q,totalWt);
+  const bindWhy=()=>{ const raw=p.bindingRate*p.books; return raw>=p.bindingMin
+      ? `${p.books.toLocaleString("en-IN")} books × ₹${p.bindingRate}/book`
+      : `min ₹${p.bindingMin} (${p.books.toLocaleString("en-IN")} × ₹${p.bindingRate} = ₹${Math.round(raw)} is below min)`; };
   let rows;
   if(x.cover){                                   // separate cover → itemise text vs cover so cover costing is explicit
     const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt, cvWt=x.coverPlan.option.paperWeight||x.coverPlan.option.total_wt;
+    const platesWhy=[tE.plates?"text — "+tE.plates:null, cE.plates?"cover — "+cE.plates:null].filter(Boolean).join("  ·  ");
     rows=[
-      [`Text paper (${txtWt.toFixed(1)} kg consumed)`, x.text.paper],
-      [`Cover paper (${cvWt.toFixed(1)} kg consumed)`, x.cover.paper],
-      [`Printing — text (${x.text.formes} formes × ~${x.text.formeRun.toLocaleString("en-IN")} sheets)`, x.text.printing],
-      [`Printing — cover (${x.cover.formes} formes × ~${x.cover.formeRun.toLocaleString("en-IN")} sheets)`, x.cover.printing],
-      [`Plates (${q.plateCount}, ${wlabel})`, q.plates],
-      [`Coating — cover${$("coverLam").value!=="none"?" ("+coatingName($("coverLam").value)+")":""}`, x.cover.lam],
-      [`Coating — inside${$("lam").value!=="none"?" ("+coatingName($("lam").value)+", all text sheets)":" (none — cover-only job)"}`, x.text.lam]
+      [`Text paper (${txtWt.toFixed(1)} kg consumed)`, x.text.paper, tE.paper],
+      [`Cover paper (${cvWt.toFixed(1)} kg consumed)`, x.cover.paper, cE.paper],
+      [`Printing — text (${x.text.formes} formes × ~${x.text.formeRun.toLocaleString("en-IN")} sheets)`, x.text.printing, tE.printing],
+      [`Printing — cover (${x.cover.formes} formes × ~${x.cover.formeRun.toLocaleString("en-IN")} sheets)`, x.cover.printing, cE.printing],
+      [`Plates (${q.plateCount}, ${wlabel})`, q.plates, platesWhy],
+      [`Coating — cover${$("coverLam").value!=="none"?" ("+coatingName($("coverLam").value)+")":""}`, x.cover.lam, cE.lam],
+      [`Coating — inside${$("lam").value!=="none"?" ("+coatingName($("lam").value)+", all text sheets)":" (none — cover-only job)"}`, x.text.lam, tE.lam]
     ];
     (x.embItems||[]).forEach(e=>rows.push([`Cover embellishment — ${e.name}`, e.cost]));
   } else {
     const printLbl=q.digital?`Printing — digital (₹${q.digitalRate}/sheet both-side × ${q.buySheets.toLocaleString("en-IN")} sheets)`:`Printing (${q.formes} formes × ~${q.formeRun.toLocaleString("en-IN")} sheets)`;
-    rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper],[printLbl,q.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates],["Coating",q.lam]];
+    rows=[[`Paper (${totalWt.toFixed(1)} kg · ₹${perKg.toFixed(2)}/kg)`,q.paper,tE.paper],[printLbl,q.printing,tE.printing],[`Plates (${q.plateCount}, ${wlabel})`,q.plates,tE.plates],["Coating",q.lam,tE.lam]];
   }
   if(x.mech){ x.mech.items.forEach(i=>rows.push([`Binding — ${i.name}`,i.cost])); }
-  else if(x.binding)rows.push([`Binding — ${$("binding").selectedOptions[0].text}`,x.binding]);
+  else if(x.binding)rows.push([`Binding — ${$("binding").selectedOptions[0].text}`,x.binding,bindWhy()]);
   if(x.tablecal){ x.tablecal.items.forEach(i=>rows.push([`Calendar — ${i.name}`,i.cost])); }
   if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets, printed + paper)`,x.fmr.total]);
-  rows.push(["Packing",q.packing],["Freight",q.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+  rows.push(["Packing",q.packing,pf.pack],["Freight",q.freight,pf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
-  rows.forEach(([k,v])=>h+=`<tr><td style="padding:4px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`);
+  h+=priceRowsHTML(rows,inr);
   h+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
-  h+=`<tr><td>Margin (${p.margin}%)</td><td style="text-align:right">${inr(q.margin)}</td></tr>`;
+  h+=`<tr><td>Margin (${p.margin}%)<div style="font-size:11px;color:#6b7480;font-weight:400">↳ ${p.margin}% of the SALE price ${inr(q.pretax)} (not markup on cost)</div></td><td style="text-align:right;vertical-align:top">${inr(q.margin)}</td></tr>`;
   h+=`<tr><td>GST (${p.gst}%)</td><td style="text-align:right">${inr(q.gst)}</td></tr>`;
   h+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
   h+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;

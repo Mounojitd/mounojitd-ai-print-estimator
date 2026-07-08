@@ -70,3 +70,8 @@ for (const k of ["paper","printing","plates","lam","packing","freight","prod","m
   if (q[k] != null) console.log(k, Math.round(q[k]));
 const mpct = (q.margin / q.pretax) * 100;
 console.log("margin as % of SALE (pretax) =", mpct.toFixed(2), "% (should equal input 28%)");
+console.log("\n=== PER-LINE BREAKDOWN (text) ===");
+if (P.text && P.text.explain) for (const k in P.text.explain) console.log(" ", k + ":", P.text.explain[k]);
+console.log("=== PER-LINE BREAKDOWN (cover) ===");
+if (P.cover && P.cover.explain) for (const k in P.cover.explain) console.log(" ", k + ":", P.cover.explain[k]);
+const panel = (typeof gid === "function") ? null : null;
