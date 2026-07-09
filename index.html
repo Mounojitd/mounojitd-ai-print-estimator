@@ -3206,7 +3206,7 @@ function parseCSV(text){
   const rows=[]; let row=[], cur="", q=false;
   for(let i=0;i<text.length;i++){ const ch=text[i];
     if(q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
-    else if(ch==='"') q=true;
+    else if(ch==='"'&&cur==="") q=true;                  // RFC 4180: a quote only opens a field — ignore stray mid-field quotes
     else if(ch===",") { row.push(cur); cur=""; }
     else if(ch==="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; }
     else if(ch!=="\r") cur+=ch; }
@@ -3215,13 +3215,13 @@ function parseCSV(text){
 }
 const LIVE_PRINTING_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1782743102";   // PRINTING_RATES
 const LIVE_POSTPRESS_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1338566191";  // POST_PRESS_RATES
-const LIVE_STATUS={paper:null,printing:null,postpress:null};
+const LIVE_STATUS={paper:null,printing:null,postpress:null,binding:null};
 function renderLiveBadge(){
   const el=$("liveDbStatus"); if(!el) return;
   const S=LIVE_STATUS, parts=[]; let live=false;
   const seg=(lbl,s)=>{ if(s==null) return; if(s.ok){live=true; parts.push(`${s.n} ${lbl}`);} else parts.push(`${lbl} ✕`); };
-  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress);
-  if(S.paper===null&&S.printing===null&&S.postpress===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
+  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress); seg("bindings",S.binding);
+  if(S.paper===null&&S.printing===null&&S.postpress===null&&S.binding===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
   const t=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
   el.innerHTML = live
     ? `<span style="color:#1c7a52;font-weight:600">🟢 Live from your master sheet</span> <span style="color:#6b7480">· ${parts.join(" · ")} · ${t}</span>`
@@ -3301,26 +3301,49 @@ async function loadLivePrinting(){
     LIVE_STATUS.printing={ok:true,n};
   }catch(err){ LIVE_STATUS.printing={ok:false}; }
 }
-// POST-PRESS — override coating rates in COAT_SOURCES.card from the POST_PRESS_RATES tab (cheapest vendor's
-// per-sq-inch rate per operation). Binding rows (pages×qty) are left to the curated table for now.
+// POST-PRESS — from the POST_PRESS_RATES tab: (1) COATING rates → COAT_SOURCES.card (cheapest vendor's
+// per-sq-inch rate per operation); (2) BINDING samples → BINDING_SAMPLES (pages × qty → ₹/book, from
+// Pages "C+NNN" + Quantity + Rate per Pcs). Sheet wins; curated stays for anything the sheet doesn't cover.
 async function loadLivePostPress(){
   try{
     const rows=await fetchCSV(LIVE_POSTPRESS_URL);
     const head=(rows[0]||[]).map(h=>String(h).trim()), ci=n=>head.indexOf(n);
-    const iOp=ci("Operation_Type"),iRate=ci("Rate_A4(per Sq. Inch)"),iMin=ci("Minimum Charges");
+    const iOp=ci("Operation_Type"),iCat=ci("Operation_Category"),iRate=ci("Rate_A4(per Sq. Inch)"),iMin=ci("Minimum Charges"),
+          iPg=ci("Pages"),iQty=ci("Quantity"),iPcs=ci("Rate per Pcs");
     if(iOp<0||iRate<0) throw new Error("columns");
-    const MAP=[[/matt\s*uv/i,"mattuv"],[/matt\s*lam/i,"matt"],[/gloss\s*lam/i,"gloss"],[/bopp/i,"bopp"],
+    // (1) coatings
+    const COATMAP=[[/matt\s*uv/i,"mattuv"],[/matt\s*lam/i,"matt"],[/gloss\s*lam/i,"gloss"],[/bopp/i,"bopp"],
       [/gloss\s*uv|full\s*uv/i,"uv"],[/gloss\s*varnish|varnish/i,"varnish"],[/aqueous|aqua/i,"gaqua"],[/drip/i,"drip"]];
     const best={};
     for(let r=1;r<rows.length;r++){ const row=rows[r]; const op=(row[iOp]||"").trim(); if(!op) continue;
       const rate=parseFloat(row[iRate]); if(!(rate>0)) continue;
-      let key=null; for(const [re,k] of MAP){ if(re.test(op)){ key=k; break; } }
+      let key=null; for(const [re,k] of COATMAP){ if(re.test(op)){ key=k; break; } }
       if(!key) continue; const min=parseFloat(iMin>=0?row[iMin]:0)||0;
       if(!best[key]||rate<best[key].r) best[key]={r:rate,min}; }
-    const keys=Object.keys(best); if(!keys.length) throw new Error("no coatings");
-    const dst=COAT_SOURCES.card.r; keys.forEach(k=>{ dst[k]={r:best[k].r, min:best[k].min||(dst[k]&&dst[k].min)||0}; });
-    LIVE_STATUS.postpress={ok:true,n:keys.length};
-  }catch(err){ LIVE_STATUS.postpress={ok:false}; }
+    const coatKeys=Object.keys(best);
+    const dst=COAT_SOURCES.card.r; coatKeys.forEach(k=>{ dst[k]={r:best[k].r, min:best[k].min||(dst[k]&&dst[k].min)||0}; });
+    LIVE_STATUS.postpress={ok:coatKeys.length>0,n:coatKeys.length};
+    // (2) binding samples — order matters (sewn+perfect before sewn before perfect)
+    const BMAP=[[/hard\s*case|case\s*bind/i,"case"],[/(section\s*sew|sewing).*(perfect)|sew.*perfect/i,"sewn_perfect"],
+      [/section\s*sew|thread\s*sew|sewing/i,"sewn"],[/perfect/i,"perfect"],
+      [/centre\s*st|center\s*st|centre\s*pin|saddle/i,"saddle"],[/side\s*st/i,"side"],
+      [/wire\s*o|wiro/i,"wireo"],[/spiral/i,"spiral"],[/\bcomb\b/i,"comb"]];
+    const bsamp={};
+    if(iPg>=0&&iPcs>=0) for(let r=1;r<rows.length;r++){ const row=rows[r];
+      const lab=((row[iCat]||"")+" "+(row[iOp]||"")).trim(); if(!lab) continue;
+      let key=null; for(const [re,k] of BMAP){ if(re.test(lab)){ key=k; break; } } if(!key) continue;
+      // strict cells only — Pages must be a clean "C+NNN"/"C+NNN+END"/"NNN"; Quantity pure digits (skips
+      // malformed rows where a customer name / stray text landed in these columns).
+      const pgm=String(row[iPg]||"").trim().match(/^(?:c\s*\+\s*)?(\d+)(?:\s*\+\s*end)?$/i); if(!pgm) continue;
+      const qcell=String(iQty>=0?row[iQty]:"").trim(); if(!/^\d+$/.test(qcell)) continue;
+      const pp=+pgm[1], qty=+qcell, rr=parseFloat(row[iPcs]);
+      if(!(pp>0&&qty>0&&rr>0)) continue;
+      (bsamp[key]=bsamp[key]||[]).push({pp,qty,r:rr}); }
+    const bKeys=Object.keys(bsamp);
+    bKeys.forEach(k=>{ BINDING_SAMPLES[k]=bsamp[k]; });
+    if(bsamp.perfect&&!bsamp.soft) BINDING_SAMPLES.soft=bsamp.perfect;   // soft cover mirrors perfect
+    LIVE_STATUS.binding={ok:bKeys.length>0,n:bKeys.length};
+  }catch(err){ LIVE_STATUS.postpress={ok:false}; LIVE_STATUS.binding={ok:false}; }
 }
 async function loadLiveRates(){
   renderLiveBadge();
