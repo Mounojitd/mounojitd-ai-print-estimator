@@ -130,6 +130,7 @@
     <!-- INPUTS -->
     <div class="card" id="inputCard">
       <h2>Job</h2>
+      <div id="liveDbStatus" style="font-size:11.5px;margin:0 0 8px"></div>
       <!-- VOICE FILL (NKK sir): speak the job spec → auto-fill the form. Browser Web Speech API (no server);
            falls back to a typed box where the same parser runs. Always shows what it parsed for verification. -->
       <div id="voiceBox" class="pbox" style="margin:0 0 10px;background:#f4f8ff;border:1px solid #c7d6f0">
@@ -656,6 +657,7 @@ function fillGradeList(selId,type){            // rebuild a grade <select>, keep
 }
 function buildTypeList(selId){
   const sel=$(selId); if(!sel)return;
+  while(sel.options.length>1) sel.remove(1);            // keep the static "All types", drop stale entries (safe re-call on live reload)
   const types=[...new Set(PAPER_DB.map(o=>o.t))].sort();
   for(const t of types){ const op=document.createElement("option"); op.value=t; op.textContent=t; sel.appendChild(op); }
 }
@@ -3196,10 +3198,59 @@ function printJobSheet(){
     <div class="sign"><span>Pre-press checked</span><span>Production approved</span><span>Dispatch checked</span></div>`;
   openPrintDocument(m.no+" job sheet",body);
 }
+/* ---------- LIVE RATE DB (NKK sir): pull the master Google Sheet's PAPER_PRICING tab on load, so any change
+   made in the sheet reflects here on the next refresh. Falls back to the embedded PAPER_DB when offline or the
+   sheet is unreachable. Source = Complete Vendor Database → PAPER_PRICING (shared "anyone with link → view"). */
+const LIVE_PAPER_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1336648905";
+function parseCSV(text){
+  const rows=[]; let row=[], cur="", q=false;
+  for(let i=0;i<text.length;i++){ const ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else if(ch==='"') q=true;
+    else if(ch===",") { row.push(cur); cur=""; }
+    else if(ch==="\n"){ row.push(cur); rows.push(row); row=[]; cur=""; }
+    else if(ch!=="\r") cur+=ch; }
+  if(cur!==""||row.length){ row.push(cur); rows.push(row); }
+  return rows;
+}
+function liveDbBadge(html){ const el=$("liveDbStatus"); if(el) el.innerHTML=html; }
+async function loadLivePaperDB(){
+  liveDbBadge('<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>');
+  try{
+    const res=await fetch(LIVE_PAPER_URL,{redirect:"follow",cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const rows=parseCSV(await res.text());
+    const head=(rows[0]||[]).map(h=>String(h).trim()), ci=n=>head.indexOf(n);
+    const iT=ci("Paper_Type"),iG=ci("Paper_Grade"),iB=ci("Brand"),iGS=ci("GSM"),
+          iSZ=ci("Sheet_Size_Name (in)"),iPS=ci("Price_Per_Sheet"),iKG=ci("Price_Per_Kg");
+    if(iG<0||iGS<0||iSZ<0) throw new Error("expected columns not found");
+    const out=[];
+    for(let r=1;r<rows.length;r++){ const row=rows[r]; const g=(row[iG]||"").trim(); if(!g) continue;
+      const sz=String(row[iSZ]||"").replace(/[xX*]/g,"*").split("*");
+      const w=parseFloat(sz[0]), h=parseFloat(sz[1]), gsm=parseFloat(row[iGS]);
+      if(!(w>0&&h>0&&gsm>0)) continue;
+      const kg=parseFloat(row[iKG]), ps=parseFloat(row[iPS]);
+      // FIX-ON-IMPORT safety: rebuild ₹/sheet from ₹/kg when kg is sane; else trust the sheet's ₹/sheet.
+      const rate=(kg>=40&&kg<=400)?+((w*h*gsm/3100/500)*kg).toFixed(2):+((ps||0).toFixed(2));
+      if(!(rate>0)) continue;
+      out.push({t:(row[iT]||"").trim(),g,b:(row[iB]||"").trim(),gsm,w,h,r:rate}); }
+    if(out.length<20) throw new Error("too few valid rows ("+out.length+")");
+    const keep={}; ["paperTypeSel","paperGrade","coverTypeSel","coverGrade","hcEndTypeSel","hcEndGrade"].forEach(id=>{const e=$(id); if(e) keep[id]=e.value;});
+    PAPER_DB.length=0; out.forEach(o=>PAPER_DB.push(o));
+    buildPaperPickers(); buildCoverPickers(); buildHcEndPickers();
+    for(const id in keep){ const e=$(id); if(e&&[...e.options].some(o=>o.value===keep[id])) e.value=keep[id]; }
+    if(RESULT) run(); else if(CHOSEN) showPrice();
+    const t=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+    liveDbBadge(`<span style="color:#1c7a52;font-weight:600">🟢 Live rates from your master sheet</span> <span style="color:#6b7480">· ${out.length} papers · loaded ${t}</span>`);
+  }catch(err){
+    liveDbBadge(`<span style="color:#8a6d3b">⚪ Using built-in rates</span> <span style="color:#6b7480">· live sheet unreachable (${String(err.message||err).slice(0,60)})</span>`);
+  }
+}
 buildPaperPickers();
 buildCoverPickers();
 buildHcEndPickers();
 onProductChange();
+loadLivePaperDB();          // pull latest paper rates from the master Google Sheet (async; embedded = fallback)
 renderSet();               // restore any saved set items (localStorage)
 renderQuoteLog();          // show saved quotes (localStorage)
 renderTemplates();         // show saved templates / masters (localStorage)
