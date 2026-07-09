@@ -3213,44 +3213,128 @@ function parseCSV(text){
   if(cur!==""||row.length){ row.push(cur); rows.push(row); }
   return rows;
 }
-function liveDbBadge(html){ const el=$("liveDbStatus"); if(el) el.innerHTML=html; }
+const LIVE_PRINTING_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1782743102";   // PRINTING_RATES
+const LIVE_POSTPRESS_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1338566191";  // POST_PRESS_RATES
+const LIVE_STATUS={paper:null,printing:null,postpress:null};
+function renderLiveBadge(){
+  const el=$("liveDbStatus"); if(!el) return;
+  const S=LIVE_STATUS, parts=[]; let live=false;
+  const seg=(lbl,s)=>{ if(s==null) return; if(s.ok){live=true; parts.push(`${s.n} ${lbl}`);} else parts.push(`${lbl} ✕`); };
+  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress);
+  if(S.paper===null&&S.printing===null&&S.postpress===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
+  const t=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
+  el.innerHTML = live
+    ? `<span style="color:#1c7a52;font-weight:600">🟢 Live from your master sheet</span> <span style="color:#6b7480">· ${parts.join(" · ")} · ${t}</span>`
+    : `<span style="color:#8a6d3b">⚪ Using built-in rates</span> <span style="color:#6b7480">· sheet unreachable</span>`;
+}
+async function fetchCSV(url){ const res=await fetch(url,{redirect:"follow",cache:"no-store"}); if(!res.ok) throw new Error("HTTP "+res.status); return parseCSV(await res.text()); }
+function normKey(s){ return String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,""); }
+// PAPER — replace PAPER_DB from the PAPER_PRICING tab
 async function loadLivePaperDB(){
-  liveDbBadge('<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>');
   try{
-    const res=await fetch(LIVE_PAPER_URL,{redirect:"follow",cache:"no-store"});
-    if(!res.ok) throw new Error("HTTP "+res.status);
-    const rows=parseCSV(await res.text());
+    const rows=await fetchCSV(LIVE_PAPER_URL);
     const head=(rows[0]||[]).map(h=>String(h).trim()), ci=n=>head.indexOf(n);
     const iT=ci("Paper_Type"),iG=ci("Paper_Grade"),iB=ci("Brand"),iGS=ci("GSM"),
           iSZ=ci("Sheet_Size_Name (in)"),iPS=ci("Price_Per_Sheet"),iKG=ci("Price_Per_Kg");
-    if(iG<0||iGS<0||iSZ<0) throw new Error("expected columns not found");
+    if(iG<0||iGS<0||iSZ<0) throw new Error("columns");
     const out=[];
     for(let r=1;r<rows.length;r++){ const row=rows[r]; const g=(row[iG]||"").trim(); if(!g) continue;
       const sz=String(row[iSZ]||"").replace(/[xX*]/g,"*").split("*");
       const w=parseFloat(sz[0]), h=parseFloat(sz[1]), gsm=parseFloat(row[iGS]);
       if(!(w>0&&h>0&&gsm>0)) continue;
       const kg=parseFloat(row[iKG]), ps=parseFloat(row[iPS]);
-      // FIX-ON-IMPORT safety: rebuild ₹/sheet from ₹/kg when kg is sane; else trust the sheet's ₹/sheet.
-      const rate=(kg>=40&&kg<=400)?+((w*h*gsm/3100/500)*kg).toFixed(2):+((ps||0).toFixed(2));
+      const rate=(kg>=40&&kg<=400)?+((w*h*gsm/3100/500)*kg).toFixed(2):+((ps||0).toFixed(2));   // fix-on-import safety
       if(!(rate>0)) continue;
       out.push({t:(row[iT]||"").trim(),g,b:(row[iB]||"").trim(),gsm,w,h,r:rate}); }
-    if(out.length<20) throw new Error("too few valid rows ("+out.length+")");
+    if(out.length<20) throw new Error("too few rows");
     const keep={}; ["paperTypeSel","paperGrade","coverTypeSel","coverGrade","hcEndTypeSel","hcEndGrade"].forEach(id=>{const e=$(id); if(e) keep[id]=e.value;});
     PAPER_DB.length=0; out.forEach(o=>PAPER_DB.push(o));
     buildPaperPickers(); buildCoverPickers(); buildHcEndPickers();
     for(const id in keep){ const e=$(id); if(e&&[...e.options].some(o=>o.value===keep[id])) e.value=keep[id]; }
-    if(RESULT) run(); else if(CHOSEN) showPrice();
-    const t=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
-    liveDbBadge(`<span style="color:#1c7a52;font-weight:600">🟢 Live rates from your master sheet</span> <span style="color:#6b7480">· ${out.length} papers · loaded ${t}</span>`);
-  }catch(err){
-    liveDbBadge(`<span style="color:#8a6d3b">⚪ Using built-in rates</span> <span style="color:#6b7480">· live sheet unreachable (${String(err.message||err).slice(0,60)})</span>`);
-  }
+    LIVE_STATUS.paper={ok:true,n:out.length};
+  }catch(err){ LIVE_STATUS.paper={ok:false}; }
+}
+// PRINTING — merge PRINTING_RATES tab into MACHINES (sheet size) + PRESS_RATES (rate cards). The sheet WINS
+// where it has valid data (NKK sir: sheet is the source of truth); curated min/gripper/print + any missing
+// rate stay as fallback so nothing goes blank. Machines are matched by name-core + vendor first token.
+async function loadLivePrinting(){
+  try{
+    const rows=await fetchCSV(LIVE_PRINTING_URL);
+    const head=(rows[0]||[]).map(h=>String(h).trim()), ci=n=>head.indexOf(n);
+    const iM=ci("Machine_Name"),iV=ci("Vendor_Name"),iSZ=ci("inXin"),iCol=ci("Color_Capability"),iSp=ci("Machine_Speed_IPH"),
+          iUp=ci("upto Qty"),iBig=ci("Rate_4_Color(One Side) big machine"),iSm=ci("Rate_4_Color(One Side) small machine"),
+          iPB=ci("Plate_Charge_Per_Color(Big Machine"),iPS=ci("Plate_Charge_Per_Color(Small Machine)");
+    if(iM<0) throw new Error("columns");
+    const groups={};
+    for(let r=1;r<rows.length;r++){ const row=rows[r]; const mn=(row[iM]||"").trim(); if(!mn) continue;
+      const key=normKey(mn)+normKey(String(row[iV]||"").split(/\s+/)[0]);
+      (groups[key]=groups[key]||{name:mn,vendor:row[iV],rows:[]}).rows.push(row); }
+    const rateOf=s=>{ s=String(s||"").trim(); if(!s||parseFloat(s)===0) return null; return s; };  // "720/1000" / "2200" / null
+    let n=0;
+    for(const key in groups){ const g=groups[key];
+      const m=MACHINES.find(mm=>normKey(mm.name.split("·")[0])+normKey(String(mm.vendor||"").split(/\s+/)[0])===key);
+      if(!m) continue;                                   // machine not in curated list → skip (needs print/min/grip)
+      // rate card
+      let lotQty=null,lot4=null,tiers=[],plate=null;
+      for(const row of g.rows){ const rs=rateOf(row[iBig])||rateOf(row[iSm]); const up=String(row[iUp]||"").trim();
+        const pl=parseFloat(row[iPB])||parseFloat(row[iPS])||0; if(pl>0&&plate==null) plate=pl;
+        if(!rs) continue;
+        const per=rs.match(/([\d.]+)\s*\/\s*1000/);
+        if(per){ let upTo=Infinity; const rg=up.match(/(\d+)\s*-\s*(\d+)/); if(rg) upTo=+rg[2]; tiers.push({upTo,r:+per[1]}); }
+        else { const flat=parseFloat(rs); if(flat>0){ lot4=flat; const q=parseInt(up.replace(/\D.*$/,""),10); if(q>0) lotQty=q; } } }
+      // dedupe tiers by upTo, sort ascending
+      const seen={}; tiers=tiers.filter(t=>{ const k=t.upTo; if(seen[k])return false; seen[k]=1; return true; }).sort((a,b)=>a.upTo-b.upTo);
+      const base=Object.assign({lotQty:3000,lot4:0,tiers:[],plate:0}, PRESS_RATES[m.id]||{});
+      if(lot4>0){ base.lot4=lot4; if(lotQty) base.lotQty=lotQty; }
+      if(tiers.length) base.tiers=tiers;
+      if(plate>0) base.plate=plate;
+      PRESS_RATES[m.id]=base;
+      // machine size (sheet wins)
+      const sz=String(g.rows.find(rw=>rw[iSZ])&&g.rows.find(rw=>rw[iSZ])[iSZ]||"").replace(/[xX*]/g,"*").split("*");
+      const a=parseFloat(sz[0]),b=parseFloat(sz[1]);
+      if(a>0&&b>0){ m.max=[a,b]; m.print=[+(a-0.4).toFixed(1),+(b-0.4).toFixed(1)]; }
+      const col=parseInt(String(g.rows.find(rw=>rw[iCol])&&g.rows.find(rw=>rw[iCol])[iCol]||"").replace(/\D/g,""),10); if(col>0) m.col=col;
+      const sp=parseFloat(g.rows.find(rw=>rw[iSp])&&g.rows.find(rw=>rw[iSp])[iSp]||0); if(sp>0) m.speed=sp;
+      n++;
+    }
+    if(!n) throw new Error("no machines matched");
+    LIVE_STATUS.printing={ok:true,n};
+  }catch(err){ LIVE_STATUS.printing={ok:false}; }
+}
+// POST-PRESS — override coating rates in COAT_SOURCES.card from the POST_PRESS_RATES tab (cheapest vendor's
+// per-sq-inch rate per operation). Binding rows (pages×qty) are left to the curated table for now.
+async function loadLivePostPress(){
+  try{
+    const rows=await fetchCSV(LIVE_POSTPRESS_URL);
+    const head=(rows[0]||[]).map(h=>String(h).trim()), ci=n=>head.indexOf(n);
+    const iOp=ci("Operation_Type"),iRate=ci("Rate_A4(per Sq. Inch)"),iMin=ci("Minimum Charges");
+    if(iOp<0||iRate<0) throw new Error("columns");
+    const MAP=[[/matt\s*uv/i,"mattuv"],[/matt\s*lam/i,"matt"],[/gloss\s*lam/i,"gloss"],[/bopp/i,"bopp"],
+      [/gloss\s*uv|full\s*uv/i,"uv"],[/gloss\s*varnish|varnish/i,"varnish"],[/aqueous|aqua/i,"gaqua"],[/drip/i,"drip"]];
+    const best={};
+    for(let r=1;r<rows.length;r++){ const row=rows[r]; const op=(row[iOp]||"").trim(); if(!op) continue;
+      const rate=parseFloat(row[iRate]); if(!(rate>0)) continue;
+      let key=null; for(const [re,k] of MAP){ if(re.test(op)){ key=k; break; } }
+      if(!key) continue; const min=parseFloat(iMin>=0?row[iMin]:0)||0;
+      if(!best[key]||rate<best[key].r) best[key]={r:rate,min}; }
+    const keys=Object.keys(best); if(!keys.length) throw new Error("no coatings");
+    const dst=COAT_SOURCES.card.r; keys.forEach(k=>{ dst[k]={r:best[k].r, min:best[k].min||(dst[k]&&dst[k].min)||0}; });
+    LIVE_STATUS.postpress={ok:true,n:keys.length};
+  }catch(err){ LIVE_STATUS.postpress={ok:false}; }
+}
+async function loadLiveRates(){
+  renderLiveBadge();
+  await Promise.all([loadLivePaperDB(), loadLivePrinting(), loadLivePostPress()]);
+  if(RESULT) run(); else if(CHOSEN) showPrice();
+  renderLiveBadge();
 }
 buildPaperPickers();
 buildCoverPickers();
 buildHcEndPickers();
 onProductChange();
-loadLivePaperDB();          // pull latest paper rates from the master Google Sheet (async; embedded = fallback)
+// pull paper + printing + coating rates live from the master Google Sheet (embedded = fallback). Only over
+// http(s) in a browser — a file:// open or a node harness keeps the built-in rates (no network fetch).
+if(typeof location!=="undefined" && /^https?:$/.test(location.protocol||"")) loadLiveRates(); else renderLiveBadge&&(LIVE_STATUS.paper={ok:false},renderLiveBadge());
 renderSet();               // restore any saved set items (localStorage)
 renderQuoteLog();          // show saved quotes (localStorage)
 renderTemplates();         // show saved templates / masters (localStorage)
