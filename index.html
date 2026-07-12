@@ -466,6 +466,7 @@
           <span><label>Binding ₹/book (auto by pages·qty)</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="bindingRateEdited=true;showPrice()" /></span>
           <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
           <span><label>Finishing make-ready (sheets/op)</label><input id="finishMR" type="number" value="25" min="10" max="50" oninput="showPrice()" /><div class="hint">Per op (coating/fold/bind/embellish); sir: 10 min, 40–50 max</div></span>
+          <span><label>Finishing ₹/book (manual)</label><input id="finishRate" type="number" step="0.01" value="0" oninput="showPrice()" /><div class="hint">NKK sir: finishing (trim/fold) as its OWN line, separate from binding</div></span>
         </div>
         <div class="prow" style="margin-top:-4px">
           <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="forceBinding" type="checkbox" oninput="if(RESULT)run()" style="width:auto"> Force binding (override spine limit)</label></span>
@@ -2333,7 +2334,7 @@ function currentPriceParams(){
           isSpecial:paperIsSpecial("paperTypeSel","paperGrade"),
           work:($("workStyle")?$("workStyle").value:"back"),
           margin:num("margin",40),overheadPct:num("overhead",0),gst:num("gst",0),books:LASTINP?LASTINP.copies:1,
-          binding:LASTINP&&LASTINP.isSig?$("binding").value:"none",bindingRate:num("bindingRate",0),bindingMin:num("bindingMin",0)};
+          binding:LASTINP&&LASTINP.isSig?$("binding").value:"none",bindingRate:num("bindingRate",0),bindingMin:num("bindingMin",0),finishRate:num("finishRate",0)};
 }
 function coverPlan(){
   if(!LASTINP||!LASTINP.separateCover)return null;
@@ -2453,6 +2454,7 @@ function combinedPrice(){
   // MECHANICAL / A3 (wire-o · spiral · comb): punching + element + hanger + back-board REPLACE the flat
   // binding line, but the normal cover flow stays (notebooks/calendars usually have a separate cover).
   const mb=mechBindPlan(), bindCost=mb?mb.total:binding, mbWt=mb?(mb.bbWt||0):0;
+  const finishing=Math.round((p.finishRate||0)*(p.books||1));   // NKK sir: finishing (trim/fold) as its own line, separate from binding
   // TABLE CALENDAR (NKK sir): wiro + tent stand added on top of the flat leaves job.
   const tcal=tableCalPlan(), tcalCost=tcal?tcal.total:0, tcalWt=tcal?(tcal.wt||0):0;
   // HARD CASE (NKK sir V2): case (PLC + boards + endpapers + casing-in) REPLACES the soft cover and the
@@ -2510,12 +2512,12 @@ function combinedPrice(){
   }
   if(!cp||!cp.option){
     const fmr=finishingMakeReady(textP,null,p,tq);
-    if(!bindCost&&!tcalCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
+    if(!bindCost&&!finishing&&!tcalCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt+mbWt+tcalWt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+fmr.total+tq.printing+tq.plates+tq.lam+bindCost+tcalCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+    const base=tq.paper+fmr.total+tq.printing+tq.plates+tq.lam+bindCost+finishing+tcalCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
-    return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding:bindCost,mech:mb,tablecal:tcal,fmr};
+    return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding:bindCost,finishing,mech:mb,tablecal:tcal,fmr};
   }
   const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
     isSpecial:paperIsSpecial("coverTypeSel","coverGrade"),paperRate:(cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh)),margin:p.margin,gst:p.gst,books:p.books};
@@ -2527,10 +2529,10 @@ function combinedPrice(){
   const paper=tq.paper+cq.paper+fmr.cost,printing=tq.printing+cq.printing+fmr.print,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
   const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(cp.option.paperWeight||cp.option.total_wt)+fmr.wt+mbWt;
   const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-  const base=paper+printing+plates+lam+embTotal+bindCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+  const base=paper+printing+plates+lam+embTotal+bindCost+finishing+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
   const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
   const q={band:tq.band+" text / "+cq.band+" cover",paper,printing,plates,plateCount,impressions,lam,embTotal,embItems,fmr:fmr.cost,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books};
-  return {p,q,text:tq,cover:cq,coverPlan:cp,binding:bindCost,mech:mb,embItems,embTotal,fmr};
+  return {p,q,text:tq,cover:cq,coverPlan:cp,binding:bindCost,finishing,mech:mb,embItems,embTotal,fmr};
 }
 /* ---------- VOICE FILL (NKK sir): speak/type a job spec → parse → fill the form ---------- */
 // CORRECTION MAP — browser speech engines mishear printing jargon; normalise common errors before parsing.
@@ -2868,6 +2870,7 @@ function showPrice(){
   }
   if(x.mech){ x.mech.items.forEach(i=>rows.push([`Binding — ${i.name}`,i.cost])); }
   else if(x.binding)rows.push([`Binding — ${$("binding").selectedOptions[0].text}`,x.binding,bindWhy()]);
+  if(x.finishing)rows.push([`Finishing (trim/fold)`,x.finishing,`${(LASTINP?LASTINP.copies:0).toLocaleString("en-IN")} books × ₹${num("finishRate",0)}/book`]);
   if(x.tablecal){ x.tablecal.items.forEach(i=>rows.push([`Calendar — ${i.name}`,i.cost])); }
   if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets, printed + paper)`,x.fmr.total]);
   rows.push(["Packing",q.packing,pf.pack],["Freight",q.freight,pf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
