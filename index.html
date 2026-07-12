@@ -2579,8 +2579,10 @@ function parseSpec(raw){
   for(const k in SIZES){ if(new RegExp("\\b"+k+"\\b").test(t)){ f.unit="in"; f.W=SIZES[k][0]; f.H=SIZES[k][1]; notes.push("size "+k.toUpperCase()); break; } }
   const mSize=t.match(/(\d+(?:\.\d+)?)\s*(?:x|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|mm|cm)\b/);
   if(mSize && f.W==null){ f.W=+mSize[1]; f.H=+mSize[2]; f.unit=/mm/.test(mSize[3])?"mm":/cm/.test(mSize[3])?"cm":"in"; notes.push("size "+f.W+"×"+f.H+" "+f.unit); }
-  // QUANTITY — a number tagged qty/copies/pcs, or "N thousand/k"
-  const qm=t.match(/(\d[\d ]{0,9})\s*(?:quantity|qty|copies|pieces|pcs|nos|run\b)/);
+  // QUANTITY — number AFTER the keyword ("quantity 1000"), else BEFORE it ("1000 copies"). The lookbehind
+  // (?<![a-z]) stops "A4" leaking its "4" as the quantity (NKK sir: "A4 quantity 1000" was read as qty 4).
+  let qm=t.match(/(?:quantity|qty|copies|pieces|pcs|nos|\brun\b)\s*[:\-]?\s*(\d[\d ]*\d|\d)/);
+  if(!qm) qm=t.match(/(?<![a-z])(\d[\d ]*\d|\d)\s*(?:quantity|qty|copies|pieces|pcs|nos)/);
   if(qm) f.copies=digits(qm[1]);
   const km=t.match(/(\d+(?:\.\d+)?)\s*(?:thousand|k)\b/);
   if(km && f.copies==null) f.copies=Math.round(parseFloat(km[1])*1000);
@@ -2618,10 +2620,16 @@ function parseSpec(raw){
     [/hard\s*case|case\s*bound|case\s*bind|hardbound|hardback/,"case","Hard case book"],
     [/back\s*to\s*back|board\s*book|b2b/,"b2b","Back-to-back paste"]];
   for(const [re,v,lbl] of B){ if(re.test(t)){ f.binding=v; notes.push("binding: "+lbl); break; } }
-  // LAMINATION (cover)
+  // LAMINATION (cover) — strip "spot UV" first (it's an embellishment below, not full UV coating)
+  const tl=t.replace(/spot\s*uv/g," ");
   const L=[[/matt\s*(?:uv)/,"mattuv","Matt UV"],[/matt|matte/,"matt","Matt lam"],[/gloss\s*uv/,"uv","Gloss UV"],
     [/gloss/,"gloss","Gloss lam"],[/bopp/,"bopp","BOPP"],[/drip/,"drip","Drip-off UV"],[/varnish/,"varnish","Varnish"],[/\buv\b/,"uv","Gloss UV"]];
-  if(/lamination|lam\b|coating|\buv\b|varnish|bopp/.test(t)) for(const [re,v,lbl] of L){ if(re.test(t)){ f.coverLam=v; notes.push("cover coating: "+lbl); break; } }
+  if(/lamination|lam\b|coating|\buv\b|varnish|bopp/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){ f.coverLam=v; notes.push("cover coating: "+lbl); break; } }
+  // COVER EMBELLISHMENTS (NKK sir: Spot UV etc. were being dropped) — up to 3 combinable
+  const EMB=[[/spot\s*uv/,"spotuv","Spot UV"],[/raised\s*uv|textured\s*uv/,"raiseduv","Raised UV"],[/\bfoil\b/,"foil","Foil"],
+    [/\bemboss/,"emboss","Emboss"],[/\bdeboss/,"deboss","Deboss"],[/\btexture\b/,"texture","Texture effect"]];
+  const embs=[]; for(const [re,v,lbl] of EMB){ if(re.test(t)&&!embs.includes(v)){ embs.push(v); notes.push("embellishment: "+lbl); } }
+  if(embs.length) f.coverEmb=embs.slice(0,3);
   // PRODUCT TYPE
   const P=[[/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/manual/,"manual"],[/annual/,"annual"],
     [/leaflet|flyer/,"leaflet"],[/poster/,"poster"],[/visiting|greeting|\bcard\b/,"card"],
@@ -2660,6 +2668,7 @@ function applyVoiceSpec(raw){
   if(f.paperType){ const ps=$("paperTypeSel"); if(ps){ ps.value=f.paperType; if(typeof onPaperTypeChange==="function") onPaperTypeChange(); }
     const cs=$("coverTypeSel"); if(cs){ cs.value=f.paperType; if(typeof onCoverTypeChange==="function") onCoverTypeChange(); } }
   if(f.coverLam) setV("coverLam",f.coverLam);
+  if(f.coverEmb){ ["coverEmb1","coverEmb2","coverEmb3"].forEach((id,i)=>{ if($(id)) $(id).value=f.coverEmb[i]||"none"; }); }
   if(f.binding){ setV("binding",f.binding); bindingEdited=true; if(typeof setBinding==="function") setBinding(f.binding); }
   if(typeof run==="function") run();
   const box=$("voiceParsed");
