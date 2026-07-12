@@ -1833,6 +1833,15 @@ function enrichMachines(){ MACHINES.forEach(m=>{ const hay=(m.name||"")+" "+(m.v
   const meta=MACHINE_META.find(x=>x.re.test(m.name)&&(!x.ven||x.ven.test(hay)));
   if(meta){ m.model=meta.model; m.coater=meta.coater; } }); }
 enrichMachines();
+// TEMPORARY app-side overrides — values NKK sir confirmed that the master sheet hasn't caught up on yet.
+// Re-applied AFTER every live sheet load so they win. DELETE each once the sheet is corrected:
+//   B8 — Komori L-32 is 20×30 (sheet still says 19×25)
+//   B3 — 90 GSM art paper is ₹85/kg (sheet has ₹80–82; app was picking the cheapest)
+function applySheetOverrides(){
+  MACHINES.forEach(m=>{ if(/l-?\s*32/i.test(m.name)&&/balaji/i.test((m.vendor||"")+" "+m.name)){ m.max=[20,30]; m.print=[19.6,29.6]; } });
+  PAPER_DB.forEach(o=>{ if(o.gsm===90 && /ART PAPER/i.test(o.g)) o.r=+((o.w*o.h*90/3100/500)*85).toFixed(2); });
+}
+applySheetOverrides();
 function machineBand(m){ const lo=Math.max(...m.max), sh=Math.min(...m.max); return (lo>=34&&sh>=22)?"big":"small"; }
 function maxPrint(m){ if(m.print) return [Math.max(...m.print),Math.min(...m.print)]; const lo=Math.max(...m.max), sh=Math.min(...m.max); return [lo, +(sh-(m.grip||0)/25.4).toFixed(1)]; }
 function machineFit(m,sw,sh){
@@ -3422,6 +3431,7 @@ async function loadLivePostPress(){
 async function loadLiveRates(){
   renderLiveBadge();
   await Promise.all([loadLivePaperDB(), loadLivePrinting(), loadLivePostPress()]);
+  applySheetOverrides();       // re-apply sir-confirmed overrides so they win over the live sheet
   if(RESULT) run(); else if(CHOSEN) showPrice();
   renderLiveBadge();
 }
