@@ -3443,6 +3443,7 @@ buildTaxonomyPicker();
 // Machine panel; this just sets the starting selection. A saved job restores its own press pick.
 MACHINE_MODE="manual";
 MANUAL_PICK=MACHINES.find(m=>/l-?\s*32/i.test(m.name)&&/balaji/i.test((m.vendor||"")+" "+m.name))||null;
+COVER_MACHINE_MODE="manual"; COVER_MANUAL_PICK=MANUAL_PICK;   // cover press also defaults to L-32 (auto/manual still selectable; L-32 auto-falls-back if it can't run the cover)
 onProductChange();
 // pull paper + printing + coating rates live from the master Google Sheet (embedded = fallback). Only over
 // http(s) in a browser — a file:// open or a node harness keeps the built-in rates (no network fetch).
