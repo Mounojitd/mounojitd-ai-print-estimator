@@ -609,6 +609,8 @@ function toIn(v,unit){ return unit==="mm"?v/MM : unit==="cm"?v/2.54 : v; }
 
 function onProductChange(){
   const b=isSig($("product").value);
+  // Signature products default to ART / Coated inside paper when still on "All types" (NKK sir). Overridable.
+  if(b && $("paperTypeSel") && $("paperTypeSel").value===""){ $("paperTypeSel").value="Coated Paper (C2S)"; if(typeof fillGradeList==="function"){ fillGradeList("paperGrade","Coated Paper (C2S)"); $("paperGrade").value="__auto"; } }
   $("bookletFields").style.display=b?"block":"none";
   $("flatFields").style.display=b?"none":"block";
   $("closedHint").style.display=b?"block":"none";
@@ -2649,6 +2651,9 @@ function parseSpec(raw){
     [/slipcase/,"slipcase"],[/booklet|brochure|book\b/,"booklet"]];
   for(const [re,v] of P){ if(re.test(t)){ f.product=v; break; } }
   if(f.product==null && (f.pages||f.binding)) f.product="booklet";
+  // Signature products default to ART / Coated paper when no type is spoken (NKK sir: brochures are art paper,
+  // not the cheapest maplitho). Overridable. Reconciled sir's 90gsm text paper ₹47,432→₹53,724.
+  if(!f.paperType && ["booklet","catalogue","magazine","manual","annual","brochure_multi"].includes(f.product)) f.paperType="Coated Paper (C2S)";
   // COVER — self / none / separate
   if(/self\s*cover/.test(t)){ f.coverType="self"; notes.push("self cover"); }
   else if(/no\s*cover|without\s*cover/.test(t)){ f.coverType="none"; notes.push("no cover"); }
