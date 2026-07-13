@@ -3439,6 +3439,10 @@ buildPaperPickers();
 buildCoverPickers();
 buildHcEndPickers();
 buildTaxonomyPicker();
+// DEFAULT PRESS = Komori L-32 (NKK sir). Auto (cheapest) and Manual (any press) stay selectable in the
+// Machine panel; this just sets the starting selection. A saved job restores its own press pick.
+MACHINE_MODE="manual";
+MANUAL_PICK=MACHINES.find(m=>/l-?\s*32/i.test(m.name)&&/balaji/i.test((m.vendor||"")+" "+m.name))||null;
 onProductChange();
 // pull paper + printing + coating rates live from the master Google Sheet (embedded = fallback). Only over
 // http(s) in a browser — a file:// open or a node harness keeps the built-in rates (no network fetch).
