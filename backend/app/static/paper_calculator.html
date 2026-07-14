@@ -474,6 +474,18 @@
         <div id="bindingWarn"></div>
       </div>
 
+      <div class="pbox" id="multiQtyBox" style="margin:0 0 10px">
+        <div class="ptitle">📊 Compare quantities (NKK sir)</div>
+        <div class="hint" style="margin:-2px 0 6px">The main quantity above is #1. Add up to 4 more to see the total &amp; per-piece for each.</div>
+        <div class="row3">
+          <div class="fld"><label>Qty 2</label><input id="mq2" type="number" placeholder="e.g. 500" oninput="if(RESULT)showPrice()" /></div>
+          <div class="fld"><label>Qty 3</label><input id="mq3" type="number" placeholder="e.g. 1500" oninput="if(RESULT)showPrice()" /></div>
+          <div class="fld"><label>Qty 4</label><input id="mq4" type="number" placeholder="e.g. 2000" oninput="if(RESULT)showPrice()" /></div>
+        </div>
+        <div class="row3"><div class="fld"><label>Qty 5</label><input id="mq5" type="number" placeholder="e.g. 2500" oninput="if(RESULT)showPrice()" /></div><div class="fld"></div><div class="fld"></div></div>
+        <div id="multiQtyResult" style="margin-top:8px"></div>
+      </div>
+
       <button class="go" onclick="run()">🔍 Find Minimum Paper Usage</button>
       <div id="err" class="err"></div>
     </div>
@@ -2900,6 +2912,33 @@ function showPrice(){
   if(x.coverPlan&&x.coverPlan.option){ h+=coverMachineHTML(x.coverPlan); h+=coverExplainHTML(x.coverPlan,x.cover); }
   if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter paper ₹/sheet rates for the full price.</div>';
   $("m_price").innerHTML=h;
+  renderMultiQty();
+}
+// MULTIPLE QUANTITIES (NKK sir): re-price the whole job at each extra quantity (Qty 2–5) and show total +
+// per-piece for each. Re-runs the engine per quantity under a guard so it can't recurse, then restores state.
+let _mqBusy=false;
+function renderMultiQty(){
+  if(_mqBusy) return;
+  const box=$("multiQtyResult"); if(!box) return;
+  if(!RESULT||!CHOSEN){ box.innerHTML=""; return; }
+  const sig=isSig($("product").value), prim=sig?num("copies",0):num("copies2",0);
+  const extra=["mq2","mq3","mq4","mq5"].map(id=>num(id,0)).filter(q=>q>0);
+  if(!extra.length){ box.innerHTML=""; return; }
+  const qtys=[prim,...extra].filter((q,i,a)=>q>0&&a.indexOf(q)===i);
+  const oc=$("copies")?$("copies").value:null, oc2=$("copies2")?$("copies2").value:null;
+  _mqBusy=true;
+  const rows=[];
+  try{
+    for(const q of qtys){ if($("copies"))$("copies").value=q; if($("copies2"))$("copies2").value=q; run();
+      const x=combinedPrice(); const g=(x&&x.q&&x.q.grand)||0; rows.push({q,grand:g,unit:g/(q||1)}); }
+  }catch(e){}
+  if($("copies"))$("copies").value=oc; if($("copies2"))$("copies2").value=oc2; run();   // restore true state
+  _mqBusy=false;
+  const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  let h='<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr><th style="text-align:left">Quantity</th><th style="text-align:right">Total</th><th style="text-align:right">Per piece</th></tr></thead><tbody>';
+  rows.sort((a,b)=>a.q-b.q).forEach(r=>{ h+=`<tr${r.q===prim?' style="font-weight:700;background:#eef6ff"':''}><td style="padding:3px 0">${r.q.toLocaleString("en-IN")}${r.q===prim?" (main)":""}</td><td style="text-align:right">${inr(r.grand)}</td><td style="text-align:right">₹${r.unit.toFixed(2)}</td></tr>`; });
+  h+='</tbody></table>';
+  box.innerHTML=h;
 }
 /* ---------- PHASE 4: quotation + internal job sheet ---------- */
 function esc(v){ return String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
