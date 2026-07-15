@@ -8,9 +8,9 @@
 
 ## ⭐⭐ RESUME 2026-07-13 (LATEST — read this first) ⭐⭐
 Live: https://mounojitd.github.io/mounojitd-ai-print-estimator/ · publish = copy html→index.html+backend/app/static+
-Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). **B3 flat post-press
-+ B4 save-product-to-library both DONE.** Next B-item: **B5** (surface product SETS + link to multi-qty), then
-B6 (price-change-on-reopen pop-up). Check `git status` for unpushed commits.
+Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). **B3 flat post-press,
+B4 save-product-to-library, B5 set↔multi-qty comparison all DONE.** Next B-item: **B6** (price-change-on-reopen
+pop-up: "was ₹X now ₹Y, use today's?" default today). Check `git status` for unpushed commits.
 
 **LIVE RATE DB (biggest change — the app now reads the master Google Sheet live).** Source of truth =
 **Complete Vendor Database With Samples** (sheet id `1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y`, shared
@@ -47,7 +47,15 @@ optgroup that survives reload; `taxEntry()` lets `onTaxProduct()` re-apply eithe
 made idempotent — **fixed a latent bug where `select.remove()` left empty `<optgroup>` shells, so every rebuild
 duplicated groups**. Verified in-browser: save/update/persist/reselect/remove + no optgroup accumulation, smoke 25/25.
 NOTE: this is browser-local (per-machine); a shared/cloud product DB would be a later step if sir wants it.) ·
-**B5** sets exist, surface/link to multi-qty (pending) · **B6** price-change-on-reopen pop-up "was ₹X now ₹Y, use today's?" default today
+**B5 set ↔ multi-qty link** ✅ DONE (set/bundle builder now has a **set-quantity comparison** mirroring the
+single-job multi-qty table: `setQty2/3/4` inputs + `#setMultiQty` table; `renderSetMultiQty()` re-prices EVERY
+item at `nSets × pcs/set` via `priceSetItemsAt()` — restores each item's stored `_inputs` snapshot, runs the
+engine, sums grands, adds assembly/packing at n → real print economies of scale, per-set drops with volume.
+`addQuoteToSet()` now stores `_inputs:snapshotInputs()`; items saved before B5 fall back to linear scaling +
+a ⚠ warning. Guarded by `_setMqBusy`; the user's live #inputCard job is snapshot/restored around the batch and
+the single-job `_mqBusy` is suppressed during it; `restoreInputs(snap,noScroll)` gained a silent mode. Verified
+in-browser: 2-item set, economies of scale (₹40→₹22→₹12/set), **live form restored exactly**, perSet≠1, legacy
+fallback+warning, single-job multi-qty still works; smoke 25/25.) · **B6** price-change-on-reopen pop-up "was ₹X now ₹Y, use today's?" default today
 (pending). **Earlier B-fixes done:** B1 quantity-from-"A4" (parser read the 4 in "A4 quantity 1000"), B2 Spot UV
 embellishment capture, B7 Finishing as own line (`#finishRate`).
 

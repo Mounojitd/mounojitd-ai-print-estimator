@@ -578,7 +578,13 @@
             <div class="fld"><label>Carton: sets/carton · ₹/carton</label><div style="display:flex;gap:6px"><input id="setPerCarton" type="number" value="50" oninput="renderSet()" style="width:50%" /><input id="setCartonRate" type="number" step="0.5" value="45" oninput="renderSet()" style="width:50%" /></div></div>
           </div>
           <div id="setTotal" style="margin-top:8px"></div>
-          <div class="hint" style="margin-top:4px">Rates editable — confirm with sir. Export later: special carton / palletization.</div>
+          <div class="row3" style="margin-top:8px">
+            <div class="fld"><label>Compare set qty 2</label><input id="setQty2" type="number" placeholder="e.g. 500" oninput="renderSet()" /></div>
+            <div class="fld"><label>Compare set qty 3</label><input id="setQty3" type="number" placeholder="e.g. 2000" oninput="renderSet()" /></div>
+            <div class="fld"><label>Compare set qty 4</label><input id="setQty4" type="number" placeholder="e.g. 5000" oninput="renderSet()" /></div>
+          </div>
+          <div id="setMultiQty" style="margin-top:8px"></div>
+          <div class="hint" style="margin-top:4px">Set-qty comparison re-prices every item at <b>sets × pcs/set</b> (real print economies of scale). Rates editable — confirm with sir. Export later: special carton / palletization.</div>
         </div>
         <div id="suggest"></div>
         <h2 style="margin-top:18px;margin-bottom:4px">All sheet sizes <span style="text-transform:none;font-weight:400;color:#6b7480">(click a row to switch)</span></h2>
@@ -3196,7 +3202,7 @@ function snapshotInputs(){
                    coverMode:COVER_MACHINE_MODE, coverPick:(COVER_MANUAL_PICK&&COVER_MANUAL_PICK.name)||null };
   return snap;
 }
-function restoreInputs(snap){
+function restoreInputs(snap,noScroll){
   if(!snap) return;
   for(const id in snap){ if(id==="__machine") continue; const e=$(id); if(!e) continue; const s=snap[id];
     if("c" in s) e.checked=s.c; else e.value=s.v; }
@@ -3207,7 +3213,7 @@ function restoreInputs(snap){
   COVER_MACHINE_MODE=(mc&&mc.coverMode)||"auto";
   COVER_MANUAL_PICK=(mc&&mc.coverPick)?(MACHINES.find(m=>m.name===mc.coverPick)||null):null;
   onProductChange(); run();
-  try{ $("m_price").scrollIntoView({behavior:"smooth"}); }catch(e){}
+  if(!noScroll){ try{ $("m_price").scrollIntoView({behavior:"smooth"}); }catch(e){} }
 }
 function loadLog(){ try{ return JSON.parse(localStorage.getItem("QUOTE_LOG")||"[]")||[]; }catch(e){ return []; } }
 function saveLog(log){ try{ localStorage.setItem("QUOTE_LOG",JSON.stringify(log)); }catch(e){} }
@@ -3313,7 +3319,8 @@ function addQuoteToSet(){
   const prodSel=$("product"), prodName=($("product_name")&&$("product_name").value.trim())||"";
   SET_ITEMS.push({
     name: prodName || (prodSel&&prodSel.selectedOptions[0]?prodSel.selectedOptions[0].text:prodSel?prodSel.value:"Item"),
-    product: prodSel?prodSel.value:"", qty: x.p.books, unit:+x.q.unit.toFixed(2), grand: Math.round(x.q.grand), perSet: 1
+    product: prodSel?prodSel.value:"", qty: x.p.books, unit:+x.q.unit.toFixed(2), grand: Math.round(x.q.grand), perSet: 1,
+    _inputs: snapshotInputs()   // NKK sir B5: keep the full job so the item re-prices at any set quantity
   });
   saveSet(); renderSet();
 }
@@ -3336,7 +3343,7 @@ function setTotals(){
 }
 function renderSet(){
   const box=$("setItems"), tot=$("setTotal"); if(!box||!tot) return;
-  if(!SET_ITEMS.length){ box.innerHTML='No items yet — price a job, then click “Add current quote to set”.'; tot.innerHTML=""; return; }
+  if(!SET_ITEMS.length){ box.innerHTML='No items yet — price a job, then click “Add current quote to set”.'; tot.innerHTML=""; if($("setMultiQty")) $("setMultiQty").innerHTML=""; return; }
   const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   let h='<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr><th style="text-align:left">Item</th><th>Job qty</th><th>₹/pc</th><th>Job total</th><th>pcs / set</th><th></th></tr></thead><tbody>';
   SET_ITEMS.forEach((it,i)=>{
@@ -3358,6 +3365,66 @@ function renderSet(){
   t+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800"><td style="padding:5px 0">SET TOTAL</td><td style="text-align:right">${inr(T.total)}</td></tr>`;
   t+=`<tr><td>Per set</td><td style="text-align:right;font-weight:700">₹${T.perSetCost.toFixed(2)}</td></tr></table>`;
   tot.innerHTML=t;
+  renderSetMultiQty();
+}
+// SET-QUANTITY COMPARISON (NKK sir B5): re-price the whole bundle at several set quantities. For each candidate
+// set-qty N, every item's underlying job is re-run at N × pcs/set so item production gets real print economies of
+// scale (not a flat ×N of the captured grand), then set assembly + packing are added at N. Mirrors the single-job
+// multi-qty table. Guarded (_setMqBusy) + the user's live form is snapshotted and restored around the batch.
+let _setMqBusy=false;
+// Re-price every item's job at (nSets × its pcs/set). Items saved before B5 have no _inputs snapshot → fall back
+// to scaling the captured grand by the needed piece count (best effort, flagged). MUTATES the form; caller must
+// snapshot/restore #inputCard around this and suppress the single-job multi-qty (_mqBusy).
+function priceSetItemsAt(nSets){
+  let itemsTotal=0, anyLegacy=false;
+  for(const it of SET_ITEMS){
+    const need=Math.max(0,Math.round(nSets*(it.perSet||0)));
+    if(it._inputs && need>0){
+      restoreInputs(it._inputs,true);
+      if($("copies")) $("copies").value=need;
+      if($("copies2")) $("copies2").value=need;
+      run();
+      const x=combinedPrice(); itemsTotal += (x&&x.q&&x.q.grand)||0;
+    } else {
+      const base=it.grand||0, q=it.qty||0;               // legacy item: scale the captured grand
+      itemsTotal += (q>0)? base*(need/q) : base; anyLegacy=true;
+    }
+  }
+  return {itemsTotal,anyLegacy};
+}
+function renderSetMultiQty(){
+  const box=$("setMultiQty"); if(!box) return;
+  if(_setMqBusy) return;                                  // never re-enter (restoreInputs→run must not recurse in)
+  if(!SET_ITEMS.length){ box.innerHTML=""; return; }
+  const prim=Math.max(1,Math.round(num("setQty",1)));
+  const extra=["setQty2","setQty3","setQty4"].map(id=>num(id,0)).filter(q=>q>0).map(q=>Math.round(q));
+  if(!extra.length){ box.innerHTML=""; return; }          // only surface when the user asks to compare
+  const cands=[prim,...extra].filter((q,i,a)=>q>0&&a.indexOf(q)===i).sort((a,b)=>a-b);
+  // read the packing rates ONCE up front (they live outside #inputCard, so the item re-pricing can't touch them)
+  const aR=num("setAssembly",0), spcR=num("setShrinkPc",0), ppR=num("setPolyPc",0), ssR=num("setShrink",0),
+        perCarton=Math.max(1,Math.round(num("setPerCarton",50))), cartonR=num("setCartonRate",45),
+        pcsPerSet=SET_ITEMS.reduce((s,i)=>s+(i.perSet||0),0);
+  _setMqBusy=true;
+  const userSnap=snapshotInputs();                        // preserve the user's live job
+  const priorMq=_mqBusy; _mqBusy=true;                    // suppress the single-job multi-qty during the batch
+  const rows=[]; let anyLegacy=false;
+  try{
+    for(const n of cands){
+      const r=priceSetItemsAt(n); anyLegacy=anyLegacy||r.anyLegacy;
+      const packing=aR*n + spcR*pcsPerSet*n + ppR*pcsPerSet*n + ssR*n + Math.ceil(n/perCarton)*cartonR;
+      const total=r.itemsTotal+packing; rows.push({n,total,perSet:total/n});
+    }
+  }catch(e){}
+  _mqBusy=priorMq;
+  restoreInputs(userSnap,true);                           // put the user's form back exactly
+  _setMqBusy=false;
+  const inr=x=>"₹"+Math.round(x).toLocaleString("en-IN");
+  let h='<div style="font-size:12px;font-weight:700;color:#3b5c86;margin:2px 0 3px">📦 Set-quantity comparison (items re-priced at sets × pcs/set)</div>';
+  h+='<table style="width:100%;border-collapse:collapse;font-size:12.5px"><thead><tr><th style="text-align:left">Set quantity</th><th style="text-align:right">Set total</th><th style="text-align:right">Per set</th></tr></thead><tbody>';
+  rows.forEach(r=>{ h+=`<tr${r.n===prim?' style="font-weight:700;background:#eef4fc"':''}><td style="padding:3px 0">${r.n.toLocaleString("en-IN")} sets${r.n===prim?" (main)":""}</td><td style="text-align:right">${inr(r.total)}</td><td style="text-align:right">₹${r.perSet.toFixed(2)}</td></tr>`; });
+  h+='</tbody></table>';
+  if(anyLegacy) h+='<div class="hint" style="margin-top:3px;color:#a9791f">⚠ Some items were saved before this feature and have no stored job — those are scaled from their captured total. Re-add them to get exact re-pricing.</div>';
+  box.innerHTML=h;
 }
 function printSetQuote(){
   if(!SET_ITEMS.length){ alert("Add at least one item to the set first."); return; }
