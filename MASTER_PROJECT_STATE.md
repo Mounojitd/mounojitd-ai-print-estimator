@@ -8,9 +8,9 @@
 
 ## ⭐⭐ RESUME 2026-07-13 (LATEST — read this first) ⭐⭐
 Live: https://mounojitd.github.io/mounojitd-ai-print-estimator/ · publish = copy html→index.html+backend/app/static+
-Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). Latest commit
-**61e41c5** (B3 flat post-press DONE, committed locally). **⏳ NEXT: `git push` to deploy live if not yet pushed
-(check `git status` — may be ahead of origin), then B4.**
+Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). **B3 flat post-press
++ B4 save-product-to-library both DONE.** Next B-item: **B5** (surface product SETS + link to multi-qty), then
+B6 (price-change-on-reopen pop-up). Check `git status` for unpushed commits.
 
 **LIVE RATE DB (biggest change — the app now reads the master Google Sheet live).** Source of truth =
 **Complete Vendor Database With Samples** (sheet id `1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y`, shared
@@ -40,8 +40,14 @@ wrapper post-press** ✅ DONE (commit 61e41c5 — `#fppFields` panel for flat no
 score per 1000 PRESS SHEETS + folding per 1000 finished PIECES; inputs `fppDie/fppPunch/fppScore/fppFold` all
 default 0 → returns null when all zero so existing flat jobs untouched; wired into no-cover `combinedPrice` branch
 as `x.flatpp` + "Post-press —" rows in showPrice. Verified: node 6/6, smoke 25/25, in-browser flow. **Rates
-PENDING sir's real numbers.**) · **B4** save new product name to DB (pending) · **B5** sets exist, surface/
-link to multi-qty (pending) · **B6** price-change-on-reopen pop-up "was ₹X now ₹Y, use today's?" default today
+PENDING sir's real numbers.**) · **B4 save new product to library** ✅ DONE (`#taxProduct` picker now has a
+`➕ Save`/`🗑` pair + `CUSTOM_PRODUCTS` localStorage; `saveCurrentProduct()` snapshots the Product/job name +
+paper type + GSM (inside, and cover if separate) into a `{n,c,u,p,g}` entry shown under a "★ MY SAVED PRODUCTS"
+optgroup that survives reload; `taxEntry()` lets `onTaxProduct()` re-apply either custom or built-in; buildTaxonomyPicker
+made idempotent — **fixed a latent bug where `select.remove()` left empty `<optgroup>` shells, so every rebuild
+duplicated groups**. Verified in-browser: save/update/persist/reselect/remove + no optgroup accumulation, smoke 25/25.
+NOTE: this is browser-local (per-machine); a shared/cloud product DB would be a later step if sir wants it.) ·
+**B5** sets exist, surface/link to multi-qty (pending) · **B6** price-change-on-reopen pop-up "was ₹X now ₹Y, use today's?" default today
 (pending). **Earlier B-fixes done:** B1 quantity-from-"A4" (parser read the 4 in "A4 quantity 1000"), B2 Spot UV
 embellishment capture, B7 Finishing as own line (`#finishRate`).
 
