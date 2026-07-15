@@ -530,6 +530,7 @@
           </div>
           <div class="prow"><span><label>Notes / terms</label><input id="quoteNotes" type="text" placeholder="Delivery, payment or exclusions" /></span></div>
         </div>
+        <div id="priceChangeBanner"></div>
         <div id="m_price" style="margin-top:10px"></div>
         <div style="margin-top:10px">
           <button class="mbtn p" onclick="printQuotation()">Print quotation</button>
@@ -3217,7 +3218,44 @@ function restoreInputs(snap,noScroll){
 }
 function loadLog(){ try{ return JSON.parse(localStorage.getItem("QUOTE_LOG")||"[]")||[]; }catch(e){ return []; } }
 function saveLog(log){ try{ localStorage.setItem("QUOTE_LOG",JSON.stringify(log)); }catch(e){} }
-function openSavedQuote(i){ const q=loadLog()[i]; if(!q||!q._inputs){ alert("This saved quote has no inputs to re-open."); return; } restoreInputs(q._inputs); }
+function openSavedQuote(i){
+  const q=loadLog()[i]; if(!q||!q._inputs){ alert("This saved quote has no inputs to re-open."); return; }
+  clearPriceChangeBanner();
+  restoreInputs(q._inputs);                          // re-prices at TODAY's live rates (may differ from saved)
+  // NKK sir B6: the app live-reads the master rate sheet, so a reopened quote can re-price differently. Show a
+  // non-blocking banner comparing the SAVED total to today's; today's rates are what's displayed (sir's default).
+  try{ const x=combinedPrice(); showPriceChangeBanner(q, x&&x.q?x.q.grand:0); }catch(e){}
+}
+// Banner lives OUTSIDE #m_price so showPrice() doesn't wipe it; it clears on the next reopen or new-quote save.
+function clearPriceChangeBanner(){ const el=$("priceChangeBanner"); if(el) el.innerHTML=""; }
+function showPriceChangeBanner(q, todayGrand){
+  const el=$("priceChangeBanner"); if(!el) return;
+  const saved=Math.round(+q.grand||0), today=Math.round(+todayGrand||0);
+  if(!(saved>0)||!(today>0)||saved===today){ el.innerHTML=""; return; }   // nothing to flag
+  const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const d=today-saved, pct=saved?(d/saved*100):0, up=d>0;
+  const rows=[["Paper","paper"],["Printing","printing"],["Plates","plates"],["Coating","coating"],
+    ["Packing","packing"],["Freight","freight"],["Overhead","overhead"],["Margin","margin"],["GST","gst"],["Grand total","grand"]];
+  const savedRows=rows.filter(r=>q[r[1]]!=null&&q[r[1]]!=="").map(r=>
+    `<tr><td style="padding:1px 0">${r[0]}</td><td style="text-align:right">${inr(q[r[1]])}</td></tr>`).join("");
+  el.innerHTML=
+    `<div style="border:1px solid #e0c07a;border-left:4px solid #d9a441;background:#fdf6e6;border-radius:8px;padding:9px 11px;margin-top:10px;font-size:12.5px;color:#6b551f">
+       <div style="font-weight:700">⚠ Rates changed since this quote was saved${q.date?" on "+esc(q.date):""}</div>
+       <div style="margin-top:2px">Saved: <b>${inr(saved)}</b> &nbsp;→&nbsp; Today: <b>${inr(today)}</b>
+         &nbsp;<span style="color:${up?"#a23a2e":"#1c7a52"}">(${up?"+":"−"}${inr(Math.abs(d))}, ${up?"+":"−"}${Math.abs(pct).toFixed(1)}%)</span></div>
+       <div style="margin-top:2px">Showing <b>today's rates</b>.
+         <button class="mbtn s" style="padding:1px 7px;margin-left:4px" onclick="toggleSavedFigure(this)">View saved figure</button>
+         <button class="mbtn s" style="padding:1px 7px" onclick="clearPriceChangeBanner()">✕</button></div>
+       <div id="savedFigureBox" style="display:none;margin-top:6px;border-top:1px dashed #e0c07a;padding-top:5px">
+         <div style="font-weight:600;margin-bottom:2px">Saved breakdown (as quoted${q.date?" "+esc(q.date):""})</div>
+         <table style="width:100%;border-collapse:collapse;font-size:12px">${savedRows}</table>
+         <div class="hint" style="margin-top:3px">Old rate tables aren't recoverable — these are the totals stored with the quote.</div>
+       </div>
+     </div>`;
+}
+function toggleSavedFigure(btn){ const b=$("savedFigureBox");
+  if(!b) return; const show=b.style.display==="none"; b.style.display=show?"block":"none";
+  if(btn) btn.textContent=show?"Hide saved figure":"View saved figure"; }
 function deleteSavedQuote(i){ const log=loadLog(); log.splice(i,1); saveLog(log); renderQuoteLog(); }
 function exportSavedQuote(i){ const q=loadLog()[i]; if(!q) return;
   const lines=[csvRow(["field","value"])].concat(QUOTE_COLS.map(k=>csvRow([k,q[k]])));
@@ -3288,6 +3326,7 @@ function importTemplates(input){
 }
 function saveQuoteCSV(){
   const s=quoteSummary(); if(!s){ alert("Price a job first, then save it."); return; }
+  clearPriceChangeBanner();                          // saving captures today's price → the reopen notice is moot
   // 1) append to the local log (with a full input snapshot so it can be re-opened)
   let log=[]; try{ log=JSON.parse(localStorage.getItem("QUOTE_LOG")||"[]")||[]; }catch(e){}
   log.push(Object.assign({},s,{_inputs:snapshotInputs()})); try{ localStorage.setItem("QUOTE_LOG",JSON.stringify(log)); }catch(e){}

@@ -8,9 +8,10 @@
 
 ## ⭐⭐ RESUME 2026-07-13 (LATEST — read this first) ⭐⭐
 Live: https://mounojitd.github.io/mounojitd-ai-print-estimator/ · publish = copy html→index.html+backend/app/static+
-Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). **B3 flat post-press,
-B4 save-product-to-library, B5 set↔multi-qty comparison all DONE.** Next B-item: **B6** (price-change-on-reopen
-pop-up: "was ₹X now ₹Y, use today's?" default today). Check `git status` for unpushed commits.
+Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). **⭐ ALL GNM
+B-items B1–B6 DONE (B3 flat post-press · B4 save-product-to-library · B5 set↔multi-qty · B6 price-change-on-reopen
+banner).** Remaining work is sir's PENDING NUMBERS (below) + the multi-week ROADMAP. Check `git status` for
+unpushed commits.
 
 **LIVE RATE DB (biggest change — the app now reads the master Google Sheet live).** Source of truth =
 **Complete Vendor Database With Samples** (sheet id `1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y`, shared
@@ -55,7 +56,14 @@ engine, sums grands, adds assembly/packing at n → real print economies of scal
 a ⚠ warning. Guarded by `_setMqBusy`; the user's live #inputCard job is snapshot/restored around the batch and
 the single-job `_mqBusy` is suppressed during it; `restoreInputs(snap,noScroll)` gained a silent mode. Verified
 in-browser: 2-item set, economies of scale (₹40→₹22→₹12/set), **live form restored exactly**, perSet≠1, legacy
-fallback+warning, single-job multi-qty still works; smoke 25/25.) · **B6** price-change-on-reopen pop-up "was ₹X now ₹Y, use today's?" default today
+fallback+warning, single-job multi-qty still works; smoke 25/25.) · **B6 price-change-on-reopen** ✅ DONE
+(`openSavedQuote()` re-prices at today's live rates then `showPriceChangeBanner(q,todayGrand)` compares the SAVED
+`q.grand` to today's; if different, a **non-blocking amber banner** in `#priceChangeBanner` (its own div above
+`#m_price`, so showPrice can't wipe it) shows "was ₹X → now ₹Y (±Δ, ±%) · showing today's rates" + a **View saved
+figure** toggle (`#savedFigureBox` renders the saved breakdown columns) + ✕ dismiss. Clears on next reopen and on
+`saveQuoteCSV()`. Default = today's price (sir's ask). No false alarm when unchanged. Verified in-browser:
+unchanged→no banner, tampered save→+₹612/+5.3% banner, toggle/dismiss/clear-on-save all work; smoke 25/25.
+**⭐ ALL GNM B-items (B1–B6) COMPLETE.**) · **B6** price-change-on-reopen pop-up "was ₹X now ₹Y, use today's?" default today
 (pending). **Earlier B-fixes done:** B1 quantity-from-"A4" (parser read the 4 in "A4 quantity 1000"), B2 Spot UV
 embellishment capture, B7 Finishing as own line (`#finishRate`).
 
