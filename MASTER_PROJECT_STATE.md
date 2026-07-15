@@ -2,7 +2,54 @@
 
 > Single source of truth for resuming work. Keep this updated. A brand-new session
 > should be able to continue from this file alone.
-> Last updated: 2026-07-06
+> Last updated: 2026-07-13
+
+---
+
+## ⭐⭐ RESUME 2026-07-13 (LATEST — read this first) ⭐⭐
+Live: https://mounojitd.github.io/mounojitd-ai-print-estimator/ · publish = copy html→index.html+backend/app/static+
+Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). Latest commit
+**604e096**. **⏳ B3 is MID-BUILD, uncommitted work may exist — check `git status` first.**
+
+**LIVE RATE DB (biggest change — the app now reads the master Google Sheet live).** Source of truth =
+**Complete Vendor Database With Samples** (sheet id `1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y`, shared
+"anyone with link→Viewer"). `loadLiveRates()` at load pulls: **PAPER_PRICING** (gid 1336648905)→PAPER_DB,
+**PRINTING_RATES** (gid 1782743102)→MACHINES sizes+PRESS_RATES cards, **POST_PRESS_RATES** (gid 1338566191)→
+COAT_SOURCES.card coatings + BINDING_SAMPLES. CSV `export?format=csv` endpoint (returns `Access-Control-Allow-Origin:*`).
+`parseCSV` (RFC-4180) + **fix-on-import** (₹/sheet = (w×h×gsm/3100/500)×₹kg when kg 40–400). Embedded data =
+OFFLINE FALLBACK; `#liveDbStatus` badge shows 🟢 N papers·presses·coatings·bindings. Guarded to http(s) browser
+(file:// / node keep embedded). **`applySheetOverrides()`** re-applied AFTER every live load (sir-confirmed values
+the sheet hasn't caught up on — DELETE each when sheet fixed): **L-32 → 20×30** (B8) · **90gsm ART PAPER → ₹85/kg**
+(B3-rate). The other sheet (Paper AND Vendor Master 070226, id `12TpZC9s...`) is RETIRED — its Print Product
+Taxonomy (211) + PROCESS MASTER saved to `db/files/vendor_db/`; 10 new vendors → `~/Downloads/NEW_vendors_...csv`.
+
+**FEATURES ADDED THIS RUN (all live+verified unless noted):** default press = **Komori L-32** on text+cover
+(Auto/Manual retained; saved jobs restore own pick) · signature products **default inside paper to Art/Coated**
+when no type spoken (reconciled sir's 90gsm text paper to ₹53,724 vs his ₹53,747) · **product library** picker
+(211 taxonomy → suggests paper type+GSM) · machine picker shows **model+coater** from PROCESS MASTER · **voice
+fill** (🎤 speak/type spec → parseSpec/applyVoiceSpec) + continuous listening + misheard-term correction map ·
+per-line **cost breakdown** (↳ arithmetic+source) · **margin default 40%** on SALE price · template reload
+persists the **manual press pick**.
+
+**NKK sir GNM review (2026-07-13) — B-items:** **B1 multiple quantities** ✅ (mq2–5 inputs, `renderMultiQty()`
+re-prices per qty under `_mqBusy` guard, Total+Per-piece table) · **B2 vendor discount %** ✅ (`#paperDiscount`,
+`p.discount` → priceJob paper ×(1−d) + finishingMakeReady + cover coverP; 13%→paper ×0.87 exact) · **B3 flat/
+wrapper post-press** ⏳ IN PROGRESS (plan: box for flat non-dieline products with `fppDie/fppPunch/fppScore/fppFold`
+inputs default 0, `flatPostPress()` fn, wire into the no-cover branch `if(!cp||!cp.option)` ~line 2540 + showPrice
+simple rows ~line 2899 — NOT built yet) · **B4** save new product name to DB (pending) · **B5** sets exist, surface/
+link to multi-qty (pending) · **B6** price-change-on-reopen pop-up "was ₹X now ₹Y, use today's?" default today
+(pending). **Earlier B-fixes done:** B1 quantity-from-"A4" (parser read the 4 in "A4 quantity 1000"), B2 Spot UV
+embellishment capture, B7 Finishing as own line (`#finishRate`).
+
+**PENDING sir's NUMBERS (do NOT guess):** B4 quantity-tiered WASTAGE table (small qty higher %) · B6 matt(0.40)/
+gloss(0.24) lam rates he says too low · binding rate (sheet=₹6.75 sewn_perfect vs sir ₹9) · B5 printing reconcile
+(now on L-32 so differs from his big-press figure). **Contradiction flagged:** sir's "Finishing 18,775" is likely
+binding(18,174)+finishing COMBINED → finishing ≈ ₹601, not a 2nd ₹18k line.
+
+**Sir's ROADMAP (multi-week, not started):** save-as-FINAL-quotation → separate DB · generate JOB CARD (paper/
+material/print/post-press procurement) · quotation print format (from Palas-da/Sanjit-da) · approval mechanism ·
+WEB HOSTING v1.0 (login, sir approves emailed codes) by **27 Jul** · APP (API + local sync) · CATALOG (commercial/
+packaging/publishing categories, PDF flip-book) by 30 Sep · web commerce · versioning "ATPM/NRIEL Print Engine v1.0".
 
 ---
 
