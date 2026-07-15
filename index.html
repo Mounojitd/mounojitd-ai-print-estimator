@@ -379,6 +379,20 @@
           <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Stand surface auto = 2.2 × leaf W×H (two faces + base). Same build as the hard case / sleeve (chip + PLC + backing paste). Rates editable — confirm with sir.</div></div>
         </div>
       </div>
+      <div id="fppFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
+        <div class="ptitle">✂️ Flat post-press — die-cut · punch · score · fold</div>
+        <div class="hint" style="margin:-2px 0 6px">For flat products (leaflet · poster · card · dangler · single sheet) that need shaping or folding. Die-cut / punch / score are per <b>1000 press sheets</b>; folding is per <b>1000 finished pieces</b>. All default 0 = no cost.</div>
+        <div class="row3">
+          <div class="fld"><label>Die-cutting ₹ / 1000 sheets</label><input id="fppDie" type="number" step="10" value="0" oninput="showPrice()" /><div class="hint">shaped cut (0 = none)</div></div>
+          <div class="fld"><label>Punching ₹ / 1000 sheets</label><input id="fppPunch" type="number" step="10" value="0" oninput="showPrice()" /><div class="hint">hang hole / eyelet</div></div>
+          <div class="fld"><label>Scoring / creasing ₹ / 1000 sheets</label><input id="fppScore" type="number" step="10" value="0" oninput="showPrice()" /><div class="hint">fold line</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Folding ₹ / 1000 pieces</label><input id="fppFold" type="number" step="10" value="0" oninput="showPrice()" /><div class="hint">machine folding</div></div>
+          <div class="fld"></div>
+          <div class="fld"></div>
+        </div>
+      </div>
       <div class="pbox" style="margin:0 0 10px">
         <div class="ptitle" id="textCompTitle">Text component</div>
         <div class="row3">
@@ -582,6 +596,10 @@ const MM=25.4;
    Non-signature   → size → ups → quantity → wastage → paper (NO signature, NO extent). */
 const SIGNATURE_PRODUCTS=new Set(["booklet","catalogue","magazine","manual","annual","brochure_multi"]);
 const isSig=p=>SIGNATURE_PRODUCTS.has(p);
+// FLAT POST-PRESS / B3 (NKK sir GNM review): flat non-dieline products that can still need shaping/folding.
+// (calendar_table has its own wiro+stand panel, so it is excluded here.)
+const FLAT_PP_PRODUCTS=new Set(["leaflet","poster","card","calendar_sheet","dangler","insert"]);
+const isFlatPP=p=>FLAT_PP_PRODUCTS.has(p);
 // SLIPCASE / book sleeve (NKK sir p3): rigid book case = chipboard + PLC wrap (cut to shape) + inside-paper
 // paste. Holds a book H(height)×W(width)×D(depth). The PLC wrap prints like a dieline blank; the board +
 // inside paper + making are added like the hard case.
@@ -650,6 +668,8 @@ function onProductChange(){
     if(Wlab) Wlab.textContent="Book width (A)"; if(Hlab) Hlab.textContent="Book height (B)"; }
   // TABLE CALENDAR: show the wiro + stand panel
   if($("tablecalFields")) $("tablecalFields").style.display=($("product").value==="calendar_table")?"block":"none";
+  // FLAT POST-PRESS / B3: show the die-cut/punch/score/fold panel for flat non-dieline products
+  if($("fppFields")) $("fppFields").style.display=isFlatPP($("product").value)?"block":"none";
   onCoverChange();
 }
 // default wiro ₹/calendar by type (NKK sir: part wiro = 2 short pieces, saves cost vs full)
@@ -2220,6 +2240,25 @@ function tableCalPlan(){
   const total=items.reduce((s,i)=>s+i.cost,0);
   return {items,total,wt,sizes:{wiro,stand,pcs}};
 }
+// FLAT POST-PRESS / B3 (NKK sir GNM review 2026-07-13): flat non-dieline products (leaflet · poster · card ·
+// single-sheet calendar · dangler · insert) can still need die-cutting (shape), punching (hang hole),
+// scoring/creasing (fold line) or folding. Press operations (die-cut · punch · score) are charged per 1000
+// PRESS SHEETS; folding per 1000 finished PIECES. No material weight added. All rates default 0 → returns
+// null when nothing is set, so existing flat jobs are untouched until sir supplies real numbers.
+function flatPostPress(){
+  if(!LASTINP||!CHOSEN||!isFlatPP(LASTINP.product)) return null;
+  const sheets=CHOSEN.total||CHOSEN.paperSheets||0, pieces=LASTINP.copies||0, items=[];
+  const perSheetOp=(id,label)=>{ const r=num(id,0); if(r<=0) return;
+    items.push({name:`${label} (${sheets.toLocaleString("en-IN")} sheets @ ₹${r}/1000)`,cost:Math.ceil(sheets/1000)*r}); };
+  perSheetOp("fppDie","Die-cutting");
+  perSheetOp("fppPunch","Punching");
+  perSheetOp("fppScore","Scoring / creasing");
+  const fr=num("fppFold",0);
+  if(fr>0) items.push({name:`Folding (${pieces.toLocaleString("en-IN")} pcs @ ₹${fr}/1000)`,cost:Math.ceil(pieces/1000)*fr});
+  if(!items.length) return null;
+  const total=items.reduce((s,i)=>s+i.cost,0);
+  return {items,total,sizes:{sheets,pieces}};
+}
 // SPINE-DRIVEN recommendation (NKK sir's rules — RECOMMEND, never silently assume; user can override):
 //   spine ≤ 2.5mm → Saddle stitch · spine > 3mm → warn (Section sewn / Perfect) · spine > 4.5mm → error+override.
 function autoBindingBySpine(spineMM){
@@ -2539,12 +2578,13 @@ function combinedPrice(){
   }
   if(!cp||!cp.option){
     const fmr=finishingMakeReady(textP,null,p,tq);
-    if(!bindCost&&!finishing&&!tcalCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,fmr};
+    const fpp=flatPostPress(), fppCost=fpp?fpp.total:0;   // B3: flat die-cut/punch/score/fold (no material weight)
+    if(!bindCost&&!finishing&&!tcalCost&&!fppCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,flatpp:fpp,fmr};
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt+mbWt+tcalWt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+fmr.total+tq.printing+tq.plates+tq.lam+bindCost+finishing+tcalCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+    const base=tq.paper+fmr.total+tq.printing+tq.plates+tq.lam+bindCost+finishing+tcalCost+fppCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
-    return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding:bindCost,finishing,mech:mb,tablecal:tcal,fmr};
+    return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding:bindCost,finishing,mech:mb,tablecal:tcal,flatpp:fpp,fmr};
   }
   const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
     isSpecial:paperIsSpecial("coverTypeSel","coverGrade"),paperRate:(cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh)),margin:p.margin,gst:p.gst,discount:p.discount,books:p.books};
@@ -2902,6 +2942,7 @@ function showPrice(){
   else if(x.binding)rows.push([`Binding — ${$("binding").selectedOptions[0].text}`,x.binding,bindWhy()]);
   if(x.finishing)rows.push([`Finishing (trim/fold)`,x.finishing,`${(LASTINP?LASTINP.copies:0).toLocaleString("en-IN")} books × ₹${num("finishRate",0)}/book`]);
   if(x.tablecal){ x.tablecal.items.forEach(i=>rows.push([`Calendar — ${i.name}`,i.cost])); }
+  if(x.flatpp){ x.flatpp.items.forEach(i=>rows.push([`Post-press — ${i.name}`,i.cost])); }
   if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets, printed + paper)`,x.fmr.total]);
   rows.push(["Packing",q.packing,pf.pack],["Freight",q.freight,pf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
