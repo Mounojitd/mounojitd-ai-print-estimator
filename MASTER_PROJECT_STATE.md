@@ -9,7 +9,8 @@
 ## ⭐⭐ RESUME 2026-07-13 (LATEST — read this first) ⭐⭐
 Live: https://mounojitd.github.io/mounojitd-ai-print-estimator/ · publish = copy html→index.html+backend/app/static+
 Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). Latest commit
-**604e096**. **⏳ B3 is MID-BUILD, uncommitted work may exist — check `git status` first.**
+**61e41c5** (B3 flat post-press DONE, committed locally). **⏳ NEXT: `git push` to deploy live if not yet pushed
+(check `git status` — may be ahead of origin), then B4.**
 
 **LIVE RATE DB (biggest change — the app now reads the master Google Sheet live).** Source of truth =
 **Complete Vendor Database With Samples** (sheet id `1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y`, shared
@@ -34,9 +35,12 @@ persists the **manual press pick**.
 **NKK sir GNM review (2026-07-13) — B-items:** **B1 multiple quantities** ✅ (mq2–5 inputs, `renderMultiQty()`
 re-prices per qty under `_mqBusy` guard, Total+Per-piece table) · **B2 vendor discount %** ✅ (`#paperDiscount`,
 `p.discount` → priceJob paper ×(1−d) + finishingMakeReady + cover coverP; 13%→paper ×0.87 exact) · **B3 flat/
-wrapper post-press** ⏳ IN PROGRESS (plan: box for flat non-dieline products with `fppDie/fppPunch/fppScore/fppFold`
-inputs default 0, `flatPostPress()` fn, wire into the no-cover branch `if(!cp||!cp.option)` ~line 2540 + showPrice
-simple rows ~line 2899 — NOT built yet) · **B4** save new product name to DB (pending) · **B5** sets exist, surface/
+wrapper post-press** ✅ DONE (commit 61e41c5 — `#fppFields` panel for flat non-dieline products via
+`FLAT_PP_PRODUCTS`={leaflet,poster,card,calendar_sheet,dangler,insert}; `flatPostPress()` charges die-cut/punch/
+score per 1000 PRESS SHEETS + folding per 1000 finished PIECES; inputs `fppDie/fppPunch/fppScore/fppFold` all
+default 0 → returns null when all zero so existing flat jobs untouched; wired into no-cover `combinedPrice` branch
+as `x.flatpp` + "Post-press —" rows in showPrice. Verified: node 6/6, smoke 25/25, in-browser flow. **Rates
+PENDING sir's real numbers.**) · **B4** save new product name to DB (pending) · **B5** sets exist, surface/
 link to multi-qty (pending) · **B6** price-change-on-reopen pop-up "was ₹X now ₹Y, use today's?" default today
 (pending). **Earlier B-fixes done:** B1 quantity-from-"A4" (parser read the 4 in "A4 quantity 1000"), B2 Spot UV
 embellishment capture, B7 Finishing as own line (`#finishRate`).
