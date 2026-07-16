@@ -80,9 +80,18 @@ hardcase·slipcase·tablecal·coating·embellishments) with ▢ sign-off · §4 
 sign-offs. `jobCardOps()` pulls each plan's `.items`; `jcClean()` strips the ₹-rate fragments from op names but
 KEEPS quantities so it stays price-free. Reuses docHeader/docCSS/openPrintDocument. Verified in-browser: all 5
 sections, 0 ₹ leak, procurement math (buy 6,600 parent 25×36→13,200 cut 29×19, 498kg), flat/hardcase ops flow in;
-smoke 25/25.) · STILL TODO: save-as-FINAL-quotation → separate DB · quotation print format (from Palas-da/Sanjit-da)
-· approval mechanism · WEB HOSTING v1.0 (login, sir approves emailed codes) by **27 Jul** · APP (API + local sync) ·
-CATALOG (commercial/packaging/publishing categories, PDF flip-book) by 30 Sep · web commerce · versioning "ATPM/NRIEL Print Engine v1.0".
+smoke 25/25.) · ✅ **SAVE-AS-FINAL-QUOTATION DONE** (`FINAL_QUOTES` localStorage = separate DB from working
+`QUOTE_LOG`; own **F-NNNNN** series via `FINAL_SEQ`/`autoFinalNo`. `✅ Finalize as quotation` button → `finalizeQuote()`
+promotes the current priced job (confirm dialog, fresh F-no, `_inputs` snapshot, status=Final, sourceQuoteNo, cloudSend);
+`✅ Final` button on each saved draft row → `finalizeSaved()` promotes a draft. `✅ Final quotations` collapsible
+lists them with **Open · 🗂 Job card · CSV · ✕**. `finalToJobCard()` = the pairing: restores the final's inputs +
+customer + F-number → prints its job card, then clears the F-no so it can't leak into a later Save. Also FIXED:
+`openSavedQuote`/`openFinal` now restore the **customer** (it lives outside `#inputCard` so snapshotInputs missed it).
+Verified in-browser: finalize/increment/persist, promote draft, openFinal restores customer + rate banner, job card
+from final carries customer + F-no with no quoteNo leak; smoke 25/25.) · STILL TODO: quotation print format (from
+Palas-da/Sanjit-da) · approval mechanism · WEB HOSTING v1.0 (login, sir approves emailed codes) by **27 Jul** · APP
+(API + local sync) · CATALOG (commercial/packaging/publishing categories, PDF flip-book) by 30 Sep · web commerce ·
+versioning "ATPM/NRIEL Print Engine v1.0".
 
 ---
 

@@ -537,6 +537,7 @@
           <button class="mbtn s" onclick="printJobSheet()">Print internal job sheet</button>
           <button class="mbtn s" onclick="printJobCard()">🗂 Print job card</button>
           <button class="mbtn s" onclick="saveQuoteCSV()">💾 Save quote (CSV + cloud)</button>
+          <button class="mbtn s" onclick="finalizeQuote()" title="Confirm this as an approved FINAL quotation (F-number). Finals are a separate record and feed the job card.">✅ Finalize as quotation</button>
           <button class="mbtn s" onclick="exportLogCSV()">📤 Export all saved quotes (CSV)</button>
           <span id="saveStatus" style="font-size:12px;color:#1c7a52;margin-left:6px"></span>
         </div>
@@ -547,6 +548,12 @@
         <details class="pbox" style="margin-top:10px;border-color:#8aa6c9" open>
           <summary style="cursor:pointer;font-weight:700;color:#2c5a9c;font-size:12.5px">📋 Saved quotes (this device)</summary>
           <div id="quoteLog" style="margin-top:8px"></div>
+        </details>
+        <details class="pbox" style="margin-top:10px;border-color:#3fa06a;background:#f2faf5" open>
+          <summary style="cursor:pointer;font-weight:700;color:#1c7a52;font-size:12.5px">✅ Final quotations (approved · feed the job card)</summary>
+          <div style="margin:6px 0 2px"><button class="mbtn s" onclick="exportFinalsCSV()">📤 Export finals (CSV)</button>
+            <span id="finalStatus" style="font-size:12px;color:#1c7a52;margin-left:6px"></span></div>
+          <div id="finalList" style="margin-top:6px"></div>
         </details>
         <details class="pbox" style="margin-top:10px;border-color:#c9a96a;background:#fbf7ef" open>
           <summary style="cursor:pointer;font-weight:700;color:#8a5a12;font-size:12.5px">📁 Templates / masters (save a job, reopen &amp; tweak)</summary>
@@ -3055,6 +3062,11 @@ function coatingName(v){ const e=$("lam"); return [...e.options].find(o=>o.value
 function peekQuoteSeq(){ let n=0; try{ n=parseInt(localStorage.getItem("QUOTE_SEQ")||"0",10)||0; }catch(e){} return n+1; }
 function bumpQuoteSeq(){ const n=peekQuoteSeq(); try{ localStorage.setItem("QUOTE_SEQ",String(n)); }catch(e){} return n; }
 function autoQuoteNo(){ return "Q-"+String(peekQuoteSeq()).padStart(5,"0"); }
+// FINAL quotation numbering (NKK sir roadmap): approved quotes get their own F-NNNNN series, separate from the
+// working Q-NNNNN drafts.
+function peekFinalSeq(){ let n=0; try{ n=parseInt(localStorage.getItem("FINAL_SEQ")||"0",10)||0; }catch(e){} return n+1; }
+function bumpFinalSeq(){ const n=peekFinalSeq(); try{ localStorage.setItem("FINAL_SEQ",String(n)); }catch(e){} return n; }
+function autoFinalNo(){ return "F-"+String(peekFinalSeq()).padStart(5,"0"); }
 function refreshQuoteNo(){ const f=$("quoteNo"); if(f) f.placeholder=autoQuoteNo()+" (auto)"; }   // show next pending
 function quoteMeta(){
   const now=new Date(), valid=new Date(now); valid.setDate(valid.getDate()+Math.max(0,Math.round(num("validDays",15))));
@@ -3223,6 +3235,7 @@ function openSavedQuote(i){
   const q=loadLog()[i]; if(!q||!q._inputs){ alert("This saved quote has no inputs to re-open."); return; }
   clearPriceChangeBanner();
   restoreInputs(q._inputs);                          // re-prices at TODAY's live rates (may differ from saved)
+  if($("customer")&&q.customer) $("customer").value=q.customer;   // customer lives outside #inputCard → restore it
   // NKK sir B6: the app live-reads the master rate sheet, so a reopened quote can re-price differently. Show a
   // non-blocking banner comparing the SAVED total to today's; today's rates are what's displayed (sir's default).
   try{ const x=combinedPrice(); showPriceChangeBanner(q, x&&x.q?x.q.grand:0); }catch(e){}
@@ -3272,8 +3285,78 @@ function renderQuoteLog(){
        `<td style="text-align:center">${q.qty!=null?q.qty:""}</td><td style="text-align:right">${inr(q.grand)}</td>`+
        `<td style="text-align:right;white-space:nowrap">`+
        (q._inputs?`<button class="mbtn s" style="padding:2px 7px" onclick="openSavedQuote(${i})">Open</button> `:``)+
+       `<button class="mbtn s" style="padding:2px 7px" onclick="finalizeSaved(${i})" title="Promote this draft to an approved final quotation">✅ Final</button> `+
        `<button class="mbtn s" style="padding:2px 7px" onclick="exportSavedQuote(${i})">CSV</button> `+
        `<button class="mbtn s" style="padding:2px 7px" onclick="deleteSavedQuote(${i})">✕</button></td></tr>`;
+  });
+  h+='</tbody></table>';
+  box.innerHTML=h;
+}
+/* ---------- FINAL QUOTATIONS (NKK sir roadmap: save-as-FINAL → separate DB). An approved quote is promoted to a
+   separate FINAL_QUOTES store with its own F-NNNNN number, a finalized date and a full input snapshot, so it is
+   the confirmed record that drives the JOB CARD. Same flat shape as a draft + finalNo / finalizedDate / status. */
+function loadFinals(){ try{ return JSON.parse(localStorage.getItem("FINAL_QUOTES")||"[]")||[]; }catch(e){ return []; } }
+function saveFinals(a){ try{ localStorage.setItem("FINAL_QUOTES",JSON.stringify(a)); }catch(e){} }
+// Build a final record from a flat summary + its input snapshot (used by both "finalize current" and "promote draft").
+function makeFinalRecord(summary,inputs){
+  const finalNo=autoFinalNo();
+  return Object.assign({},summary,{finalNo, sourceQuoteNo:summary.quoteNo||"", quoteNo:finalNo,
+    status:"Final", finalizedDate:new Date().toISOString().slice(0,10), _inputs:inputs||null});
+}
+function finalStatus(msg){ if($("finalStatus")) $("finalStatus").textContent=msg||""; }
+function finalizeQuote(){
+  const s=quoteSummary(); if(!s){ alert("Price a job first, then finalize it."); return; }
+  const no=autoFinalNo();
+  if(!confirm(`Finalize this quote as ${no}?\n\nFinal quotations are the approved record (separate from drafts) and feed the job card.`)) return;
+  const rec=makeFinalRecord(s,snapshotInputs());
+  const fin=loadFinals(); fin.push(rec); saveFinals(fin); bumpFinalSeq(); renderFinals();
+  cloudSend(rec);                                    // also log to the central sheet (marked status=Final)
+  finalStatus("✓ finalized "+rec.finalNo+" · next: "+autoFinalNo());
+}
+// Promote an already-saved draft quote (from the working log) into the final DB.
+function finalizeSaved(i){
+  const q=loadLog()[i]; if(!q){ return; }
+  const no=autoFinalNo();
+  if(!confirm(`Promote saved quote ${q.quoteNo||""} to final ${no}?`)) return;
+  const rec=makeFinalRecord(q, q._inputs||null);
+  const fin=loadFinals(); fin.push(rec); saveFinals(fin); bumpFinalSeq(); renderFinals();
+  cloudSend(rec); finalStatus("✓ finalized "+rec.finalNo);
+}
+function openFinal(i){ const f=loadFinals()[i]; if(!f||!f._inputs){ alert("This final quotation has no stored inputs to re-open."); return; }
+  clearPriceChangeBanner(); restoreInputs(f._inputs);
+  if($("customer")&&f.customer) $("customer").value=f.customer;   // customer lives outside #inputCard → restore it
+  try{ const x=combinedPrice(); showPriceChangeBanner(f, x&&x.q?x.q.grand:0); }catch(e){} }
+// The pairing: an approved final → its job card. Restore the final's inputs (silently), set the customer + F-number
+// for the header, print, then clear the F-number so it can't leak into a later Save.
+function finalToJobCard(i){ const f=loadFinals()[i]; if(!f||!f._inputs){ alert("This final has no stored inputs for a job card."); return; }
+  restoreInputs(f._inputs,true);
+  if($("customer")&&f.customer) $("customer").value=f.customer;
+  const keepNo=$("quoteNo")?$("quoteNo").value:""; if($("quoteNo")) $("quoteNo").value=f.finalNo||"";
+  printJobCard();
+  if($("quoteNo")) $("quoteNo").value=keepNo; }
+function deleteFinal(i){ const fin=loadFinals(); const f=fin[i]; if(f&&!confirm(`Delete final quotation ${f.finalNo||""}? This can't be undone.`)) return;
+  fin.splice(i,1); saveFinals(fin); renderFinals(); }
+function exportFinal(i){ const f=loadFinals()[i]; if(!f) return;
+  const cols=["finalNo","finalizedDate","status","sourceQuoteNo"].concat(QUOTE_COLS);
+  const lines=[csvRow(["field","value"])].concat(cols.map(k=>csvRow([k,f[k]])));
+  downloadText((f.finalNo||"final")+"_"+(f.name||f.product||"job").replace(/[^\w-]+/g,"_")+".csv",lines.join("\n")); }
+function exportFinalsCSV(){ const fin=loadFinals(); if(!fin.length){ alert("No final quotations yet."); return; }
+  const cols=["finalNo","finalizedDate","status","sourceQuoteNo"].concat(QUOTE_COLS);
+  const lines=[csvRow(cols)].concat(fin.map(r=>csvRow(cols.map(k=>r[k]))));
+  downloadText("final_quotations_"+new Date().toISOString().slice(0,10)+".csv",lines.join("\n")); }
+function renderFinals(){
+  const box=$("finalList"); if(!box) return;
+  const fin=loadFinals();
+  if(!fin.length){ box.innerHTML='<span style="color:#6b7480">No final quotations yet — price a job and click ✅ Finalize, or promote a saved draft below.</span>'; return; }
+  const inr=n=>"₹"+Math.round(n||0).toLocaleString("en-IN");
+  let h='<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="text-align:left">Final no</th><th style="text-align:left">Date</th><th style="text-align:left">Customer</th><th style="text-align:left">Job</th><th>Qty</th><th style="text-align:right">Grand</th><th></th></tr></thead><tbody>';
+  fin.forEach((f,i)=>{
+    h+=`<tr><td style="padding:3px 0"><b>${esc(f.finalNo||"")}</b></td><td>${esc(f.finalizedDate||f.date||"")}</td><td>${esc(f.customer||"")}</td><td>${esc(f.name||f.product||"")}</td>`+
+       `<td style="text-align:center">${f.qty!=null?f.qty:""}</td><td style="text-align:right">${inr(f.grand)}</td>`+
+       `<td style="text-align:right;white-space:nowrap">`+
+       (f._inputs?`<button class="mbtn s" style="padding:2px 7px" onclick="openFinal(${i})">Open</button> <button class="mbtn p" style="padding:2px 7px" onclick="finalToJobCard(${i})" title="Print the job card for this approved quotation">🗂 Job card</button> `:``)+
+       `<button class="mbtn s" style="padding:2px 7px" onclick="exportFinal(${i})">CSV</button> `+
+       `<button class="mbtn s" style="padding:2px 7px" onclick="deleteFinal(${i})">✕</button></td></tr>`;
   });
   h+='</tbody></table>';
   box.innerHTML=h;
@@ -3776,6 +3859,7 @@ onProductChange();
 if(typeof location!=="undefined" && /^https?:$/.test(location.protocol||"")) loadLiveRates(); else renderLiveBadge&&(LIVE_STATUS.paper={ok:false},renderLiveBadge());
 renderSet();               // restore any saved set items (localStorage)
 renderQuoteLog();          // show saved quotes (localStorage)
+renderFinals();            // show final quotations (localStorage)
 renderTemplates();         // show saved templates / masters (localStorage)
 refreshQuoteNo();          // show the next auto quote number
 if($("cloudUrl")) $("cloudUrl").value=getCloudUrl();   // restore the cloud save URL
