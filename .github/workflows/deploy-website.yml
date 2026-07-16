@@ -1,0 +1,71 @@
+name: Deploy estimator to andersonindia.com
+
+# Publishes paper_calculator.html to https://andersonindia.com/papercalculator/ as index.html.
+# GitHub Pages updates itself on push; this is what pushes the SAME build to the real website.
+#
+# ⚠ READ BEFORE ENABLING — do these in order:
+#   1. cPanel → Directory Privacy → protect /papercalculator/ with a username + password.
+#      This is REAL server-side auth. It lives in .htaccess/.htpasswd, which this workflow
+#      never touches, so a deploy can't remove your login.
+#   2. GitHub → Settings → Secrets and variables → Actions → add: FTP_HOST, FTP_USER, FTP_PASSWORD.
+#   3. Push (or run this from the Actions tab).
+#
+# Why the order matters: the live index.html currently carries a hand-added JavaScript password
+# gate that does NOT exist in this repo. Deploying replaces index.html, so that JS gate goes away.
+# That is fine ONLY once step 1 is done — otherwise the estimator would be left wide open. The
+# "safety check" job below refuses to deploy until the folder actually asks for a password.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'paper_calculator.html'
+      - '.github/workflows/deploy-website.yml'
+  workflow_dispatch: {}        # also runnable by hand from the Actions tab
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Refuses to publish into an unprotected folder. Expect 401 once Directory Privacy is on.
+      # If you ever decide the calculator SHOULD be public, delete this step.
+      - name: Safety check — folder must be password protected
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' https://andersonindia.com/papercalculator/)
+          echo "https://andersonindia.com/papercalculator/ returned HTTP $code"
+          if [ "$code" != "401" ]; then
+            echo "::error::Expected HTTP 401 (password protected) but got $code — deploy blocked."
+            echo "Set cPanel → Directory Privacy on /papercalculator/ first."
+            echo "Deploying now would overwrite index.html, remove the JavaScript password gate,"
+            echo "and leave the estimator publicly accessible."
+            exit 1
+          fi
+
+      # Stage ONLY the one file the site serves. The directory index is index.html,
+      # so the estimator is published under that name.
+      - name: Stage index.html
+        run: |
+          mkdir -p deploy
+          cp paper_calculator.html deploy/index.html
+          ls -l deploy/
+
+      - name: Upload via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps                       # encrypted. Use "ftp" ONLY if your host has no FTPS.
+          local-dir: ./deploy/                 # trailing slash required
+          server-dir: public_html/papercalculator/   # ← change if your host's path differs
+          # dangerous-clean-slate is deliberately NOT set: it would delete remote files,
+          # including .htaccess / .htpasswd (your login). Never enable it here.
+          exclude: |
+            **/.git*
+            **/.htaccess
+            **/.htpasswd
+
+      - name: Done
+        run: echo "Published → https://andersonindia.com/papercalculator/ (hard-refresh with Ctrl+F5 if cached)"

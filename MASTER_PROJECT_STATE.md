@@ -6,6 +6,34 @@
 
 ---
 
+## 🌐 DEPLOYMENT REALITY (2026-07-16 — read before touching publishing)
+**TWO separate live copies:**
+1. **GitHub Pages** `https://mounojitd.github.io/mounojitd-ai-print-estimator/` — auto-updates on `git push`
+   (~1 min). **Public, NO login.** Serves the repo's `index.html`.
+2. **The real website** `https://andersonindia.com/papercalculator/` — **Apache on the user's own cPanel host,
+   NOT Pages. `git push` does NOT update it.** Until now it was a MANUAL upload of `paper_calculator.html` →
+   that folder's `index.html`.
+
+**⚠ The live website's `index.html` is NOT the repo file.** It carries ~80 lines of a hand-added **JavaScript
+password gate** (`#pwOverlay`/`pwBox`/`pwInput`, `var SITE_PASSWORD="…"`) that exists ONLY on the server. Any
+deploy that overwrites `index.html` REMOVES that gate. Two facts about it: (a) it is client-side only — the
+password is readable via view-source, trivially bypassed; (b) it is moot anyway while the identical app sits
+public + ungated on the Pages URL above.
+**Host also sends `Cache-Control: max-age=2592000` (30-day browser cache)** → after an upload, sir may still see
+an OLD build unless he hard-refreshes (Ctrl+F5). Suspect stale-build reports before chasing "bugs".
+
+**AGREED PLAN (user chose 2026-07-16):** ① user sets **cPanel → Directory Privacy on /papercalculator/** = real
+server-side auth in `.htaccess`/`.htpasswd` (separate from index.html, so deploys can't wipe it; password never
+in the HTML, never handled by Claude) → ② user adds GitHub secrets `FTP_HOST`/`FTP_USER`/`FTP_PASSWORD` → ③
+`.github/workflows/deploy-website.yml` (ADDED, commit below) FTPS-uploads `paper_calculator.html` → `index.html`
+into `public_html/papercalculator/` on every push. It stages ONLY that one file, excludes `.htaccess`/`.htpasswd`,
+and **never** uses `dangerous-clean-slate`. A **safety-check step refuses to deploy unless the folder returns HTTP
+401**, so it cannot strip the login by accident (verified: today returns 200 → correctly blocked). Once Directory
+Privacy is on, the JS gate becoming replaced is intended. Feeds roadmap "WEB HOSTING v1.0 (login) by 27 Jul".
+`publish.ps1` only does Pages — it does NOT touch andersonindia.com.
+
+---
+
 ## ⭐⭐ RESUME 2026-07-13 (LATEST — read this first) ⭐⭐
 Live: https://mounojitd.github.io/mounojitd-ai-print-estimator/ · publish = copy html→index.html+backend/app/static+
 Desktop+Downloads, `git push`. Verify: `node tools/smoke_test_products.js` (must stay 25/25). **⭐ ALL GNM
