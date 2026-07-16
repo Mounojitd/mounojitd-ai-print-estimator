@@ -72,10 +72,17 @@ gloss(0.24) lam rates he says too low · binding rate (sheet=₹6.75 sewn_perfec
 (now on L-32 so differs from his big-press figure). **Contradiction flagged:** sir's "Finishing 18,775" is likely
 binding(18,174)+finishing COMBINED → finishing ≈ ₹601, not a 2nd ₹18k line.
 
-**Sir's ROADMAP (multi-week, not started):** save-as-FINAL-quotation → separate DB · generate JOB CARD (paper/
-material/print/post-press procurement) · quotation print format (from Palas-da/Sanjit-da) · approval mechanism ·
-WEB HOSTING v1.0 (login, sir approves emailed codes) by **27 Jul** · APP (API + local sync) · CATALOG (commercial/
-packaging/publishing categories, PDF flip-book) by 30 Sep · web commerce · versioning "ATPM/NRIEL Print Engine v1.0".
+**Sir's ROADMAP:** ✅ **JOB CARD DONE** (`🗂 Print job card` button → `printJobCard()`/`jobCardBody()`: a
+PRICE-FREE procurement + shop-floor traveller — §1 Materials to procure (text+cover paper: parent-buy → cut-up →
+cut size, parent/cut qty, weight; waste breakdown) · §2 Printing (machine/colours/work-style/plates/impressions/
+forms, text+cover) · §3 Post-press ops checklist enumerated from EVERY plan (binding·mech·flatPP·dieline·boardbook·
+hardcase·slipcase·tablecal·coating·embellishments) with ▢ sign-off · §4 Packing/dispatch · §5 layout SVG · dept
+sign-offs. `jobCardOps()` pulls each plan's `.items`; `jcClean()` strips the ₹-rate fragments from op names but
+KEEPS quantities so it stays price-free. Reuses docHeader/docCSS/openPrintDocument. Verified in-browser: all 5
+sections, 0 ₹ leak, procurement math (buy 6,600 parent 25×36→13,200 cut 29×19, 498kg), flat/hardcase ops flow in;
+smoke 25/25.) · STILL TODO: save-as-FINAL-quotation → separate DB · quotation print format (from Palas-da/Sanjit-da)
+· approval mechanism · WEB HOSTING v1.0 (login, sir approves emailed codes) by **27 Jul** · APP (API + local sync) ·
+CATALOG (commercial/packaging/publishing categories, PDF flip-book) by 30 Sep · web commerce · versioning "ATPM/NRIEL Print Engine v1.0".
 
 ---
 

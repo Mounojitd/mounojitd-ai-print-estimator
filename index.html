@@ -535,6 +535,7 @@
         <div style="margin-top:10px">
           <button class="mbtn p" onclick="printQuotation()">Print quotation</button>
           <button class="mbtn s" onclick="printJobSheet()">Print internal job sheet</button>
+          <button class="mbtn s" onclick="printJobCard()">🗂 Print job card</button>
           <button class="mbtn s" onclick="saveQuoteCSV()">💾 Save quote (CSV + cloud)</button>
           <button class="mbtn s" onclick="exportLogCSV()">📤 Export all saved quotes (CSV)</button>
           <span id="saveStatus" style="font-size:12px;color:#1c7a52;margin-left:6px"></span>
@@ -3528,6 +3529,83 @@ function printJobSheet(){
     ${m.notes?`<h2>Instructions</h2><div class="box">${esc(m.notes)}</div>`:""}
     <div class="sign"><span>Pre-press checked</span><span>Production approved</span><span>Dispatch checked</span></div>`;
   openPrintDocument(m.no+" job sheet",body);
+}
+/* ---------- JOB CARD / WORK ORDER (NKK sir roadmap: procurement + shop-floor traveller). Unlike the internal
+   job sheet, the job card carries NO pricing — it tells the paper store what to BUY, the press what to PRINT,
+   and post-press what to DO, with sign-off boxes. Enumerates every post-press plan (binding · mechanical ·
+   flat post-press · dieline · board book · hard case · slipcase · table calendar · coating · embellishments). */
+// Post-press plan item names embed the RATE (e.g. "Die-cutting (288 sheets @ ₹300/1000)"). The job card is
+// price-free (shop-floor + procurement), so strip the ₹ fragments but keep the operation + its quantity.
+function jcClean(s){
+  return String(s)
+    .replace(/\s*@\s*₹[\d.,]+\s*\/\s*[\w\d]+/g,"")   // " @ ₹300/1000"
+    .replace(/\s*₹[\d.,]+\s*\/\s*[\w]+/g,"")          // "₹8/calendar", "₹95/book"
+    .replace(/\s*₹[\d.,]+/g,"")                        // any stray "₹95"
+    .replace(/\(\s*\)/g,"")                            // empty "()" left behind
+    .replace(/\(\s+/g,"(").replace(/\s+\)/g,")")
+    .replace(/\s{2,}/g," ").trim();
+}
+function jobCardOps(x){
+  const ops=[];
+  const lam=$("lam")&&$("lam").value, clam=$("coverLam")&&$("coverLam").value;
+  if(lam&&lam!=="none") ops.push((LASTINP.separateCover?"Inside coating (all text sheets) — ":"Coating (all sheets) — ")+coatingName(lam));
+  if(LASTINP.separateCover&&clam&&clam!=="none") ops.push("Cover coating — "+coatingName(clam));
+  (x.embItems||[]).forEach(e=>ops.push("Cover embellishment — "+e.name));
+  if(x.mech&&x.mech.items) x.mech.items.forEach(i=>ops.push(i.name));
+  else if(x.binding){ const bv=$("binding")?$("binding").value:"none"; if(bv!=="none") ops.push(`Binding — ${BINDING_NAME[bv]||bv}${LASTINP.spineMM?` · spine ${LASTINP.spineMM} mm`:""}`); }
+  if(x.finishing) ops.push("Finishing — trim / fold");
+  if(x.flatpp&&x.flatpp.items) x.flatpp.items.forEach(i=>ops.push(i.name));
+  if(x.tablecal&&x.tablecal.items) x.tablecal.items.forEach(i=>ops.push("Calendar — "+i.name));
+  if(x.dieline&&x.dieline.items) x.dieline.items.forEach(i=>ops.push("Converting — "+i.name));
+  if(x.boardbook&&x.boardbook.items) x.boardbook.items.forEach(i=>ops.push("Board book — "+i.name));
+  if(x.hardcase&&x.hardcase.items) x.hardcase.items.forEach(i=>ops.push("Case — "+i.name));
+  if(x.slipcase&&x.slipcase.items) x.slipcase.items.forEach(i=>ops.push("Slipcase — "+i.name));
+  return ops.map(jcClean);
+}
+function jobCardBody(){
+  const x=combinedPrice(),p=x.p,m=quoteMeta(),I=LASTINP,t=CHOSEN;
+  const product=I.product_name||($("product").selectedOptions[0]?.text||I.product);
+  const workLbl={back:"Work & back (sheetwise)",turn:"Work & turn",tumble:"Work & tumble"}[p.work]||p.work;
+  const grade=($("paperGrade")&&$("paperGrade").value&&$("paperGrade").value!=="__auto"&&$("paperGrade").value!=="")?" · "+$("paperGrade").value:"";
+  const ptype=(function(){const s=$("paperTypeSel"); if(!s)return""; const o=s.options[s.selectedIndex]; return (o&&o.text&&o.text!=="All types")?" "+o.text:"";})();
+  const buyCol=o=>{ const c=o.cutsPerParent>1;
+    return { spec:c?`${o.paperSheetW}×${o.paperSheetH} in → cut ${o.cutsPerParent}-up → ${o.sw}×${o.sh} in`:`${o.sw}×${o.sh} in (print full, no cut)`,
+             qty:c?`${(o.parentTotal||0).toLocaleString("en-IN")} parent sheets → ${(o.total||0).toLocaleString("en-IN")} cut`:`${(o.total||0).toLocaleString("en-IN")} sheets`,
+             wt:`${(o.paperWeight||o.total_wt||0)} kg` }; };
+  const matRows=[]; const tb=buyCol(t);
+  matRows.push(["Text paper",`${I.gsm} GSM${ptype}${grade}`,tb.spec,tb.qty,tb.wt]);
+  if(x.cover&&x.coverPlan&&x.coverPlan.option){ const o=x.coverPlan.option,cb=buyCol(o);
+    matRows.push(["Cover paper",`${num("coverGsm",300)} GSM`,cb.spec,cb.qty,cb.wt]); }
+  const matTable=`<table><thead><tr><th>Material</th><th>Spec</th><th>Buy / cut</th><th>Quantity</th><th class="num">Weight</th></tr></thead><tbody>`+
+    matRows.map(r=>`<tr><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td class="num">${esc(r[4])}</td></tr>`).join("")+`</tbody></table>`;
+  const wasteNote=`Good ${(t.good||0).toLocaleString("en-IN")} + make-ready ${(t.setupWaste||0).toLocaleString("en-IN")} + running waste ${(t.run||0).toLocaleString("en-IN")} = <b>${(t.total||0).toLocaleString("en-IN")} cut sheets</b> · layout waste ${t.waste}%`;
+  const printRows=[["Machine (text)",SELECTED_MACHINE?SELECTED_MACHINE.name:"—"],["Colours",`${p.cf} + ${p.cb}`],
+    ["Work style",workLbl],["Plates",`${x.q.plateCount}`],["Impressions",`${(x.q.impressions||0).toLocaleString("en-IN")}`],
+    ["Forms / layout",I.isSig?`${t.sig}pp × ${t.signatures} forms${(t.formsPerSheet||1)>1?` (×${t.formsPerSheet}/sheet)`:""} · ${t.layouts} layouts`:`${t.ups}-up`]];
+  if(x.cover&&x.coverPlan){ printRows.push(["Machine (cover)",x.coverPlan.machine?x.coverPlan.machine.name:"—"],
+    ["Cover colours",`${Math.round(num("coverCf",4))} + ${Math.round(num("coverCb",4))}`]); }
+  const printTable=`<table>`+printRows.map(r=>`<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td></tr>`).join("")+`</table>`;
+  const ops=jobCardOps(x);
+  const opsTable=ops.length?`<table><thead><tr><th style="width:34px">✓</th><th>Operation</th><th>Done by / date</th></tr></thead><tbody>`+
+    ops.map(o=>`<tr><td style="text-align:center;font-size:15px">▢</td><td>${esc(o)}</td><td>&nbsp;</td></tr>`).join("")+`</tbody></table>`
+    :`<div class="box">No post-press operations specified for this job.</div>`;
+  const cartons=Math.max(1,Math.ceil((t.paperWeight||t.total_wt||0)/15));
+  return docHeader("JOB CARD / WORK ORDER",m)+
+    `<div class="box"><div class="cols"><div><b>Customer:</b> ${esc(m.customer)}<br><b>Job:</b> ${esc(product)}<br><b>Quantity:</b> ${I.copies.toLocaleString("en-IN")}</div>
+      <div><b>Order date:</b> ${m.date}<br><b>Delivery date:</b> ________________<br><b>Job ref:</b> ________________</div></div></div>
+    <h2>1 · Materials to procure</h2>${matTable}<div class="muted" style="font-size:11px;margin-top:4px">${wasteNote}</div>
+    <h2>2 · Printing</h2>${printTable}
+    <h2>3 · Post-press operations</h2>${opsTable}
+    <h2>4 · Packing &amp; dispatch</h2><div class="box">Approx. <b>${cartons.toLocaleString("en-IN")}</b> carton(s) · total paper weight <b>${(t.paperWeight||t.total_wt||0)} kg</b><br>Packing: ________________&nbsp;&nbsp; Dispatch to: ________________</div>
+    <h2>5 · Layout / cut sheet</h2>${sheetPicture(CHOSEN)}
+    ${m.notes?`<h2>Instructions</h2><div class="box">${esc(m.notes)}</div>`:""}
+    <div class="sign"><span>Paper store</span><span>Pre-press</span><span>Printing</span></div>
+    <div class="sign" style="margin-top:34px"><span>Post-press / binding</span><span>QC</span><span>Dispatch</span></div>`;
+}
+function printJobCard(){
+  if(!CHOSEN||!LASTINP||!printablePlanReady())return;
+  const m=quoteMeta();
+  openPrintDocument(m.no+" job card",jobCardBody());
 }
 /* ---------- LIVE RATE DB (NKK sir): pull the master Google Sheet's PAPER_PRICING tab on load, so any change
    made in the sheet reflects here on the next refresh. Falls back to the embedded PAPER_DB when offline or the
