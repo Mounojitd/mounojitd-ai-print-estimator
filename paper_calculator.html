@@ -135,12 +135,12 @@
            falls back to a typed box where the same parser runs. Always shows what it parsed for verification. -->
       <div id="voiceBox" class="pbox" style="margin:0 0 10px;background:#f4f8ff;border:1px solid #c7d6f0">
         <div class="prow" style="align-items:center;gap:8px;flex-wrap:wrap">
-          <button type="button" id="voiceBtn" onclick="voiceToggle()" style="background:#2456c7;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer">🎤 Speak the job</button>
-          <span id="voiceStatus" style="font-size:11.5px;color:#6b7480;flex:1;min-width:180px">e.g. “Udyogi 360 brochure, A4, cover plus 40 pages, 300 and 170 gsm art, section sewn perfect, cover matte lamination, 10000 quantity”</span>
+          <button type="button" id="voiceBtn" onclick="voiceToggle()" style="background:#2456c7;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer">🎤 Speak or dictate</button>
+          <span id="voiceStatus" style="font-size:11.5px;color:#6b7480;flex:1;min-width:180px">Speak with the mic, or paste / dictate with <a href="https://wisprflow.ai/" target="_blank" rel="noopener" style="color:#2456c7">Wispr Flow</a> into the box below — auto-fills after you stop typing.</span>
         </div>
         <div class="prow" style="margin-top:6px;gap:6px">
-          <input id="voiceText" type="text" placeholder="…or type / paste the job spec here" style="flex:1;min-width:0" onkeydown="if(event.key==='Enter'){event.preventDefault();voiceApplyText();}" />
-          <button type="button" onclick="voiceApplyText()" style="cursor:pointer">Fill form</button>
+          <textarea id="voiceText" placeholder="Paste or dictate the full job brief here (any format — Subject, Close Size, GSM, Binding, etc.) — auto-parses when you stop typing." style="flex:1;min-width:0;resize:vertical;min-height:60px;font-family:inherit;padding:8px 11px;border:1px solid var(--line);border-radius:10px;font-size:13px" oninput="voiceAutoParse()"></textarea>
+          <button type="button" onclick="voiceApplyText()" style="cursor:pointer;align-self:flex-start">Fill now</button>
         </div>
         <div id="voiceParsed" style="font-size:12px;margin-top:6px"></div>
         <div class="prow" style="margin-top:6px;gap:6px;align-items:center">
@@ -2907,6 +2907,15 @@ function applyVoiceSpec(raw){
   return notes;
 }
 function voiceApplyText(){ const el=$("voiceText"); if(el&&el.value.trim()) applyVoiceSpec(el.value.trim()); }
+// AUTO-PARSE (NKK sir 2026-07-17 + Wispr Flow workflow): when the user pastes or dictates a spec
+// and stops typing for 1.2 s, auto-run the parser. Threshold ≥ 30 chars so tiny edits don't fire.
+let VOICE_AUTO_TIMER=null;
+function voiceAutoParse(){
+  if(VOICE_AUTO_TIMER) clearTimeout(VOICE_AUTO_TIMER);
+  const el=$("voiceText"); if(!el) return;
+  const txt=el.value.trim(); if(txt.length<30) return;
+  VOICE_AUTO_TIMER=setTimeout(()=>{ applyVoiceSpec(txt); }, 1200);
+}
 // CONTINUOUS listening (NKK sir: catch the WHOLE spec even when spoken slowly with pauses). We keep
 // recognition running across silences — every finalised chunk is appended to VOICE_FINAL, and if the engine
 // auto-stops on silence we RESTART it (unless the user tapped stop). Nothing is applied until the user taps
