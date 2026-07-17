@@ -3014,6 +3014,14 @@ function applyVoiceSpec(raw){
   if(f.coverEmb){ ["coverEmb1","coverEmb2","coverEmb3"].forEach((id,i)=>{ if($(id)) $(id).value=f.coverEmb[i]||"none"; }); }
   if(f.coverWork) setV("coverWorkStyle",f.coverWork);
   if(f.reprint && $("reprint")) $("reprint").checked=true;
+  // AUTO POST-PRESS RATES (NKK sir 2026-07-17 Sunili Oran reconcile: ₹300/1000 die-cut landed the card
+  // at +2% of real). Set defaults only if the parser flagged the op AND the user hasn't already typed
+  // a value. Real vendor rates from sir will replace these — the placeholder is better than ₹0 which
+  // silently drops the op from the cost.
+  if(f.flatpp && f.flatpp.die && $("fppDie") && (!$("fppDie").value||$("fppDie").value==="0")){ $("fppDie").value=300; }
+  if(f.flatpp && f.flatpp.hole && $("fppPunch") && (!$("fppPunch").value||$("fppPunch").value==="0")){ $("fppPunch").value=150; }
+  // Pasted tag: pasting rate default when brief mentions back-to-back or the product is pasted_tag.
+  if((f.product==="pasted_tag") && $("ptagPaste") && (!$("ptagPaste").value||$("ptagPaste").value==="0")){ $("ptagPaste").value=100; }
   // SHEET SIZE presets — tick the parsed sizes; add any missing size as a custom chip.
   if(f.sheetSizes && f.sheetSizes.length){
     const chips=$("ssChips");
