@@ -172,6 +172,7 @@
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
               <option value="insert">Loose insert / single sheet</option>
+              <option value="pasted_tag">Pasted tag / Hang tag (2 sheets pasted back-to-back)</option>
             </optgroup>
             <optgroup label="Dieline / converting (blank → die-cut → fold)">
               <option value="carton_tuck">Carton / mono carton (tuck-end)</option>
@@ -388,6 +389,14 @@
         <div class="row3">
           <div class="fld"><label>Stand making ₹ / calendar</label><input id="tcMaking" type="number" step="0.5" value="5" oninput="showPrice()" /></div>
           <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Stand surface auto = 2.2 × leaf W×H (two faces + base). Same build as the hard case / sleeve (chip + PLC + backing paste). Rates editable — confirm with sir.</div></div>
+        </div>
+      </div>
+      <div id="ptagFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c3aed;background:#f7f2ff">
+        <div class="ptitle" style="color:#5b21b6">🏷 Pasted tag — 2 sheets back-to-back</div>
+        <div class="hint" style="margin:-2px 0 6px">Each finished tag = <b>2 press sheets pasted together</b>. Paper × 2 automatically. Add die-cut + hole-punch in the panel below.</div>
+        <div class="row3">
+          <div class="fld"><label>Pasting ₹ / 1000 pieces</label><input id="ptagPaste" type="number" step="10" value="0" oninput="showPrice()" /><div class="hint">gum + labour (0 = none)</div></div>
+          <div class="fld" style="grid-column:span 2"></div>
         </div>
       </div>
       <div id="fppFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
@@ -632,8 +641,12 @@ const SIGNATURE_PRODUCTS=new Set(["booklet","catalogue","magazine","manual","ann
 const isSig=p=>SIGNATURE_PRODUCTS.has(p);
 // FLAT POST-PRESS / B3 (NKK sir GNM review): flat non-dieline products that can still need shaping/folding.
 // (calendar_table has its own wiro+stand panel, so it is excluded here.)
-const FLAT_PP_PRODUCTS=new Set(["leaflet","poster","card","calendar_sheet","dangler","insert"]);
+const FLAT_PP_PRODUCTS=new Set(["leaflet","poster","card","calendar_sheet","dangler","insert","pasted_tag"]);
 const isFlatPP=p=>FLAT_PP_PRODUCTS.has(p);
+// PASTED TAG (NKK sir 2026-07-17 Sunili ILI job): flat hang-tag, 2 sheets pasted back-to-back to make
+// one thick tag. Paper AND its weight double per finished piece; adds a pasting labour line. Die-cut +
+// hole-punch use the existing B3 fppFields (already flat post-press).
+const isPastedTag=p=>p==="pasted_tag";
 // SLIPCASE / book sleeve (NKK sir p3): rigid book case = chipboard + PLC wrap (cut to shape) + inside-paper
 // paste. Holds a book H(height)×W(width)×D(depth). The PLC wrap prints like a dieline blank; the board +
 // inside paper + making are added like the hard case.
@@ -704,6 +717,7 @@ function onProductChange(){
   if($("tablecalFields")) $("tablecalFields").style.display=($("product").value==="calendar_table")?"block":"none";
   // FLAT POST-PRESS / B3: show the die-cut/punch/score/fold panel for flat non-dieline products
   if($("fppFields")) $("fppFields").style.display=isFlatPP($("product").value)?"block":"none";
+  if($("ptagFields")) $("ptagFields").style.display=isPastedTag($("product").value)?"block":"none";
   onCoverChange();
 }
 // default wiro ₹/calendar by type (NKK sir: part wiro = 2 short pieces, saves cost vs full)
@@ -2293,6 +2307,20 @@ function flatPostPress(){
   const total=items.reduce((s,i)=>s+i.cost,0);
   return {items,total,sizes:{sheets,pieces}};
 }
+// PASTED TAG (NKK sir 2026-07-17 Sunili ILI job): flat hang-tag = 2 sheets pasted back-to-back per
+// finished piece. Returns the extra paper cost (2nd sheet at same rate/weight) + pasting labour.
+// Called from the no-cover branch of combinedPrice(); adds x.pastedTag to the price panel.
+function pastedTagPlan(tq){
+  if(!LASTINP||!CHOSEN||!isPastedTag(LASTINP.product)) return null;
+  const pieces=LASTINP.copies||0, items=[];
+  const paperExtra = tq.paper;                                     // 2nd pasted sheet at same rate + discount
+  const wtExtra = CHOSEN.paperWeight||CHOSEN.total_wt||0;
+  items.push({name:`2nd pasted sheet — same paper × ${(CHOSEN.paperSheets||CHOSEN.total).toLocaleString("en-IN")} sheets`,cost:paperExtra});
+  const pr=num("ptagPaste",0);
+  if(pr>0) items.push({name:`Pasting labour (${pieces.toLocaleString("en-IN")} pcs @ ₹${pr}/1000)`,cost:Math.ceil(pieces/1000)*pr});
+  const total=items.reduce((s,i)=>s+i.cost,0);
+  return {items,total,paperExtra,wtExtra};
+}
 // SPINE-DRIVEN recommendation (NKK sir's rules — RECOMMEND, never silently assume; user can override):
 //   spine ≤ 2.5mm → Saddle stitch · spine > 3mm → warn (Section sewn / Perfect) · spine > 4.5mm → error+override.
 function autoBindingBySpine(spineMM){
@@ -2662,12 +2690,15 @@ function combinedPrice(){
   if(!cp||!cp.option){
     const fmr=finishingMakeReady(textP,null,p,tq);
     const fpp=flatPostPress(), fppCost=fpp?fpp.total:0;   // B3: flat die-cut/punch/score/fold (no material weight)
-    if(!bindCost&&!finishing&&!tcalCost&&!fppCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,flatpp:fpp,fmr};
-    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt+mbWt+tcalWt;
+    // PASTED TAG (Sunili ILI): 2nd sheet doubles paper + weight (same rate, same imposition); adds pasting labour.
+    const ptag=pastedTagPlan(tq), ptagCost=ptag?ptag.total:0, ptagWt=ptag?ptag.wtExtra:0;
+    if(!bindCost&&!finishing&&!tcalCost&&!fppCost&&!ptagCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,flatpp:fpp,ptag,fmr};
+    const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt+mbWt+tcalWt+ptagWt;
     const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
-    const base=tq.paper+fmr.total+tq.printing+tq.plates+tq.lam+bindCost+finishing+tcalCost+fppCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
+    const base=tq.paper+fmr.total+tq.printing+tq.plates+tq.lam+bindCost+finishing+tcalCost+fppCost+ptagCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
-    return {p,q:Object.assign({},tq,{packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding:bindCost,finishing,mech:mb,tablecal:tcal,flatpp:fpp,fmr};
+    const paperShown = tq.paper + (ptag?ptag.paperExtra:0);        // show doubled paper on the price panel
+    return {p,q:Object.assign({},tq,{paper:paperShown,packing,freight,fmr:fmr.cost,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books}),text:tq,cover:null,coverPlan:cp,binding:bindCost,finishing,mech:mb,tablecal:tcal,flatpp:fpp,ptag,fmr};
   }
   const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
     isSpecial:paperIsSpecial("coverTypeSel","coverGrade"),paperRate:(cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh)),
@@ -3159,6 +3190,7 @@ function showPrice(){
   if(x.finishing)rows.push([`Finishing (trim/fold)`,x.finishing,`${(LASTINP?LASTINP.copies:0).toLocaleString("en-IN")} books × ₹${num("finishRate",0)}/book`]);
   if(x.tablecal){ x.tablecal.items.forEach(i=>rows.push([`Calendar — ${i.name}`,i.cost])); }
   if(x.flatpp){ x.flatpp.items.forEach(i=>rows.push([`Post-press — ${i.name}`,i.cost])); }
+  if(x.ptag){ x.ptag.items.forEach(i=>rows.push([`Pasted tag — ${i.name}`,i.cost])); }
   if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets, printed + paper)`,x.fmr.total]);
   rows.push(["Packing",q.packing,pf.pack],["Freight",q.freight,pf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
@@ -3786,6 +3818,7 @@ function jobCardOps(x){
   else if(x.binding){ const bv=$("binding")?$("binding").value:"none"; if(bv!=="none") ops.push(`Binding — ${BINDING_NAME[bv]||bv}${LASTINP.spineMM?` · spine ${LASTINP.spineMM} mm`:""}`); }
   if(x.finishing) ops.push("Finishing — trim / fold");
   if(x.flatpp&&x.flatpp.items) x.flatpp.items.forEach(i=>ops.push(i.name));
+  if(x.ptag&&x.ptag.items) x.ptag.items.forEach(i=>ops.push(i.name));
   if(x.tablecal&&x.tablecal.items) x.tablecal.items.forEach(i=>ops.push("Calendar — "+i.name));
   if(x.dieline&&x.dieline.items) x.dieline.items.forEach(i=>ops.push("Converting — "+i.name));
   if(x.boardbook&&x.boardbook.items) x.boardbook.items.forEach(i=>ops.push("Board book — "+i.name));
