@@ -498,7 +498,7 @@
           </select></span>
         </div>
         <div class="prow">
-          <span><label>Margin %</label><input id="margin" type="number" value="40" oninput="showPrice();updateTargetMarginNote()" /><div class="hint">NKK sir: standard 40% (on the final/sale price) — change per job if needed</div></span>
+          <span><label>Margin %</label><input id="margin" type="number" value="40" oninput="marginEdited=true;showPrice();updateTargetMarginNote()" /><div class="hint">NKK sir: default varies by product (card/tag/leaflet 15–20%, brochure/catalogue 30–40%). Once you type, this stays fixed.</div></span>
           <span><label>Reprint (plates exist)</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="reprint" onchange="showPrice()" /> Yes — plates reused</label><div class="hint">NKK sir: reprint jobs reuse existing plates → cost drops to a handling fee (~10%). Fresh printing still charged.</div></span>
           <span><label>Target sale ₹ (optional)</label><input id="targetSale" type="number" step="1000" placeholder="e.g. 180000" oninput="applyTargetMargin()" /><div class="hint" id="targetSaleNote">Type a target price → auto-sets margin so grand ≈ target.</div></span>
           <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
@@ -723,6 +723,7 @@ function onProductChange(){
   // FLAT POST-PRESS / B3: show the die-cut/punch/score/fold panel for flat non-dieline products
   if($("fppFields")) $("fppFields").style.display=isFlatPP($("product").value)?"block":"none";
   if($("ptagFields")) $("ptagFields").style.display=isPastedTag($("product").value)?"block":"none";
+  applyMarginDefault();
   onCoverChange();
 }
 // default wiro ₹/calendar by type (NKK sir: part wiro = 2 short pieces, saves cost vs full)
@@ -2122,7 +2123,28 @@ function bindingRateFor(type,pp,qty){
   const best=s.slice().sort((a,b)=> (Math.abs(a.pp-pp)-Math.abs(b.pp-pp)) || (Math.abs(a.qty-qty)-Math.abs(b.qty-qty)) )[0];
   return best.r;
 }
-let bindingRateEdited=false;
+let bindingRateEdited=false, marginEdited=false;
+// PER-PRODUCT MARGIN DEFAULTS (NKK sir 2026-07-17 — pattern across 5 real quotes: Sunili tag, Sunili
+// Oran card, Keventer Plan + Sales brochures, Udyogi catalogue). Small commodity jobs (tags, cards,
+// short-run brochures) really quote at ~15%; design-heavy books/catalogues at 40%. Auto-sets only
+// when the user hasn't manually edited the margin. Override anytime by typing a new value.
+const MARGIN_DEFAULT={
+  // small commodity — tight margins
+  card:15, pasted_tag:15, insert:15,
+  leaflet:20, poster:20, dangler:20, calendar_sheet:20,
+  // signature / design-heavy — standard margins
+  booklet:30, magazine:30, manual:30, calendar_table:30,
+  catalogue:40, brochure_multi:40, annual:40,
+  // packaging / dieline — mid
+  envelope:20, folder:25, sleeve:25, carton_tuck:25, carton_seal:25,
+  slipcase:40
+};
+function applyMarginDefault(){
+  if(marginEdited) return;
+  const p=$("product")&&$("product").value;
+  const def=MARGIN_DEFAULT[p];
+  if(def!=null && $("margin")){ $("margin").value=def; }
+}
 function setBinding(v){ const x=BINDING[v]||BINDING.none;
   const pp=LASTINP?LASTINP.pages:Math.round(num("pages",0)), qty=LASTINP?LASTINP.copies:Math.round(num("copies",1));
   $("bindingRate").value=bindingRateFor(v,pp,qty); $("bindingMin").value=x[1]; bindingRateEdited=false;
