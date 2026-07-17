@@ -2829,10 +2829,13 @@ function parseSpec(raw){
   // ORIENTATION
   if(/\bportrait\b/.test(t)) f.orientation="portrait"; else if(/\blandscape\b/.test(t)) f.orientation="landscape";
   if(f.orientation) notes.push(f.orientation);
-  // COLOURS — "4 color all through" / "4 color both sides" / "front and back" → 4+4.
-  // Explicit "N+M color" wins over "all through" default.
+  // COLOURS — "4 color one side" → 4+0. "4 color all through / both sides / F&B" → 4+4.
+  // Explicit "N+M color" wins over "all through" default. "One side" MUST be checked before "4 color" alone.
   const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/);
   if(cm){ f.cf=+cm[1]||4; f.cb=+cm[2]||4; notes.push("colours "+f.cf+"+"+f.cb); }
+  else if(/(?:4|four)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/.test(t)){
+    f.cf=4; f.cb=0; notes.push("colours 4+0 (one side)");
+  }
   else if(/(?:4|four)\s*colou?r\s*(?:all\s*through|throughout|both\s*side|front\s*(?:and|&)\s*back|f\s*&\s*b|f\/b)/.test(t)
        || /(?:4|four)\s*colou?r.*(?:all\s*through|throughout|both\s*side)/.test(t)){
     f.cf=4; f.cb=4; notes.push("colours 4+4 (all through)");
@@ -2869,13 +2872,36 @@ function parseSpec(raw){
     [/\bemboss/,"emboss","Emboss"],[/\bdeboss/,"deboss","Deboss"],[/\btexture\b/,"texture","Texture effect"]];
   const embs=[]; for(const [re,v,lbl] of EMB){ if(re.test(t)&&!embs.includes(v)){ embs.push(v); notes.push("embellishment: "+lbl); } }
   if(embs.length) f.coverEmb=embs.slice(0,3);
-  // PRODUCT TYPE
+  // FLAT POST-PRESS signals (B3): die-cut / die-punch / punching / hole. Flag only (no rate set —
+  // real rates still pending NKK sir). Notes the user so they know to fill in fppDie / fppPunch.
+  const dieHit=/\bdie\s*[-]?\s*(?:cut|cutting|punch|punching)|\bdie[-\s]?cut/.test(t);
+  const holeHit=/\bhole\s*(?:on\s*top|punch|punching)|\bhang\s*hole\b|\beyelet\b/.test(t);
+  if(dieHit || holeHit){ f.flatpp={die:dieHit, hole:holeHit};
+    if(dieHit) notes.push("die-cut (rate ✍ pending)");
+    if(holeHit) notes.push("hole-punch (rate ✍ pending)"); }
+  // PRODUCT TYPE — pasted-tag / hang-tag MUST come before the generic 'card' match. A tag with
+  // "back-to-back paste/pasting" in the same brief is a pasted_tag (not a book b2b binding).
+  const isTag=/\bhang\s*tag\b|\btag\b(?!\s*line)/.test(t);
+  const b2bMention=/back\s*to\s*back|\bb2b\b/.test(t);
   const P=[[/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/manual/,"manual"],[/annual/,"annual"],
-    [/leaflet|flyer/,"leaflet"],[/poster/,"poster"],[/visiting|greeting|\bcard\b/,"card"],
+    [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag/,"pasted_tag"],
+    [/leaflet|flyer/,"leaflet"],[/poster/,"poster"],
     [/table\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],[/dangler|tent/,"dangler"],
     [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve/,"sleeve"],[/carton|box/,"carton_tuck"],
-    [/slipcase/,"slipcase"],[/booklet|brochure|book\b/,"booklet"]];
+    [/slipcase/,"slipcase"],
+    [/visiting|greeting|\bcard\b/,"card"],
+    [/booklet|brochure|book\b/,"booklet"]];
   for(const [re,v] of P){ if(re.test(t)){ f.product=v; break; } }
+  // If we saw "tag" + "back-to-back" it's a pasted tag, even if the explicit "pasted tag" phrase wasn't used.
+  if(isTag && b2bMention) f.product="pasted_tag";
+  // Pasted-tag / flat products: clear the b2b binding (it's the product, not a book-binding), and
+  // route the "cover coating" to the flat product's own coating (lam) — there is no cover.
+  const FLAT=new Set(["pasted_tag","card","leaflet","poster","dangler","insert","calendar_sheet"]);
+  if(FLAT.has(f.product)){
+    if(f.binding==="b2b" || f.binding==="none") delete f.binding;
+    if(f.coverLam && !f.lam){ f.lam=f.coverLam; delete f.coverLam; }
+    delete f.coverType; delete f.coverGsm;
+  }
   if(f.product==null && (f.pages||f.binding)) f.product="booklet";
   // Signature products default to ART / Coated paper when no type is spoken (NKK sir: brochures are art paper,
   // not the cheapest maplitho). Overridable. Reconciled sir's 90gsm text paper ₹47,432→₹53,724.
@@ -2903,13 +2929,14 @@ function applyVoiceSpec(raw){
   if(f.orientation) setV("orientation",f.orientation);
   if(f.unit) setV("unit",f.unit);
   setV("W",f.W); setV("H",f.H);
-  setV("pages",f.pages); setV("copies",f.copies);
+  setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
   setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
   setV("cf",f.cf); setV("cb",f.cb);
   if(f.coverType){ setV("coverType",f.coverType); if(typeof onCoverChange==="function") onCoverChange(); }
   if(f.paperType){ const ps=$("paperTypeSel"); if(ps){ ps.value=f.paperType; if(typeof onPaperTypeChange==="function") onPaperTypeChange(); }
     const cs=$("coverTypeSel"); if(cs){ cs.value=f.paperType; if(typeof onCoverTypeChange==="function") onCoverTypeChange(); } }
   if(f.coverLam) setV("coverLam",f.coverLam);
+  if(f.lam) setV("lam",f.lam);   // flat-product coating (tag, card, leaflet) — no cover exists
   if(f.coverEmb){ ["coverEmb1","coverEmb2","coverEmb3"].forEach((id,i)=>{ if($(id)) $(id).value=f.coverEmb[i]||"none"; }); }
   if(f.coverWork) setV("coverWorkStyle",f.coverWork);
   // SHEET SIZE presets — tick the parsed sizes; add any missing size as a custom chip.
