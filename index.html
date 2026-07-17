@@ -499,6 +499,7 @@
         </div>
         <div class="prow">
           <span><label>Margin %</label><input id="margin" type="number" value="40" oninput="showPrice();updateTargetMarginNote()" /><div class="hint">NKK sir: standard 40% (on the final/sale price) — change per job if needed</div></span>
+          <span><label>Reprint (plates exist)</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="reprint" onchange="showPrice()" /> Yes — plates reused</label><div class="hint">NKK sir: reprint jobs reuse existing plates → cost drops to a handling fee (~10%). Fresh printing still charged.</div></span>
           <span><label>Target sale ₹ (optional)</label><input id="targetSale" type="number" step="1000" placeholder="e.g. 180000" oninput="applyTargetMargin()" /><div class="hint" id="targetSaleNote">Type a target price → auto-sets margin so grand ≈ target.</div></span>
           <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
@@ -2505,6 +2506,9 @@ function priceJob(o,p,machine){
     const platesPerForme=(work==="back")?(Math.max(0,p.cf)+Math.max(0,p.cb)):Math.max(Math.max(0,p.cf),Math.max(0,p.cb));
     plateCount=platesPerForme*sigs;
     plates=plateCount*(card?card.plate:plateRate(src,band));
+    // REPRINT (NKK sir 2026-07-17 Keventer): plates already exist from the prior run — only a handling
+    // fee applies (~10% of fresh plate cost), NOT a full re-plate. Printing itself still charged.
+    if(p.reprint){ plates=+(plates*0.10).toFixed(2); }
   }
   const impressions=formes*formeRun;
   const COAT=activeCoat(), c=COAT[p.lam]||COAT.none;
@@ -2536,7 +2540,8 @@ function priceJob(o,p,machine){
     explain.printing=[p.cf>0?"F "+side(p.cf):null,p.cb>0?"B "+side(p.cb):null].filter(Boolean).join("  ·  ");
     const plateUnit=cardE?cardE.plate:plateRate(src,band);
     const workNote=work==="back"?"work&back → separate front + back plates":"work&"+work+" → one shared plate set";
-    explain.plates=`${plateCount} plates × ₹${plateUnit} — (cf ${Math.max(0,p.cf)} + cb ${Math.max(0,p.cb)}) × ${sigs} layouts · ${workNote}`;
+    const rprNote=p.reprint?" · <b style='color:#7c3aed'>REPRINT: plates reused → 10% handling fee only</b>":"";
+    explain.plates=`${plateCount} plates × ₹${plateUnit} — (cf ${Math.max(0,p.cf)} + cb ${Math.max(0,p.cb)}) × ${sigs} layouts · ${workNote}${rprNote}`;
   }
   if(p.lam&&p.lam!=="none") explain.lam=`${coatSheets.toLocaleString("en-IN")} sheets × ₹${c.r}/100sq.in × ${Math.round(o.sw*o.sh)} sq.in${Math.abs(lam-c.min)<0.5?` (min ₹${c.min})`:""}`;
   return {band,paper,buySheets,printing,plates,plateCount,impressions,formes,formeRun,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1),digital,digitalRate,explain};
@@ -2546,6 +2551,7 @@ function currentPriceParams(){
           coatArea:($("coatArea")?$("coatArea").value:"cover"),paperRate:num("paperRate",0),
           isSpecial:paperIsSpecial("paperTypeSel","paperGrade"),
           work:($("workStyle")?$("workStyle").value:"back"),
+          reprint:!!($("reprint")&&$("reprint").checked),
           margin:num("margin",40),overheadPct:num("overhead",0),gst:num("gst",0),discount:num("paperDiscount",0),books:LASTINP?LASTINP.copies:1,
           binding:LASTINP&&LASTINP.isSig?$("binding").value:"none",bindingRate:num("bindingRate",0),bindingMin:num("bindingMin",0),finishRate:num("finishRate",0)};
 }
@@ -2742,6 +2748,7 @@ function combinedPrice(){
   const coverP={cf:Math.round(num("coverCf",4)),cb:Math.round(num("coverCb",4)),lam:$("coverLam").value,coatArea:"all",
     isSpecial:paperIsSpecial("coverTypeSel","coverGrade"),paperRate:(cp.option.paperRate!=null?cp.option.paperRate:coverRateFor(cp.option.sw,cp.option.sh)),
     work:($("coverWorkStyle")?$("coverWorkStyle").value:"turn"),
+    reprint:p.reprint,
     margin:p.margin,gst:p.gst,discount:p.discount,books:p.books};
   const cq=priceJob(cp.option,coverP,cp.machine);
   // COVER EMBELLISHMENTS (combinable, on the cover printed sheets)
@@ -2937,6 +2944,8 @@ function parseSpec(raw){
   for(const [re,v] of P){ if(re.test(t)){ f.product=v; break; } }
   // If we saw "tag" + "back-to-back" it's a pasted tag, even if the explicit "pasted tag" phrase wasn't used.
   if(isTag && b2bMention) f.product="pasted_tag";
+  // REPRINT (NKK sir 2026-07-17 Keventer): 'reprint' / 'reprinting' → plates already exist.
+  if(/\brepri?nt(?:ing)?\b/.test(t)){ f.reprint=true; notes.push("reprint — plates reused (10% fee)"); }
   // Pasted-tag / flat products: clear the b2b binding (it's the product, not a book-binding), and
   // route the "cover coating" to the flat product's own coating (lam) — there is no cover.
   const FLAT=new Set(["pasted_tag","card","leaflet","poster","dangler","insert","calendar_sheet"]);
@@ -2982,6 +2991,7 @@ function applyVoiceSpec(raw){
   if(f.lam) setV("lam",f.lam);   // flat-product coating (tag, card, leaflet) — no cover exists
   if(f.coverEmb){ ["coverEmb1","coverEmb2","coverEmb3"].forEach((id,i)=>{ if($(id)) $(id).value=f.coverEmb[i]||"none"; }); }
   if(f.coverWork) setV("coverWorkStyle",f.coverWork);
+  if(f.reprint && $("reprint")) $("reprint").checked=true;
   // SHEET SIZE presets — tick the parsed sizes; add any missing size as a custom chip.
   if(f.sheetSizes && f.sheetSizes.length){
     const chips=$("ssChips");
