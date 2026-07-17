@@ -2728,11 +2728,39 @@ function parseSpec(raw){
   const t=" "+corrected+" ";
   const f={}, notes=[];
   const digits=s=>parseInt(String(s).replace(/[^0-9]/g,""),10);
-  // SIZE — standard names first, then a custom "W x H unit"
+  // SIZE — CLOSE size (trimmed) wins over open size. Handles unit-repeated + "(w)" markers.
+  // Sanjit-da's brief style: "Close Size: 210mm (w) x 297mm (h)" / "Open Size: 297mm x 420mm".
   const SIZES={a2:[16.54,23.39],a3:[11.69,16.54],a4:[8.27,11.69],a5:[5.83,8.27],a6:[4.13,5.83],letter:[8.5,11],legal:[8.5,14]};
   for(const k in SIZES){ if(new RegExp("\\b"+k+"\\b").test(t)){ f.unit="in"; f.W=SIZES[k][0]; f.H=SIZES[k][1]; notes.push("size "+k.toUpperCase()); break; } }
-  const mSize=t.match(/(\d+(?:\.\d+)?)\s*(?:x|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(inch|inches|in|mm|cm)\b/);
-  if(mSize && f.W==null){ f.W=+mSize[1]; f.H=+mSize[2]; f.unit=/mm/.test(mSize[3])?"mm":/cm/.test(mSize[3])?"cm":"in"; notes.push("size "+f.W+"×"+f.H+" "+f.unit); }
+  // find every "N unit? x N unit?" occurrence + optional "(w)"/"(h)" markers between them
+  const sizeRe=/(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?\s*(?:x|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?/g;
+  const sizeMatches=[];
+  for(const m of t.matchAll(sizeRe)){
+    const unit=m[2]||m[4]||"", start=m.index;
+    const ctx=t.slice(Math.max(0,start-40),start).toLowerCase();
+    sizeMatches.push({W:+m[1], H:+m[3], unit, close:/close/.test(ctx), open:/open/.test(ctx), ctx});
+  }
+  // prefer CLOSE size, else the smallest reasonable page-size match (open is often 2× the close size)
+  const closeSize=sizeMatches.find(s=>s.close);
+  const nonSheet=sizeMatches.filter(s=>{
+    // skip sheet-size-looking numbers (integers >=15, both W and H are integers → likely a print sheet)
+    return !(Number.isInteger(s.W)&&Number.isInteger(s.H)&&Math.max(s.W,s.H)>=15&&s.W<40&&s.H<40);
+  });
+  const pickSize=closeSize||nonSheet[0]||sizeMatches[0];
+  if(pickSize && f.W==null){
+    f.W=pickSize.W; f.H=pickSize.H;
+    f.unit=/mm/.test(pickSize.unit)?"mm":/cm/.test(pickSize.unit)?"cm":"in";
+    notes.push("size "+f.W+"×"+f.H+" "+f.unit+(pickSize.close?" (close)":""));
+  }
+  // SHEET SIZE presets to tick (e.g. "18×25" for cover, "20×30" for text)
+  const sheetSizes=[];
+  for(const s of sizeMatches){
+    if(Number.isInteger(s.W)&&Number.isInteger(s.H)&&Math.max(s.W,s.H)>=15&&Math.max(s.W,s.H)<=50&&s.W<40&&s.H<40){
+      const w=Math.min(s.W,s.H), h=Math.max(s.W,s.H); const key=`${w},${h}`;
+      if(!sheetSizes.includes(key)) sheetSizes.push(key);
+    }
+  }
+  if(sheetSizes.length){ f.sheetSizes=sheetSizes; notes.push("sheet size(s): "+sheetSizes.join(" · ")); }
   // QUANTITY — number AFTER the keyword ("quantity 1000"), else BEFORE it ("1000 copies"). The lookbehind
   // (?<![a-z]) stops "A4" leaking its "4" as the quantity (NKK sir: "A4 quantity 1000" was read as qty 4).
   let qm=t.match(/(?:quantity|qty|copies|pieces|pcs|nos|\brun\b)\s*[:\-]?\s*(\d[\d ]*\d|\d)/);
@@ -2740,12 +2768,25 @@ function parseSpec(raw){
   if(qm) f.copies=digits(qm[1]);
   const km=t.match(/(\d+(?:\.\d+)?)\s*(?:thousand|k)\b/);
   if(km && f.copies==null) f.copies=Math.round(parseFloat(km[1])*1000);
-  // GSM — "300 and 170 gsm", "300 plus 170", or single "300 gsm". First = text, second = cover.
-  let g1=null,g2=null;
-  const gp=t.match(/(\d{2,3})\s*(?:gsm)?\s*(?:plus|and|\+|&|by|\/)\s*(\d{2,3})\s*(?:gsm|art|paper|coated)/);
-  if(gp){ g1=+gp[1]; g2=+gp[2]; }
-  else { const gs=[...t.matchAll(/(\d{2,3})\s*gsm/g)].map(m=>+m[1]); if(gs.length){ g1=gs[0]; g2=gs[1]||null; } }
-  if(g1){ f.gsm=g1; notes.push("text "+g1+"gsm"); if(g2){ f.coverGsm=g2; notes.push("cover "+g2+"gsm (swap if reversed)"); } }
+  // GSM — read cover/inside CONTEXT around each gsm number (Sanjit-da's brief:
+  // "Cover - 300gsm ... Inside - 170gsm"). If no context, first = text, second = cover.
+  let gText=null, gCover=null;
+  const gAll=[...t.matchAll(/(\d{2,3})\s*gsm/g)];
+  for(const m of gAll){
+    const g=+m[1], start=m.index;
+    const ctx=t.slice(Math.max(0,start-30),start).toLowerCase();
+    if(/cover|outer/.test(ctx) && gCover==null) gCover=g;
+    else if(/inside|text|inner|body|content/.test(ctx) && gText==null) gText=g;
+  }
+  if(gText==null || gCover==null){
+    const remaining=gAll.map(m=>+m[1]).filter(g=>g!==gText&&g!==gCover);
+    if(gText==null && remaining.length){ gText=remaining.shift(); }
+    if(gCover==null && remaining.length){ gCover=remaining.shift(); }
+  }
+  // if only one gsm found, treat it as text
+  if(gText==null && gCover!=null && gAll.length===1){ gText=gCover; gCover=null; }
+  if(gText){ f.gsm=gText; notes.push("text "+gText+"gsm"); }
+  if(gCover){ f.coverGsm=gCover; notes.push("cover "+gCover+"gsm"); }
   // PAGES / extent — "cover plus 40", "4 plus 40", "40 pages/pp"
   let pg=t.match(/(?:cover|\d{1,2})\s*(?:plus|\+|and)\s*(\d{1,4})\s*(?:page|pages|pp)\b/) || t.match(/(\d{1,4})\s*(?:page|pages|pp)\b/);
   if(pg) f.pages=+pg[1];
@@ -2757,10 +2798,19 @@ function parseSpec(raw){
   // ORIENTATION
   if(/\bportrait\b/.test(t)) f.orientation="portrait"; else if(/\blandscape\b/.test(t)) f.orientation="landscape";
   if(f.orientation) notes.push(f.orientation);
-  // COLOURS — only when clearly stated (avoid clashing with "4 plus 40" pages)
-  const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/) || (/(4\s*colou?r|four\s*colou?r|cmyk)/.test(t)?[null,4,4]:null);
+  // COLOURS — "4 color all through" / "4 color both sides" / "front and back" → 4+4.
+  // Explicit "N+M color" wins over "all through" default.
+  const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/);
   if(cm){ f.cf=+cm[1]||4; f.cb=+cm[2]||4; notes.push("colours "+f.cf+"+"+f.cb); }
+  else if(/(?:4|four)\s*colou?r\s*(?:all\s*through|throughout|both\s*side|front\s*(?:and|&)\s*back|f\s*&\s*b|f\/b)/.test(t)
+       || /(?:4|four)\s*colou?r.*(?:all\s*through|throughout|both\s*side)/.test(t)){
+    f.cf=4; f.cb=4; notes.push("colours 4+4 (all through)");
+  }
+  else if(/(?:4\s*colou?r|four\s*colou?r|cmyk|full\s*colou?r)/.test(t)){ f.cf=4; f.cb=4; notes.push("colours 4+4"); }
   else if(/single\s*colou?r|one\s*colou?r|1\s*colou?r|black\s*(?:and\s*white|only)|b\/?w/.test(t)){ f.cf=1; f.cb=1; notes.push("colours 1+1"); }
+  // COVER WORK STYLE — "cover ... work & turn / work and turn" → coverWorkStyle=turn
+  const cwt=t.match(/cover[^.]{0,60}?work\s*(?:and|&)\s*(turn|tumble|back)/) || t.match(/(\d)\s*set\s*\d\s*colou?r\s*work\s*(?:and|&)\s*(turn|tumble|back)/);
+  if(cwt){ f.coverWork = cwt[cwt.length-1]; notes.push("cover W&"+f.coverWork); }
   // PAPER TYPE (test uncoated first — "uncoated" contains "coated")
   if(/maplitho|uncoated|natural|cream|\bbond\b/.test(t)){ f.paperType="Uncoated"; notes.push("uncoated / maplitho"); }
   else if(/\bart\b|coated|c2s|cs2|c 2 s/.test(t)){ f.paperType="Coated Paper (C2S)"; notes.push("art / coated C2S"); }
@@ -2774,11 +2824,15 @@ function parseSpec(raw){
     [/hard\s*case|case\s*bound|case\s*bind|hardbound|hardback/,"case","Hard case book"],
     [/back\s*to\s*back|board\s*book|b2b/,"b2b","Back-to-back paste"]];
   for(const [re,v,lbl] of B){ if(re.test(t)){ f.binding=v; notes.push("binding: "+lbl); break; } }
-  // LAMINATION (cover) — strip "spot UV" first (it's an embellishment below, not full UV coating)
+  // LAMINATION (cover) — Sanjit-da: "Matt lamination on outer cover". Look for finish + lamination/UV/coating
+  // within one clause. Strip "spot UV" first (it's an embellishment below, not full UV coating).
   const tl=t.replace(/spot\s*uv/g," ");
-  const L=[[/matt\s*(?:uv)/,"mattuv","Matt UV"],[/matt|matte/,"matt","Matt lam"],[/gloss\s*uv/,"uv","Gloss UV"],
-    [/gloss/,"gloss","Gloss lam"],[/bopp/,"bopp","BOPP"],[/drip/,"drip","Drip-off UV"],[/varnish/,"varnish","Varnish"],[/\buv\b/,"uv","Gloss UV"]];
-  if(/lamination|lam\b|coating|\buv\b|varnish|bopp/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){ f.coverLam=v; notes.push("cover coating: "+lbl); break; } }
+  const L=[[/matt\s*uv/,"mattuv","Matt UV"],[/matt\s*(?:lam|lamination|coating|coat|finish)|matte\s*(?:lam|lamination|coating|coat|finish)|matt\s*lam(?:inat)?/,"matt","Matt lam"],
+    [/gloss\s*uv/,"uv","Gloss UV"],[/gloss\s*(?:lam|lamination|coating|coat|finish)/,"gloss","Gloss lam"],
+    [/\bbopp\b/,"bopp","BOPP"],[/drip/,"drip","Drip-off UV"],[/varnish/,"varnish","Varnish"],[/\buv\b/,"uv","Gloss UV"],
+    // fallbacks without keyword coupling
+    [/\bmatt\b|\bmatte\b/,"matt","Matt lam"],[/\bgloss\b/,"gloss","Gloss lam"]];
+  if(/lamination|\blam\b|coating|\buv\b|varnish|bopp|matt|gloss|matte/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){ f.coverLam=v; notes.push("cover coating: "+lbl); break; } }
   // COVER EMBELLISHMENTS (NKK sir: Spot UV etc. were being dropped) — up to 3 combinable
   const EMB=[[/spot\s*uv/,"spotuv","Spot UV"],[/raised\s*uv|textured\s*uv/,"raiseduv","Raised UV"],[/\bfoil\b/,"foil","Foil"],
     [/\bemboss/,"emboss","Emboss"],[/\bdeboss/,"deboss","Deboss"],[/\btexture\b/,"texture","Texture effect"]];
@@ -2826,6 +2880,24 @@ function applyVoiceSpec(raw){
     const cs=$("coverTypeSel"); if(cs){ cs.value=f.paperType; if(typeof onCoverTypeChange==="function") onCoverTypeChange(); } }
   if(f.coverLam) setV("coverLam",f.coverLam);
   if(f.coverEmb){ ["coverEmb1","coverEmb2","coverEmb3"].forEach((id,i)=>{ if($(id)) $(id).value=f.coverEmb[i]||"none"; }); }
+  if(f.coverWork) setV("coverWorkStyle",f.coverWork);
+  // SHEET SIZE presets — tick the parsed sizes; add any missing size as a custom chip.
+  if(f.sheetSizes && f.sheetSizes.length){
+    const chips=$("ssChips");
+    if(chips){
+      // uncheck all first, then tick each parsed size, adding any that isn't already a chip
+      [...chips.querySelectorAll(".ss")].forEach(c=>{ c.checked=false; });
+      f.sheetSizes.forEach(val=>{
+        let chip=[...chips.querySelectorAll(".ss")].find(c=>c.value===val);
+        if(!chip){
+          const [w,h]=val.split(",").map(Number);
+          const label=document.createElement("label"); label.className="chip";
+          label.innerHTML=`<input type="checkbox" class="ss" value="${val}" checked /> ${w}×${h} <span onclick="event.preventDefault();this.parentNode.remove();if(RESULT)run();" style="margin-left:6px;color:#c0392b;cursor:pointer;font-weight:700" title="Remove">✕</span>`;
+          chips.appendChild(label);
+        } else { chip.checked=true; }
+      });
+    }
+  }
   if(f.binding){ setV("binding",f.binding); bindingEdited=true; if(typeof setBinding==="function") setBinding(f.binding); }
   if(typeof run==="function") run();
   const box=$("voiceParsed");
