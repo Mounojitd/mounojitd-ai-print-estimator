@@ -2917,8 +2917,12 @@ function parseSpec(raw){
   const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/);
   if(cm){ f.cf=+cm[1]||4; f.cb=+cm[2]||4; notes.push("colours "+f.cf+"+"+f.cb); }
   else {
-    const oneSide=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/);
-    const bothSides=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:all\s*through|throughout|both\s*side|front\s*(?:and|&)\s*back|f\s*&\s*b|f\/b)/);
+    // "N color one side" OR "one side N color" — both orders
+    const oneSide=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/)
+                ||t.match(/(?:one\s*side|1\s*side|single\s*side|front\s*only)\s*(\d|one|two|three|four|five|six)\s*colou?r/);
+    // "N color both sides" OR "both sides N color"
+    const bothSides=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:all\s*through|throughout|both\s*side|front\s*(?:and|&)\s*back|f\s*&\s*b|f\/b)/)
+                  ||t.match(/(?:all\s*through|throughout|both\s*side|front\s*(?:and|&)\s*back|f\s*&\s*b|f\/b)\s*(\d|one|two|three|four|five|six)\s*colou?r/);
     const NUM={one:1,two:2,three:3,four:4,five:5,six:6};
     const asNum=v=>NUM[v]||+v;
     if(oneSide){ const n=asNum(oneSide[1]); f.cf=n; f.cb=0; notes.push(`colours ${n}+0 (one side)`); }
@@ -2980,6 +2984,7 @@ function parseSpec(raw){
   const b2bMention=/back\s*to\s*back|\bb2b\b/.test(t);
   const P=[[/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/manual/,"manual"],[/annual/,"annual"],
     [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag/,"pasted_tag"],
+    [/letter\s*head|note\s*pad|note\s*head|writing\s*pad/,"insert"],
     [/leaflet|flyer/,"leaflet"],[/poster/,"poster"],
     [/table\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],[/dangler|tent/,"dangler"],
     [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve/,"sleeve"],[/carton|box/,"carton_tuck"],
