@@ -2957,13 +2957,15 @@ function parseSpec(raw){
     [/\bemboss/,"emboss","Emboss"],[/\bdeboss/,"deboss","Deboss"],[/\btexture\b/,"texture","Texture effect"]];
   const embs=[]; for(const [re,v,lbl] of EMB){ if(re.test(t)&&!embs.includes(v)){ embs.push(v); notes.push("embellishment: "+lbl); } }
   if(embs.length) f.coverEmb=embs.slice(0,3);
-  // FLAT POST-PRESS signals (B3): die-cut / die-punch / punching / hole. Flag only (no rate set —
-  // real rates still pending NKK sir). Notes the user so they know to fill in fppDie / fppPunch.
+  // FLAT POST-PRESS signals (B3): die-cut / die-punch / punching / hole / fold. Flag only (no rate set —
+  // real rates still pending NKK sir). Notes the user so they know to fill in fppDie / fppPunch / fppFold.
   const dieHit=/\bdie\s*[-]?\s*(?:cut|cutting|punch|punching)|\bdie[-\s]?cut/.test(t);
-  const holeHit=/\bhole\s*(?:on\s*top|punch|punching)|\bhang\s*hole\b|\beyelet\b/.test(t);
-  if(dieHit || holeHit){ f.flatpp={die:dieHit, hole:holeHit};
+  const holeHit=/\bhole\s*(?:on\s*top|punch|punching)|\bhang\s*hole\b|\beyelet\b|\bwith\s*hole\b/.test(t);
+  const foldHit=/\b(?:one|single|two|double|tri|z|c|gate|half|cross)?\s*fold(?:ing|ed)?\b/.test(t);
+  if(dieHit || holeHit || foldHit){ f.flatpp={die:dieHit, hole:holeHit, fold:foldHit};
     if(dieHit) notes.push("die-cut (rate ✍ pending)");
-    if(holeHit) notes.push("hole-punch (rate ✍ pending)"); }
+    if(holeHit) notes.push("hole-punch (rate ✍ pending)");
+    if(foldHit) notes.push("folding (rate ✍ pending)"); }
   // PRODUCT TYPE — pasted-tag / hang-tag MUST come before the generic 'card' match. A tag with
   // "back-to-back paste/pasting" in the same brief is a pasted_tag (not a book b2b binding).
   const isTag=/\bhang\s*tag\b|\btag\b(?!\s*line)/.test(t);
@@ -2979,6 +2981,9 @@ function parseSpec(raw){
   for(const [re,v] of P){ if(re.test(t)){ f.product=v; break; } }
   // If we saw "tag" + "back-to-back" it's a pasted tag, even if the explicit "pasted tag" phrase wasn't used.
   if(isTag && b2bMention) f.product="pasted_tag";
+  // FOLDED FLAT: 'one fold / single fold / folded' with no book-binding keyword → leaflet, not booklet.
+  // A 4pp folded card (like the Sunili Leathern job) has pages=4 but is a flat folded piece, not a book.
+  if(!f.product && foldHit && !/(perfect|section|saddle|stitch|sew|wire|spiral|hardbound|hard\s*case)/.test(t)) f.product="leaflet";
   // REPRINT (NKK sir 2026-07-17 Keventer): 'reprint' / 'reprinting' → plates already exist.
   if(/\brepri?nt(?:ing)?\b/.test(t)){ f.reprint=true; notes.push("reprint — plates reused (10% fee)"); }
   // Pasted-tag / flat products: clear the b2b binding (it's the product, not a book-binding), and
@@ -3033,6 +3038,7 @@ function applyVoiceSpec(raw){
   // silently drops the op from the cost.
   if(f.flatpp && f.flatpp.die && $("fppDie") && (!$("fppDie").value||$("fppDie").value==="0")){ $("fppDie").value=300; }
   if(f.flatpp && f.flatpp.hole && $("fppPunch") && (!$("fppPunch").value||$("fppPunch").value==="0")){ $("fppPunch").value=150; }
+  if(f.flatpp && f.flatpp.fold && $("fppFold") && (!$("fppFold").value||$("fppFold").value==="0")){ $("fppFold").value=100; }
   // Pasted tag: pasting rate default when brief mentions back-to-back or the product is pasted_tag.
   if((f.product==="pasted_tag") && $("ptagPaste") && (!$("ptagPaste").value||$("ptagPaste").value==="0")){ $("ptagPaste").value=100; }
   // SHEET SIZE presets — tick the parsed sizes; add any missing size as a custom chip.
