@@ -2132,7 +2132,10 @@ let bindingRateEdited=false, marginEdited=false;
 // when the user hasn't manually edited the margin. Override anytime by typing a new value.
 const MARGIN_DEFAULT={
   // small commodity — tight margins
-  card:15, insert:15,
+  card:15,
+  // insert covers letterheads/notepads (Medilab 50k, Doctor letterhead 10k both landed at
+  // ~45% margin). 30% is the safe middle ground so simple loose inserts don't over-quote.
+  insert:30,
   // pasted tag: menu rate for tiny qty, production 40% for volume (Sunili tag reconcile: 15k pcs at 40% lands within 7%).
   pasted_tag:40,
   // leaflet bumped 20→30 (Sunili Leathern folded card reconcile: at 30% -29% under, at 50% ~perfect;
