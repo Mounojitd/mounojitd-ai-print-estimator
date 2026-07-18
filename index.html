@@ -2543,7 +2543,11 @@ function priceJob(o,p,machine){
   // PAPER bought as PARENT sheets (NKK sir Req6): cost & weight on the parent, not the cut/print sheet.
   // PAPER discount (NKK sir): vendor gives a % off the paper purchase (e.g. 13%) — reduce the paper cost.
   const paperDisc=Math.min(Math.max(p.discount||0,0),95)/100;
-  const buySheets=o.paperSheets||sheets, paperGross=(p.paperRate||0)*buySheets, paper=+(paperGross*(1-paperDisc)).toFixed(2), wt=o.paperWeight||o.total_wt;
+  const buySheets=o.paperSheets||sheets, paperGross=(p.paperRate||0)*buySheets;
+  // GANGED (NKK sir 2026-07-17 Sunili VCards): if this job shares a sheet with others, paper is also
+  // charged at this job's share only. Weight is NOT shared — the finished pieces still weigh their own.
+  const gangShare=p.ganged?((p.gangedShare||25)/100):1;
+  const paper=+(paperGross*(1-paperDisc)*gangShare).toFixed(2), wt=o.paperWeight||o.total_wt;
   const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+packing+freight, overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100), prod=base+overhead;
   // MARGIN on the SELLING price, not markup on cost (NKK sir 2026-07-08): margin% is a share of the sale
