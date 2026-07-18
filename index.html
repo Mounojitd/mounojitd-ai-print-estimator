@@ -502,6 +502,7 @@
           <span><label>Reprint (plates exist)</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="reprint" onchange="showPrice()" /> Yes — plates reused</label><div class="hint">NKK sir: reprint jobs reuse existing plates → cost drops to a handling fee (~10%). Fresh printing still charged.</div></span>
           <span><label>Ganged with other jobs</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="ganged" onchange="showPrice()" /> Yes — shared sheet</label><input id="gangedShare" type="number" step="1" min="1" max="100" value="25" style="margin-top:6px" placeholder="% share" oninput="showPrice()" /><div class="hint">NKK sir: small VCards / tags run ganged with other jobs on one plate + sheet. This job pays only its share (default 25%) of plates + printing. Paper + finishing stay full.</div></span>
           <span><label>Target sale ₹ (optional)</label><input id="targetSale" type="number" step="1000" placeholder="e.g. 180000" oninput="applyTargetMargin()" /><div class="hint" id="targetSaleNote">Type a target price → auto-sets margin so grand ≈ target.</div></span>
+          <span><label>Menu rate ₹/pc (optional)</label><input id="flatRatePc" type="number" step="0.10" placeholder="e.g. 3.50" oninput="showPrice()" /><div class="hint">NKK sir's per-piece menu rate for the job (VCards, tags…). Shown alongside the cost quote so you can compare.</div></span>
           <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
           <span><label>Paper discount %</label><input id="paperDiscount" type="number" value="0" step="0.5" oninput="showPrice()" /><div class="hint">NKK sir: vendor discount off paper cost (e.g. 13%)</div></span>
@@ -3215,6 +3216,24 @@ function packFreightWhy(q,fallbackWt){
   return { pack:`⌈ ${shipWt.toFixed(0)} kg ÷ 15 ⌉ = ${Math.max(1,Math.round(q.packing/35))} box(es) × ₹35`,
            freight:q.freight>300?`${shipWt.toFixed(0)} kg × ₹8/kg`:`minimum ₹300` };
 }
+// MENU-RATE OVERRIDE (NKK sir 2026-07-17): user types sir's per-piece menu rate; app appends a
+// side-by-side comparison box after the calculated grand total. Doesn't override the cost calc — just
+// shows both so the user can pick which to send. Rate persists across product changes.
+function menuRateHTML(costGrand, qty){
+  const r=parseFloat(($("flatRatePc")||{}).value);
+  if(!(r>0)||!(qty>0)) return "";
+  const menu=r*qty, delta=menu-costGrand, dpct=costGrand>0?((menu-costGrand)/costGrand*100):0;
+  const color=Math.abs(dpct)<5?"#1c7a52":(dpct>0?"#a9761a":"#c0392b");
+  const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  return `<div style="margin-top:14px;padding:12px 14px;border:1.5px dashed #7c3aed;border-radius:10px;background:#f7f2ff">
+    <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#5b21b6;font-weight:700">Menu rate quote (₹${r.toFixed(2)}/pc × ${qty.toLocaleString("en-IN")} pcs)</div>
+    <div style="font-size:22px;font-weight:800;color:#3a1276;margin:2px 0">${inr(menu)}</div>
+    <div style="font-size:12.5px;color:${color}">vs cost quote ${inr(costGrand)} → <b>${dpct>=0?"+":""}${dpct.toFixed(1)}%</b> (${delta>=0?"+":""}${inr(Math.abs(delta))})</div>
+  </div>`;
+}
+function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
+  try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
+  catch(e){ $("m_price").innerHTML=html; } }
 function showPrice(){
   if(!CHOSEN)return;
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
@@ -3236,7 +3255,7 @@ function showPrice(){
     h2+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
     h2+=`<tr><td>Per book</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
     h2+=`<div class="hint" style="margin-top:8px">📦 Case sizes: boards <b>${S.boardW}×${S.boardH} in</b> (×2) + spine board <b>${S.spineBoardW} in</b> · case open ${S.caseOpenW}×${S.caseOpenH} · PLC wrap <b>${S.plcW}×${S.plcH} in</b> (with turn-in). Chipboard CUT from <b>${S.boardParents} parent ${S.boardParentW}×${S.boardParentH} in</b> (${S.perCover} cover + ${S.perSpine} spine /parent). Rates editable — confirm with sir.</div>`;
-    $("m_price").innerHTML=h2; return;
+    setPriceHTML(h2); return;
   }
   if(x.boardbook){                                 // BOARD BOOK / A2: text faces + board cores + pasting (own breakdown)
     const txtWt=CHOSEN.paperWeight||CHOSEN.total_wt, bE=x.text&&x.text.explain||{}, bpf=packFreightWhy(q,txtWt);
@@ -3256,7 +3275,7 @@ function showPrice(){
     h3+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
     h3+=`<tr><td>Per book</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
     h3+=`<div class="hint" style="margin-top:8px">📚 Back-to-back pasted: <b>${B.leaves} leaves</b> (pages ÷ 2) · <b>single-side printed forms</b> pasted blank-to-blank (paper ×2) · 1st form = endpaper · cover scored + pasted · 3-side trim. Leaf <b>${B.leafW}×${B.leafH} in</b> · ${B.core==="board"?`greyboard core ${B.boardTh} mm`:"no board core (paper pasted)"}. Rates editable — confirm with sir.</div>`;
-    $("m_price").innerHTML=h3; return;
+    setPriceHTML(h3); return;
   }
   if(x.dieline){                                   // DIELINE / A4: blank print + die-cut + glue (own breakdown)
     const D=x.dieline.sizes, pw=CHOSEN.paperWeight||CHOSEN.total_wt, dE=x.text&&x.text.explain||{}, dpf=packFreightWhy(q,pw);
@@ -3274,7 +3293,7 @@ function showPrice(){
     h4+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
     h4+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
     h4+=`<div class="hint" style="margin-top:8px">📐 ${D.desc} → <b>flat blank ${D.blankW}×${D.blankH} in</b> · ${D.sheets.toLocaleString("en-IN")} press sheets · ${D.pieces.toLocaleString("en-IN")} pieces. Paper/print/coating use the Paper fields. Rates editable — confirm with sir.</div>`;
-    $("m_price").innerHTML=h4; return;
+    setPriceHTML(h4); return;
   }
   if(x.slipcase){                                  // SLIPCASE: PLC wrap print + chipboard + inside paper + making
     const S=x.slipcase.sizes, pw=CHOSEN.paperWeight||CHOSEN.total_wt, sE=x.text&&x.text.explain||{}, spf=packFreightWhy(q,pw);
@@ -3292,7 +3311,7 @@ function showPrice(){
     h5+=`<tr style="border-top:2px solid #1f7a4d;font-weight:800;font-size:16px"><td style="padding:7px 0">GRAND TOTAL</td><td style="text-align:right">${inr(q.grand)}</td></tr>`;
     h5+=`<tr><td>Per piece</td><td style="text-align:right;font-weight:700">₹${q.unit.toFixed(2)}</td></tr></table>`;
     h5+=`<div class="hint" style="margin-top:8px">📦 ${x.slipcase.hard?"Hard":"Soft"} slipcase for book <b>${S.W}×${S.H}×${S.D} in</b> · board surface <b>${S.surface} sq.in</b> · PLC wrap blank <b>${S.blankW}×${S.blankH} in</b>. Rates editable — confirm with sir.</div>`;
-    $("m_price").innerHTML=h5; return;
+    setPriceHTML(h5); return;
   }
   if(LASTINP.separateCover&&(!x.coverPlan||!x.coverPlan.option)){ $("m_price").innerHTML='<div class="suggest">No selected sheet and press can run the separate cover with its chosen colours.</div>'; return; }
   const totalWt=(CHOSEN.paperWeight||CHOSEN.total_wt)+((x.coverPlan&&x.coverPlan.option)?(x.coverPlan.option.paperWeight||x.coverPlan.option.total_wt):0);
@@ -3340,7 +3359,7 @@ function showPrice(){
   h+=textExplainHTML(x.text||x.q);
   if(x.coverPlan&&x.coverPlan.option){ h+=coverMachineHTML(x.coverPlan); h+=coverExplainHTML(x.coverPlan,x.cover); }
   if(!q.paper) h+='<div style="color:#c0392b;font-size:12px;margin-top:4px">⚠ Enter paper ₹/sheet rates for the full price.</div>';
-  $("m_price").innerHTML=h;
+  setPriceHTML(h);
   renderMultiQty();
 }
 // MULTIPLE QUANTITIES (NKK sir): re-price the whole job at each extra quantity (Qty 2–5) and show total +
