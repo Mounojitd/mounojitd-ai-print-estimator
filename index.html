@@ -2943,11 +2943,16 @@ function parseSpec(raw){
   for(const [re,v,lbl] of B){ if(re.test(t)){ f.binding=v; notes.push("binding: "+lbl); break; } }
   // LAMINATION (cover) — Sanjit-da: "Matt lamination on outer cover". Look for finish + lamination/UV/coating
   // within one clause. Strip "spot UV" first (it's an embellishment below, not full UV coating).
-  const tl=t.replace(/spot\s*uv/g," ");
+  // BUGFIX 2026-07-17 (Oran RFID card): 'Gloss Art board' / 'Matt Art board' are PAPER stock names,
+  // not lamination. The bare /\bmatt\b/ and /\bgloss\b/ fallbacks were false-positive on those. Now
+  // strip 'gloss art / matt art / gloss art paper / matt art board' etc. from the lam-detection copy.
+  let tl=t.replace(/spot\s*uv/g," ")
+          .replace(/\b(?:matt|matte|gloss)\s*(?:art|paper|board|coated|c2s|imported|cover|inside|text|finish\s+cutting)\b/g," ")
+          .replace(/\bgloss(?:y)?\s*ink\b/g," ");
   const L=[[/matt\s*uv/,"mattuv","Matt UV"],[/matt\s*(?:lam|lamination|coating|coat|finish)|matte\s*(?:lam|lamination|coating|coat|finish)|matt\s*lam(?:inat)?/,"matt","Matt lam"],
     [/gloss\s*uv/,"uv","Gloss UV"],[/gloss\s*(?:lam|lamination|coating|coat|finish)/,"gloss","Gloss lam"],
     [/\bbopp\b/,"bopp","BOPP"],[/drip/,"drip","Drip-off UV"],[/varnish/,"varnish","Varnish"],[/\buv\b/,"uv","Gloss UV"],
-    // fallbacks without keyword coupling
+    // fallbacks (only fire on isolated 'matt'/'gloss' — paper-name context stripped above)
     [/\bmatt\b|\bmatte\b/,"matt","Matt lam"],[/\bgloss\b/,"gloss","Gloss lam"]];
   if(/lamination|\blam\b|coating|\buv\b|varnish|bopp|matt|gloss|matte/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){ f.coverLam=v; notes.push("cover coating: "+lbl); break; } }
   // COVER EMBELLISHMENTS (NKK sir: Spot UV etc. were being dropped) — up to 3 combinable.
