@@ -2131,7 +2131,9 @@ let bindingRateEdited=false, marginEdited=false;
 // when the user hasn't manually edited the margin. Override anytime by typing a new value.
 const MARGIN_DEFAULT={
   // small commodity — tight margins
-  card:15, pasted_tag:15, insert:15,
+  card:15, insert:15,
+  // pasted tag: menu rate for tiny qty, production 40% for volume (Sunili tag reconcile: 15k pcs at 40% lands within 7%).
+  pasted_tag:40,
   leaflet:20, poster:20, dangler:20, calendar_sheet:20,
   // signature / design-heavy — standard margins
   booklet:30, magazine:30, manual:30, calendar_table:30,
@@ -2907,19 +2909,20 @@ function parseSpec(raw){
   // ORIENTATION
   if(/\bportrait\b/.test(t)) f.orientation="portrait"; else if(/\blandscape\b/.test(t)) f.orientation="landscape";
   if(f.orientation) notes.push(f.orientation);
-  // COLOURS — "4 color one side" → 4+0. "4 color all through / both sides / F&B" → 4+4.
-  // Explicit "N+M color" wins over "all through" default. "One side" MUST be checked before "4 color" alone.
+  // COLOURS — Explicit "N+M color" wins. Then "N color one side" → N+0. Then "N color both sides" → N+N.
+  // Then fallbacks (4 color / cmyk / single / bw).
   const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/);
   if(cm){ f.cf=+cm[1]||4; f.cb=+cm[2]||4; notes.push("colours "+f.cf+"+"+f.cb); }
-  else if(/(?:4|four)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/.test(t)){
-    f.cf=4; f.cb=0; notes.push("colours 4+0 (one side)");
+  else {
+    const oneSide=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/);
+    const bothSides=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:all\s*through|throughout|both\s*side|front\s*(?:and|&)\s*back|f\s*&\s*b|f\/b)/);
+    const NUM={one:1,two:2,three:3,four:4,five:5,six:6};
+    const asNum=v=>NUM[v]||+v;
+    if(oneSide){ const n=asNum(oneSide[1]); f.cf=n; f.cb=0; notes.push(`colours ${n}+0 (one side)`); }
+    else if(bothSides){ const n=asNum(bothSides[1]); f.cf=n; f.cb=n; notes.push(`colours ${n}+${n} (both sides)`); }
+    else if(/(?:4\s*colou?r|four\s*colou?r|cmyk|full\s*colou?r)/.test(t)){ f.cf=4; f.cb=4; notes.push("colours 4+4"); }
+    else if(/single\s*colou?r|one\s*colou?r|1\s*colou?r|black\s*(?:and\s*white|only)|b\/?w/.test(t)){ f.cf=1; f.cb=1; notes.push("colours 1+1"); }
   }
-  else if(/(?:4|four)\s*colou?r\s*(?:all\s*through|throughout|both\s*side|front\s*(?:and|&)\s*back|f\s*&\s*b|f\/b)/.test(t)
-       || /(?:4|four)\s*colou?r.*(?:all\s*through|throughout|both\s*side)/.test(t)){
-    f.cf=4; f.cb=4; notes.push("colours 4+4 (all through)");
-  }
-  else if(/(?:4\s*colou?r|four\s*colou?r|cmyk|full\s*colou?r)/.test(t)){ f.cf=4; f.cb=4; notes.push("colours 4+4"); }
-  else if(/single\s*colou?r|one\s*colou?r|1\s*colou?r|black\s*(?:and\s*white|only)|b\/?w/.test(t)){ f.cf=1; f.cb=1; notes.push("colours 1+1"); }
   // COVER WORK STYLE — "cover ... work & turn / work and turn" → coverWorkStyle=turn
   const cwt=t.match(/cover[^.]{0,60}?work\s*(?:and|&)\s*(turn|tumble|back)/) || t.match(/(\d)\s*set\s*\d\s*colou?r\s*work\s*(?:and|&)\s*(turn|tumble|back)/);
   if(cwt){ f.coverWork = cwt[cwt.length-1]; notes.push("cover W&"+f.coverWork); }
