@@ -2679,7 +2679,14 @@ function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
   const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
   const src=activePrint();
-  const sigs=o.layouts||o.signatures||1;     // printed sheet-forms (ganged) drive printing & plates
+  // NKK sir 2026-07-18 (wall calendar reconcile): calendars with N leaves need N different plate
+  // sets and N press setups (each leaf is a different design). For non-sig calendar products with
+  // extent>1, sigs = leaves count. Booklets already have layouts driven by folding/ganging.
+  const isCalProd = LASTINP && (LASTINP.product==="calendar_sheet"||LASTINP.product==="calendar_table");
+  const calLeaves = isCalProd ? Math.max(1, LASTINP.extent||1) : 1;
+  // For calendars with leaves>1, ALWAYS use leaves (layouts/signatures are 1 for non-sig products
+  // even when extent>1 — the truthy check was silently keeping sigs=1).
+  const sigs = (isCalProd && calLeaves>1) ? calLeaves : (o.layouts||o.signatures||1);     // printed sheet-forms drive printing & plates
   // PER-FORME printing (NKK sir): each printed side of each LAYOUT is a SEPARATE press run with its own
   // lot/minimum. Ganged forms share a layout (and its plates), so the cut part is not double-charged.
   const formeRun=Math.max(1,Math.round(sheets/sigs));            // sheets passing the press per forme
