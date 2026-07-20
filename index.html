@@ -406,8 +406,10 @@
         </div>
         <div class="row3">
           <div class="fld"><label>Stand making ₹ / calendar</label><input id="tcMaking" type="number" step="0.5" value="5" oninput="showPrice()" /></div>
-          <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Stand surface auto = 2.2 × leaf W×H (two faces + base). Same build as the hard case / sleeve (chip + PLC + backing paste). Rates editable — confirm with sir.</div></div>
+          <div class="fld"><label>Jacket ₹ / calendar</label><input id="tcJacket" type="number" step="0.5" value="15" oninput="showPrice()" /><div class="hint">printed die-punched jacket (250gsm glamkot)</div></div>
+          <div class="fld"><label>Poly pouch ₹ / calendar</label><input id="tcPouch" type="number" step="0.5" value="6" oninput="showPrice()" /><div class="hint">individual polypouch pack</div></div>
         </div>
+        <div class="hint" style="margin-top:4px">Stand surface auto = 2.2 × leaf W×H (two faces + base). Same build as the hard case / sleeve (chip + PLC + backing paste). Rates editable — confirm with sir.</div>
       </div>
       <div id="flatEmbFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#b8862f;background:#fbf7ef">
         <div class="ptitle" style="color:#a9761a">🎨 Flat product embellishment — foil / UV / emboss / screen print</div>
@@ -760,7 +762,8 @@ function onProductChange(){
 }
 // default wiro ₹/calendar by type (NKK sir: part wiro = 2 short pieces, saves cost vs full)
 function tcWiroDefault(){ const t=$("tcWiro")?$("tcWiro").value:"none";
-  if($("tcWiroRate")) $("tcWiroRate").value=({none:0,part:8,full:12}[t]!=null?{none:0,part:8,full:12}[t]:0); }
+  // NKK sir 2026-07-18 reconcile: 13-16 leaf table calendars run ~₹15-25/pc wire-O.
+  if($("tcWiroRate")) $("tcWiroRate").value=({none:0,part:15,full:20}[t]!=null?{none:0,part:15,full:20}[t]:0); }
 function onCoverChange(){
   const sep=$("coverType")?$("coverType").value==="separate":$("separateCover").checked;
   if($("separateCover")) $("separateCover").checked=sep;        // keep legacy flag in sync
@@ -2437,7 +2440,8 @@ function tableCalPlan(){
   if(!LASTINP||LASTINP.product!=="calendar_table") return null;
   const I=LASTINP, pcs=I.copies, items=[]; let wt=0;
   const wiro=($("tcWiro")&&$("tcWiro").value)||"none", stand=($("tcStand")&&$("tcStand").value)||"none";
-  if(wiro==="none"&&stand==="none") return null;
+  const jacketRate=num("tcJacket",0), pouchRate=num("tcPouch",0);
+  if(wiro==="none"&&stand==="none"&&!jacketRate&&!pouchRate) return null;
   if(wiro!=="none"){
     const wr=num("tcWiroRate",0), pu=num("tcPunch",1.5);
     if(pu>0) items.push({name:`Punching (₹${pu}/calendar)`,cost:pu*pcs});
@@ -2454,8 +2458,12 @@ function tableCalPlan(){
     items.push({name:`Stand making (₹${num("tcMaking",5)}/calendar)`,cost:num("tcMaking",5)*pcs});
     wt=pcs*(surf*6.4516)*(th/10)*0.7/1000;
   }
+  // NKK sir 2026-07-18 (Sundew/Annapurna table cal reconcile — table cals were -72% to -91% under):
+  // add printed die-punched jacket and individual poly pouch — real jobs always carry these.
+  if(jacketRate>0) items.push({name:`Jacket — printed + die-punched (₹${jacketRate}/calendar)`,cost:jacketRate*pcs});
+  if(pouchRate>0) items.push({name:`Poly pouch (₹${pouchRate}/calendar)`,cost:pouchRate*pcs});
   const total=items.reduce((s,i)=>s+i.cost,0);
-  return {items,total,wt,sizes:{wiro,stand,pcs}};
+  return {items,total,wt,sizes:{wiro,stand,pcs,jacket:jacketRate,pouch:pouchRate}};
 }
 // WALL CALENDAR (NKK sir 2026-07-18 batch reconcile — Apeejay 14×19 wall was -70% under):
 // Wall calendars are calendar_sheet products with wiro-from-top + hanger + backboard (whiteback/greyback)
@@ -3072,6 +3080,10 @@ function parseSpec(raw){
   if(gText==null && gCover!=null && gAll.length===1){ gText=gCover; gCover=null; }
   if(gText){ f.gsm=gText; notes.push("text "+gText+"gsm"); }
   if(gCover){ f.coverGsm=gCover; notes.push("cover "+gCover+"gsm"); }
+  // LEAVES (for calendars — table + wall). "16 leaves" / "13 leaf" → f.extent (each leaf is a
+  // separate printed sheet in a wire-O bound calendar). Also stores f.leaves for display.
+  const lv=t.match(/(\d{1,2})\s*(?:leaves?|leaf|sheets?)\b/);
+  if(lv){ f.leaves=+lv[1]; f.extent=+lv[1]; }
   // PAGES / extent — "cover plus 40", "4 plus 40", "40 pages/pp"
   let pg=t.match(/(?:cover|\d{1,2})\s*(?:plus|\+|and)\s*(\d{1,4})\s*(?:page|pages|pp)\b/) || t.match(/(\d{1,4})\s*(?:page|pages|pp)\b/);
   if(pg) f.pages=+pg[1];
@@ -3215,6 +3227,7 @@ function applyVoiceSpec(raw){
   if(f.unit) setV("unit",f.unit);
   setV("W",f.W); setV("H",f.H);
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
+  if(f.extent!=null) setV("extentFlat",f.extent);   // calendars: leaves-per-copy
   setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
   setV("cf",f.cf); setV("cb",f.cb);
   if(f.coverType){ setV("coverType",f.coverType); if(typeof onCoverChange==="function") onCoverChange(); }
