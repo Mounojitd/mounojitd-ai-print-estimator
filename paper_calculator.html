@@ -2603,18 +2603,58 @@ const PRESS_RATES={
   M007:{lotQty:2000,lot4:1400,tiers:[{upTo:Infinity,r:640}],plate:400},                       // Florence Komori
   M008:{lotQty:2000,lot4:600, tiers:[{upTo:Infinity,r:350}],plate:400}                        // Dyre (single)
 };
-// DIGITAL press rate (NKK sir hand card 2026-06-27): FLAT ₹ per SHEET, printed BOTH SIDES, up to ~20,000.
-// Keyed by paper class (standard = art/maplitho/coated/uncoated; special = Special Paper) × sheet size
-// (12×18 or 13×19) × colours. Only 4-colour both-side given so far; single-colour PENDING sir.
-const DIGITAL_RATE={
-  standard:{ "12x18":{c4:18, c1:null}, "13x19":{c4:22, c1:null} },
-  special: { "12x18":{c4:30, c1:null}, "13x19":{c4:35, c1:null} }
-};
-// pick the nearest digital sheet bracket by long edge; rate is per-sheet BOTH sides
-function digitalRateFor(isSpecial, w, h){
+// DIGITAL press rate — NEW SUSHMA PRINTERS live card (NKK sir 2026-07-18, master sheet tab
+// gid 1112763935). GSM-tiered by paper type; separate single-side vs both-side rates.
+// Format: DIGITAL_BANDS[gsm-band] → { "12x18":{ss,bs}, "13x19":{ss,bs} }. Rates below are the
+// initial snapshot; loadLiveDigital() overwrites them on page load if the sheet is reachable.
+let DIGITAL_BANDS = [
+  // {gsmMax: number, rates: {"12x18":{ss,bs}, "13x19":{ss,bs}}, tags:[...]}
+  {gsmMax:100, rates:{"12x18":{ss:12,bs:20}, "13x19":{ss:13,bs:22}}, tags:["plain","maplitho","coated"]},
+  {gsmMax:120, rates:{"12x18":{ss:12,bs:20}, "13x19":{ss:13,bs:22}}, tags:["gloss art"]},
+  {gsmMax:170, rates:{"12x18":{ss:12,bs:22}, "13x19":{ss:13,bs:24}}, tags:["gloss art","coated"]},
+  {gsmMax:300, rates:{"12x18":{ss:13,bs:24}, "13x19":{ss:15,bs:26}}, tags:["gloss art","coated","board"]},
+  {gsmMax:350, rates:{"12x18":{ss:16,bs:28}, "13x19":{ss:20,bs:28}}, tags:["gloss art","board"]},
+  {gsmMax:400, rates:{"12x18":{ss:30,bs:40}, "13x19":{ss:30,bs:40}}, tags:["gloss art","board"]},
+  {gsmMax:999, rates:{"12x18":{ss:30,bs:40}, "13x19":{ss:30,bs:40}}, tags:["texture","special"]},
+];
+// A-size flat rates (small copy-shop digital jobs — Tata 88 East A4 letterheads etc.)
+const DIGITAL_A_RATES = { A4:{c4:10, c1:7}, A3:{c4:20, c1:15} };
+// pick rate by GSM + sheet size + sides. Uses parser-known gsm and cf/cb from currentPriceParams.
+function digitalRateFor(isSpecial, w, h, gsm, sides){
   const lo=Math.max(w,h), size = lo>=18.5 ? "13x19" : "12x18";
-  const t=DIGITAL_RATE[isSpecial?"special":"standard"][size];
-  return t?t.c4:0;                                 // 4-col both-side (single-col not yet provided)
+  const g = gsm||num("gsm",170);
+  const s = sides||2;   // both sides by default
+  const band = DIGITAL_BANDS.find(b => g<=b.gsmMax) || DIGITAL_BANDS[DIGITAL_BANDS.length-1];
+  const r = band.rates[size];
+  return r ? (s===1 ? r.ss : r.bs) : 0;
+}
+// LIVE DIGITAL RATE loader — NEW SUSHMA tab (gid 1112763935). Parses the CSV into DIGITAL_BANDS.
+const LIVE_DIGITAL_URL = "https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1112763935";
+async function loadLiveDigital(){
+  try{
+    const rows = await fetchCSV(LIVE_DIGITAL_URL);
+    if(!rows||!rows.length) return;
+    const bands=[];
+    for(const row of rows){
+      if(!row||!row.length) continue;
+      const paperType = String(row[3]||"").trim().toUpperCase();
+      const ss12 = parseFloat(row[4]), bs12 = parseFloat(row[5]);
+      const ss13 = parseFloat(row[6]), bs13 = parseFloat(row[7]);
+      if(!paperType || (!ss12 && !bs12 && !ss13 && !bs13)) continue;
+      // extract gsm from paper type name "170 GSM GLOSS ART PAPER"
+      const gm = paperType.match(/(\d{2,3})\s*GSM/);
+      if(!gm) continue;
+      const gsm = +gm[1];
+      const tags = paperType.toLowerCase().replace(/\d+\s*gsm/,"").trim().split(/\s+/).filter(Boolean);
+      bands.push({gsmMax:gsm, rates:{"12x18":{ss:ss12||0,bs:bs12||0}, "13x19":{ss:ss13||0,bs:bs13||0}}, tags});
+    }
+    if(bands.length){
+      // sort by gsm ascending, dedupe by (gsmMax) taking the last (usually the priciest = art board)
+      bands.sort((a,b)=>a.gsmMax-b.gsmMax);
+      DIGITAL_BANDS = bands;
+      LIVE_STATUS.digital = {ok:true, n:bands.length};
+    }
+  }catch(e){ LIVE_STATUS.digital = {ok:false, err:String(e).slice(0,120)}; }
 }
 // paper class of the chosen stock — "Special Paper" → special, else standard. Reads the type/grade selectors.
 function paperIsSpecial(typeSelId, gradeId){
@@ -2642,7 +2682,10 @@ function priceJob(o,p,machine){
   const work=p.work||"back";
   let printing, plateCount, plates, digitalRate=0;
   if(digital){
-    digitalRate=digitalRateFor(!!p.isSpecial, o.sw, o.sh);
+    // NKK sir 2026-07-18 (NEW SUSHMA live card): rate now varies by GSM + single-side vs both-side.
+    const sidesUsed = (p.cf>0?1:0) + (p.cb>0?1:0) || 2;
+    const gsmUsed = (LASTINP&&LASTINP.gsm)||num("gsm",170);
+    digitalRate=digitalRateFor(!!p.isSpecial, o.sw, o.sh, gsmUsed, sidesUsed);
     printing=digitalRate*sheets;                                   // sheets = printed sheets (both sides/sheet)
     plateCount=0; plates=0;
   } else {
@@ -4191,13 +4234,13 @@ function parseCSV(text){
 }
 const LIVE_PRINTING_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1782743102";   // PRINTING_RATES
 const LIVE_POSTPRESS_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1338566191";  // POST_PRESS_RATES
-const LIVE_STATUS={paper:null,printing:null,postpress:null,binding:null};
+const LIVE_STATUS={paper:null,printing:null,postpress:null,binding:null,digital:null};
 function renderLiveBadge(){
   const el=$("liveDbStatus"); if(!el) return;
   const S=LIVE_STATUS, parts=[]; let live=false;
   const seg=(lbl,s)=>{ if(s==null) return; if(s.ok){live=true; parts.push(`${s.n} ${lbl}`);} else parts.push(`${lbl} ✕`); };
-  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress); seg("bindings",S.binding);
-  if(S.paper===null&&S.printing===null&&S.postpress===null&&S.binding===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
+  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress); seg("bindings",S.binding); seg("digital",S.digital);
+  if(S.paper===null&&S.printing===null&&S.postpress===null&&S.binding===null&&S.digital===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
   const t=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
   el.innerHTML = live
     ? `<span style="color:#1c7a52;font-weight:600">🟢 Live from your master sheet</span> <span style="color:#6b7480">· ${parts.join(" · ")} · ${t}</span>`
@@ -4323,7 +4366,7 @@ async function loadLivePostPress(){
 }
 async function loadLiveRates(){
   renderLiveBadge();
-  await Promise.all([loadLivePaperDB(), loadLivePrinting(), loadLivePostPress()]);
+  await Promise.all([loadLivePaperDB(), loadLivePrinting(), loadLivePostPress(), loadLiveDigital()]);
   applySheetOverrides();       // re-apply sir-confirmed overrides so they win over the live sheet
   if(RESULT) run(); else if(CHOSEN) showPrice();
   renderLiveBadge();
