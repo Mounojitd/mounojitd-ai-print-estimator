@@ -199,7 +199,7 @@
         <div class="row3">
           <div class="fld"><label>Extent (text pages)</label><input id="pages" type="number" placeholder="e.g. 80" /><div class="hint">Inside pages only — a separate cover is +4pp extra.</div></div>
           <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select></div>
-          <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" oninput="applyGangedDefault()" /></div>
+          <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" oninput="applyGangedDefault();applyMenuRateHint()" /></div>
         </div>
         <div class="fld"><label>Cover type</label>
           <select id="coverType" onchange="onCoverChange()">
@@ -332,7 +332,7 @@
       </div>
       <div id="flatFields" style="display:none">
         <div class="row">
-          <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" oninput="applyGangedDefault()" /></div>
+          <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" oninput="applyGangedDefault();applyMenuRateHint()" /></div>
           <div class="fld"><label>Extent (sheets/versions per product)</label><input id="extentFlat" type="number" value="1" placeholder="1" />
             <div class="hint">Multiplies paper (e.g. table calendar = 12 leaves). Default 1.</div></div>
         </div>
@@ -525,7 +525,7 @@
           <span><label>Reprint (plates exist)</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="reprint" onchange="showPrice()" /> Yes — plates reused</label><div class="hint">NKK sir: reprint jobs reuse existing plates → cost drops to a handling fee (~10%). Fresh printing still charged.</div></span>
           <span><label>Ganged with other jobs</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="ganged" onchange="gangedEdited=true;showPrice()" /> Yes — shared sheet</label><input id="gangedShare" type="number" step="1" min="1" max="100" value="25" style="margin-top:6px" placeholder="% share" oninput="gangedEdited=true;showPrice()" /><div class="hint">NKK sir: small VCards / tags run ganged with other jobs on one plate + sheet. This job pays only its share (default 25%) of plates + printing + paper. Auto-ticked for cards ≤500 pcs.</div></span>
           <span><label>Target sale ₹ (optional)</label><input id="targetSale" type="number" step="1000" placeholder="e.g. 180000" oninput="applyTargetMargin()" /><div class="hint" id="targetSaleNote">Type a target price → auto-sets margin so grand ≈ target.</div></span>
-          <span><label>Menu rate ₹/pc (optional)</label><input id="flatRatePc" type="number" step="0.10" placeholder="e.g. 3.50" oninput="showPrice()" /><div class="hint">NKK sir's per-piece menu rate for the job (VCards, tags…). Shown alongside the cost quote so you can compare.</div></span>
+          <span><label>Menu rate ₹/pc (optional)</label><input id="flatRatePc" type="number" step="0.10" placeholder="e.g. 3.50" oninput="flatRateEdited=true;showPrice()" /><div class="hint">Auto-populates for cards/letterheads/tags based on sir's rate card. Overwrite anytime.</div></span>
           <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
           <span><label>Paper discount %</label><input id="paperDiscount" type="number" value="0" step="0.5" oninput="showPrice()" /><div class="hint">NKK sir: vendor discount off paper cost (e.g. 13%)</div></span>
@@ -755,6 +755,7 @@ function onProductChange(){
   if($("flatEmbFields")) $("flatEmbFields").style.display=isFlatEmbProd?"block":"none";
   applyMarginDefault();
   applyGangedDefault();
+  applyMenuRateHint();
   onCoverChange();
 }
 // default wiro ₹/calendar by type (NKK sir: part wiro = 2 short pieces, saves cost vs full)
@@ -2201,10 +2202,12 @@ function applyGangedDefault(){
   if(gangedEdited || !$("ganged")) return;
   const p=$("product")&&$("product").value;
   const qty=Math.round(num("copies2",0)||num("copies",0));
-  const smallQty = qty>0 && qty<=500;
-  // NKK sir 2026-07-18: also require a SMALL piece size (<50 sq.in). VCards are ~15 sq.in, tags
-  // ~4-15 sq.in, credit cards ~7 sq.in — all fit. A3 certificates (~200 sq.in), A4 letterheads (~95
-  // sq.in) and A5 (~48 sq.in) do NOT auto-gang because they aren't run on a shared VCard gang sheet.
+  // NKK sir 2026-07-18 batch #4: bump threshold 500→1000. Real Beekay/Pinax/Pinacle vcards at
+  // 600-900 pcs are also ganged (₹3-5/pc menu rate); the earlier 500 cap missed them.
+  const smallQty = qty>0 && qty<=1000;
+  // Also require a SMALL piece size (<50 sq.in). VCards are ~15 sq.in, tags ~4-15 sq.in, credit
+  // cards ~7 sq.in — all fit. A3 certificates (~200 sq.in), A4 letterheads (~95 sq.in) and A5
+  // (~48 sq.in) do NOT auto-gang because they aren't run on a shared VCard gang sheet.
   const u=$("unit")?$("unit").value:"in";
   const W=num("W",0), H=num("H",0);
   const inW = u==="mm" ? W/25.4 : (u==="cm" ? W/2.54 : W);
@@ -2213,6 +2216,41 @@ function applyGangedDefault(){
   const smallPiece = area>0 && area<50;
   const shouldGang = GANGED_PRODUCTS.has(p) && smallQty && smallPiece;
   $("ganged").checked = shouldGang;
+}
+// MENU-RATE HINT (NKK sir 2026-07-18 batch reconcile): sir has a per-piece rate card for standard
+// commodity jobs (vcards, letterheads, tags). Auto-populate the #flatRatePc field so the user sees
+// the menu-rate quote alongside the cost quote. User typing into the field overrides via a flag.
+let flatRateEdited=false;
+function applyMenuRateHint(){
+  if(flatRateEdited || !$("flatRatePc")) return;
+  const p=$("product")&&$("product").value;
+  const qty=Math.round(num("copies2",0)||num("copies",0));
+  if(!qty) return;
+  let rate=0;
+  if(p==="card"){
+    // VCard rate card (Sunili/Beekay/Keventer/Pinacle averaged, 90×55mm at 270-350gsm):
+    //   ≤100  → ₹4.00   (vendor menu min)
+    //   ≤200  → ₹3.50
+    //   ≤500  → ₹3.00
+    //   ≤1000 → ₹2.50
+    //   >1000 → ₹2.20
+    if(qty<=100) rate=4.00; else if(qty<=200) rate=3.50;
+    else if(qty<=500) rate=3.00; else if(qty<=1000) rate=2.50; else rate=2.20;
+  }
+  else if(p==="insert"){
+    // Letterhead rate (100gsm maplitho/excel bond, single-side 4c, A4):
+    //   ≤500   → ₹9.00
+    //   ≤2000  → ₹8.00
+    //   ≤5000  → ₹7.00
+    //   >5000  → ₹1.32/pc (Egra Medilab 50k @ ₹66k = ₹1.32)
+    if(qty<=500) rate=9.00; else if(qty<=2000) rate=8.00;
+    else if(qty<=5000) rate=7.00; else rate=1.50;
+  }
+  else if(p==="pasted_tag"){
+    // Sunili family — ₹2.10-2.20/pc for 15k pcs at 40×93mm
+    rate=2.10;
+  }
+  if(rate>0){ $("flatRatePc").value=rate.toFixed(2); }
 }
 function setBinding(v){ const x=BINDING[v]||BINDING.none;
   const pp=LASTINP?LASTINP.pages:Math.round(num("pages",0)), qty=LASTINP?LASTINP.copies:Math.round(num("copies",1));
