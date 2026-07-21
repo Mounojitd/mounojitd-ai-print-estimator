@@ -159,11 +159,14 @@ Both are OFF by default → every reconcile gap is byte-for-byte unchanged. Each
 a single `const` flag in `paper_calculator.html`. Verified ON effect in the
 harness; numbers are PLACEHOLDERS pending sir.
 
-1. **`DESIGN_MARGIN_TIERS_ENABLED`** (near `MARGIN_DEFAULT`). Steps catalogue /
-   brochure_multi / annual margin DOWN with quantity (`DESIGN_MARGIN_TIERS`:
-   ≤750→40%, ≤2000→25%, else 12%). Re-evaluates on qty change (now wired into the
-   qty inputs + the harness). **ON: `udyogi_catalog` +54% → +5%** (green). Needs
-   2-3 more catalogue quotes at different volumes before trusting the breakpoints.
+1. **`DESIGN_MARGIN_TIERS_ENABLED`** (near `MARGIN_DEFAULT`) — **NOW ENABLED
+   (2026-07-21, user request to land udyogi).** Steps catalogue / brochure_multi /
+   annual margin DOWN with quantity (`DESIGN_MARGIN_TIERS`: ≤750→40%, ≤2000→25%,
+   else 12%). Re-evaluates on qty change (wired into the qty inputs + the harness).
+   **Landed `udyogi_catalog` +54% → +5%**; no other job moved (only catalogue in
+   the set). ⚠ Breakpoints/rates are still PLACEHOLDERS from one data point — get
+   2-3 more catalogue quotes at different volumes and confirm with sir; set back
+   to `false` to revert to the flat 40%.
 2. **`SCREEN_GOLD_SIDE_AWARE`** (+ `SCREEN_SIDE_MIN_SCALE`, near `coverEmbCost`).
    Scales screen-print rate + job-min by cover sides. `applyVoiceSpec` sets
    `window.screenGoldSides` (2 only for "back cover"/"cover and back"/"both

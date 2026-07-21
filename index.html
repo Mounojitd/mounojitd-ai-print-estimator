@@ -2231,7 +2231,7 @@ const MARGIN_DEFAULT={
 // 11 reconcile gaps unchanged). Flip DESIGN_MARGIN_TIERS_ENABLED=true ONLY once sir confirms the
 // breakpoints + %. The numbers below are PLACEHOLDERS from a single data point (udyogi) — get 2-3
 // more real catalogue quotes at different volumes before trusting them.
-const DESIGN_MARGIN_TIERS_ENABLED=false;
+const DESIGN_MARGIN_TIERS_ENABLED=true;
 const DESIGN_MARGIN_TIERS={   // product → [{maxQty, margin}] ascending; first tier whose maxQty ≥ qty wins
   catalogue:     [{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:12}],
   brochure_multi:[{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:12}],
