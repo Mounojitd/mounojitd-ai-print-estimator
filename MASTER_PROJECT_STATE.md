@@ -2,7 +2,152 @@
 
 > Single source of truth for resuming work. Keep this updated. A brand-new session
 > should be able to continue from this file alone.
-> Last updated: 2026-07-13
+> Last updated: **2026-07-18** (latest commit `5b2e656`)
+
+---
+
+## ⭐⭐⭐ RESUME 2026-07-18 (READ THIS FIRST) ⭐⭐⭐
+
+**Live:** https://mounojitd.github.io/mounojitd-ai-print-estimator/
+(publish = `cp paper_calculator.html index.html && git add -A && git commit && git push`)
+
+**andersonindia.com deploy is RETIRED** (commit `d0e42f3`, 2026-07-17). The
+`.github/workflows/deploy-website.yml` workflow was deleted. GitHub Pages is now
+the SINGLE publish target. Do NOT try to revive it; do NOT ask the user about
+Directory Privacy. If they want the calculator on their own domain later, treat
+that as a fresh decision.
+
+### Where the session left off (2026-07-18 evening)
+
+**NKK sir gave a major new direction** (transcript in the last user turn before
+"save this whole thing now"):
+
+1. **Build a TEST_JOBS diagnostic-loop system** — sir fills a Google Sheet tab
+   with job specs + his final quote; the app reads ONLY the spec (never the
+   price), runs its estimator, and produces a comparative report with
+   component-wise gap + data-source labels + confidence loop.
+2. **Six product categories** to canonicalise: softcover booklet, hardcase book,
+   set jobs (multi-item + jacket + pocket), single-page (leaflet/vcard/
+   letterhead), punched products, table calendar.
+3. Later: bags (there is a bag reconcile pending), T-shirts (thread count +
+   style + size × vendor list).
+4. **Parallel workstream — historical job catalog** (multi-month): parse past
+   PDFs/samples into structured records with meta-tags + contextual tags. Feed
+   from the pre-production loop for current jobs. Eventually scrape external
+   similar catalogs.
+5. **Confidentiality**: sir's real quotes + margins CANNOT leak. Audit CSV
+   stays local (`db/audit/` in repo, nothing publicly served except `index.html`).
+
+**Phase 1 (diagnostic sweep) SHIPPED this session** — commit `5b2e656`:
+- `#auditPanel` in the price column with URL input + Run button.
+- `runDiagnosticSweep()`: fetches CSV, iterates rows, applies each spec via
+  `applyVoiceSpec`, runs `combinedPrice`, captures component-wise costs
+  (paper / print / plate / coat / emb / bind / pp / pack+frt / margin / prod)
+  with source labels (`live sheet PAPER_PRICING` / `built-in` / etc.).
+- `renderAuditReport()`: colour-graded table (gap <15% green · <30% amber
+  · >30% red). `downloadAuditCSV()` for offline analysis.
+- Never reads NK's price into the calc — it sits alongside for comparison.
+
+**Sheet columns sir needs to add** (case-insensitive; either a single `spec`
+column with the raw brief OR the 17 split columns):
+
+```
+job_id · date · client · product · orientation · close_size · open_size ·
+extent · text_paper · cover_paper · colours · coating · embellishment ·
+binding · qty · nk_price · notes
+```
+
+Then paste the tab's CSV export URL into the diagnostic panel and hit Run.
+
+### What was shipped this session (2026-07-17 → 07-18)
+
+Commits `6533283` through `5b2e656` — see `git log --oneline`. Highlights:
+
+- **6 product categories added / refined:** pasted_tag (Sunili tags),
+  card+cert (Apeejay certs), insert (letterheads), leaflet+fold (folded cards),
+  wall calendar (wcEnable panel), table calendar (leaves + jacket + pouch).
+- **Auto-flags:** `ganged` auto-ticks for card/pasted_tag/insert with qty≤1000
+  AND piece area <50 sq.in (gangedEdited to preserve user override).
+  `reprint` flag when 'reprint/reprinting' detected (plates × 0.10).
+- **Per-product margin defaults + auto-populate menu-rate hint** (₹/pc)
+  keyed by product+qty band; user override sets `flatRateEdited`.
+- **Live loaders** for PAPER_PRICING, PRINTING_RATES, POST_PRESS, and NEW
+  **Digital press rate** (gid 1112763935) — GSM-tiered 12×18/13×19 SS/BS.
+- **Wall + table calendar cost model:** leaves detected (`N leaves` in parser)
+  drives `extentFlat`; wallCalPlan (wiro + hanger + backboard + box);
+  tableCalPlan adds jacket + poly pouch; sigs for calendars now = leaves
+  count so plates + printing scale (fix: `o.layouts||o.signatures` was truthy
+  even for non-sig, silently keeping sigs=1).
+- **Screen-print / MGI UV / metal-stamp / foil rate bumps** (real vendor min
+  ₹5-8k + ~₹2/sq.in). Flat-product embellishment panel `#flatEmbFields` so
+  cards/leaflets/tags can carry foil/UV without needing a cover branch.
+- **Parser upgrades:** any-order N-color-N-side ("single side 3 color" =
+  3+0), N-leaves detection, "certificate/marks sheet/diploma" → card,
+  "letterhead/notepad" → insert, fold + "with hole" flags,
+  paper-name "Gloss Art board" no longer mis-triggers lam=gloss,
+  screen_gold + screen_other no longer double-fire.
+- **Menu Rate ₹/pc field** with side-by-side comparison box; auto-populates
+  from a per-product rate card.
+
+### Real-quote reconcile progress (batches so far)
+
+| Batch | Client group | Jobs | Landed within ±30% |
+|---|---|---|---|
+| #1 | Sunili | 15 | 12 |
+| #2 | Keventer | 27 | 8 (VCards dominant) |
+| #3 | Apeejay | 26 | ~7 (VCards + Certs) |
+| #4 | Beekay/Pinacle/Pinax/Jupiter | 40 | ~15 |
+| #5 | RKM/MMD/Tata 88E-NYK | 26 | ~10 |
+| #6 | Sundew/Annapurna/BIPF/Utex | 15 | ~7 (calendars fixed after) |
+
+Full run raw data: `db/real_quotes/` folder. Reconcile log:
+`~/.claude/projects/C--git/memory/real_job_quotes.md`. Anchor to the 200-job
+historical archive: `~/.claude/projects/C--git/memory/real_quotes_dataset_v1.md`.
+
+### Pending next moves (in priority order)
+
+1. **Sir sets up the TEST_JOBS tab** and shares the CSV URL. Then the
+   diagnostic sweep runs against real data.
+2. **Continue real-quote batches** — Batch #7 = Apeejay Diary + Cyber Crime
+   + Pranik + Ambika + Rupa (specialty diaries + big brochures + foil +
+   hardcase). Batch #8+ = the remaining ~50 jobs.
+3. **Six product-category refactor** — sir wants each of the 6 categories to
+   have a distinct input flow: softcover / hardcase / set-jobs / single-page /
+   punched / calendar. Some already exist (calendar_sheet, calendar_table,
+   card, pasted_tag, booklet, hardcase via hardCasePlan). Missing: set-jobs
+   as a first-class product with jacket + pocket + card sub-items.
+4. **Historical job catalog project** — parallel workstream. Not started.
+   Waiting for sir's data collection.
+5. **Product-category-driven margin defaults are already in MARGIN_DEFAULT map**;
+   the auto-populate menu rate hints are in MENU_RATE_HINT.
+
+### Pending sir's confirmed numbers (do NOT guess)
+
+- **Die-cut / hole-punch / paste** rates on the flat post-press panel (currently
+  placeholders ₹300 / ₹150 / ₹100 per 1000). These flow into every tag/card.
+- **Screen printing gold** real per-piece rate for cover + back cover on 200–
+  600 pc runs (Keventer + Sundew + Vaachi + Cyber Crime data will confirm).
+- **Metal stamping** (Utex, Pranik notebook) — currently ₹6k min + ₹3/sq.in.
+- **T-shirt / bag vendor list** — future workstream, low priority.
+- **Notebook / diary premium finishing** (velvet lam + UV + foil combo for
+  Utex/Vesta/Nihon cards) — currently under-quoted.
+
+### Where files live
+
+- `paper_calculator.html` — THE app (single file, edit this).
+- `index.html` — copy of the above, published by GitHub Pages.
+- `db/MASTER_DATABASE_2026.xlsx` — local rate master (also on Google Sheet).
+- `db/real_quotes/` — CSV archive of historical + reconcile data.
+  - `README.md` · `digital_rate_tab.csv` · (future) `audit_YYYY-MM-DD.csv`
+- `.github/workflows/deploy-website.yml` — **DELETED, gone from repo.**
+- No dev server config change needed — `.claude/launch.json` `estimator-static`
+  on port 8092 still works for local preview.
+
+---
+
+## Historical resume points below (kept for reference)
+
+Last updated: 2026-07-13
 
 ---
 
