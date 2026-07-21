@@ -757,7 +757,13 @@
             <button class="mbtn s" onclick="clearSet()">Clear set</button>
             <button class="mbtn s" onclick="saveSetCSV()">💾 Save set (CSV + cloud)</button>
             <button class="mbtn s" onclick="printSetQuote()">🖨 Print set quotation</button></div>
-          <div id="setItems" class="hint">No items yet — price a job, then click “Add current quote to set”.</div>
+          <div style="margin:0 0 10px;padding:10px;border:1px dashed #8aa6c9;border-radius:10px;background:#fff">
+            <label>⚡ Quick set — up to 4 sub-items <span style="color:#6b7480">one per line: <code>brief | pcs per set</code> (pcs defaults to 1). Each is priced at <b>sets × pcs/set</b>.</span></label>
+            <textarea id="setLines" rows="4" placeholder="Letterhead A4, single side 4 color, 90gsm maplitho | 1&#10;Visiting card 90x55mm, 300gsm, 4+0 print | 2&#10;Compliment slip, 100gsm, 2+0 print | 1&#10;With-comps folder, 300gsm art card | 1" style="width:100%;font-family:inherit;font-size:12.5px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;resize:vertical;margin-top:4px"></textarea>
+            <button type="button" class="mbtn p" style="margin-top:6px" onclick="buildSetFromLines()">⚡ Build set from these lines</button>
+            <div id="setBuildNote" style="font-size:12px;margin-top:5px"></div>
+          </div>
+          <div id="setItems" class="hint">No items yet — price a job and “Add current quote”, or use ⚡ Quick set above.</div>
           <div class="row3" style="margin-top:8px">
             <div class="fld"><label>Number of sets</label><input id="setQty" type="number" value="1000" oninput="renderSet()" /></div>
             <div class="fld"><label>Set assembly ₹/set</label><input id="setAssembly" type="number" step="0.1" value="1" oninput="renderSet()" /><div class="hint">gather + collate the items</div></div>
@@ -769,9 +775,9 @@
             <div class="fld"><label>Carton: sets/carton · ₹/carton</label><div style="display:flex;gap:6px"><input id="setPerCarton" type="number" value="50" oninput="renderSet()" style="width:50%" /><input id="setCartonRate" type="number" step="0.5" value="45" oninput="renderSet()" style="width:50%" /></div></div>
           </div>
           <div class="row3">
-            <div class="fld"><label>Jacket ₹/set</label><input id="setJacket" type="number" step="0.5" value="0" oninput="renderSet()" /><div class="hint">printed folder / wrap holding the set</div></div>
+            <div class="fld"><label>Jacket ₹/set</label><input id="setJacket" type="number" step="0.5" value="0" oninput="renderSet()" /><div class="hint">printed folder holding the set</div></div>
             <div class="fld"><label>Pocket ₹/set</label><input id="setPocket" type="number" step="0.5" value="0" oninput="renderSet()" /><div class="hint">die-cut card pocket glued in</div></div>
-            <div class="fld"><label>&nbsp;</label><div class="hint">Jacket + pocket are set-level printed / converting parts — one per set, added on top of the items.</div></div>
+            <div class="fld"><label>Wrapper ₹/set</label><input id="setWrapper" type="number" step="0.5" value="0" oninput="renderSet()" /><div class="hint">outer wrap / sleeve / belly-band</div></div>
           </div>
           <div id="setTotal" style="margin-top:8px"></div>
           <div class="row3" style="margin-top:8px">
@@ -2382,7 +2388,12 @@ function applyGangedDefault(){
   const inW = u==="mm" ? W/25.4 : (u==="cm" ? W/2.54 : W);
   const inH = u==="mm" ? H/25.4 : (u==="cm" ? H/2.54 : H);
   const area = inW*inH;
-  const smallPiece = area>0 && area<50;
+  // A visiting/ID card or hang-tag is INHERENTLY gang-sheet format, so when the brief carries no size
+  // (area unknown) still treat it as small — otherwise real card jobs without dimensions never gang and
+  // get charged a full standalone press run (NKK sir 2026-07-21 341-job reconcile: the ≤200-pc band was
+  // stuck at +255% for exactly this reason). Inserts stay strict (a loose insert can be a full A4 sheet).
+  const inherentlySmall = (p==="card"||p==="pasted_tag");
+  const smallPiece = area>0 ? area<50 : inherentlySmall;
   const shouldGang = GANGED_PRODUCTS.has(p) && smallQty && smallPiece;
   // Auto-tick when the heuristic says gang, but never silently UN-tick a gang the brief asked for
   // explicitly (parser sets window.gangSpecified when the spec contains "gang"/"ganged"). Product
@@ -3430,6 +3441,20 @@ function applyVoiceSpec(raw){
   if(f.orientation) setV("orientation",f.orientation);
   if(f.unit) setV("unit",f.unit);
   setV("W",f.W); setV("H",f.H);
+  // A card / hang-tag with NO size — or a card-INAPPROPRIATE size (≥50 sq.in, i.e. the parser grabbed an
+  // A4 from context or a fallback) — is defaulted to a real gang-sheet size. Sizeless/A4-defaulted cards
+  // were priced at ~14× the real area → huge over-quote AND blocked ganging (NKK sir 2026-07-21 341-job
+  // reconcile: the ≤200-pc band was stuck at +255%). Real cards are <50 sq.in, so a genuine VCard/tag
+  // size (e.g. 90×55mm = 7.7 sq.in) is left untouched. VCard ≈ 3.5×2 in, hang tag ≈ 1.6×3.6 in.
+  if(f.product==="card"||f.product==="pasted_tag"){
+    const uin=f.unit==="mm"?1/25.4:f.unit==="cm"?1/2.54:1;
+    const areaIn=(f.W&&f.H)?(f.W*uin)*(f.H*uin):0;
+    if(!f.W || !f.H || areaIn>=50){
+      const d=f.product==="card"?[3.5,2]:[1.6,3.6];
+      if($("unit")) $("unit").value="in"; setV("W",d[0]); setV("H",d[1]);
+      notes.push(`size ${d[0]}×${d[1]} in (${f.product==="card"?"card":"tag"} default${areaIn>=50?" — A4 mis-parse overridden":" — none in brief"})`);
+    }
+  }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
   if(f.extent!=null) setV("extentFlat",f.extent);   // calendars: leaves-per-copy
   setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
@@ -4219,12 +4244,29 @@ async function runDiagnosticSweep(urlArg, builtin){
   catch(e){ auditStatus('<span style="color:#c0392b">'+(builtin?'Could not load the built-in set — db/real_quotes/test_jobs.csv must be served alongside this page (works on GitHub Pages; a plain file:// open may block it).':'Fetch failed — check the URL and that the sheet is shared read-only.')+'</span>'); return; }
   if(!rows||rows.length<2){ auditStatus('<span style="color:#c0392b">'+(builtin?'Built-in set':'Sheet')+' returned no rows.</span>'); return; }
   const head = rows[0].map(normalizeCol);
-  const col = n => head.indexOf(n);
+  // Header aliases (NKK sir 2026-07-21): also recognise the real master-log column names, so his own
+  // job sheet reads directly — not only the TEST_JOBS format. First matching alias wins.
+  const ALIASES={
+    job_id:["job_id","id","job_no","sl_no"], date:["date","job_date"], client:["client","customer","party"],
+    product:["product","job","item"], orientation:["orientation"],
+    close_size:["close_size","closed_finished_size","closed_size","finished_size","close_finished_size"],
+    open_size:["open_size","open_lay_flat_size","lay_flat_size","open_flat_size"],
+    extent:["extent","extent_cover_pages","pages","cover_pages"],
+    text_paper:["text_paper","paper","paper_board","inside_paper"], cover_paper:["cover_paper","cover"],
+    colours:["colours","colors","printing","print"], coating:["coating","lamination","fabrication"],
+    embellishment:["embellishment","embellishments","finishing_extras"], process:["process"],
+    binding:["binding","binding_finishing","bindingfinishing","binding_and_finishing"],
+    qty:["qty","quantity","qnty"], nk_price:["nk_price","amount","price","value","rate"],
+    notes:["notes","note","remarks"], spec:["spec","full_original_spec","full_spec","original_spec"]
+  };
+  const col = key => { for(const a of (ALIASES[key]||[key])){ const i=head.indexOf(a); if(i>=0) return i; } return -1; };
   const iId=col("job_id"), iDate=col("date"), iClient=col("client"), iProd=col("product"),
         iOr=col("orientation"), iCS=col("close_size"), iOS=col("open_size"),
         iExt=col("extent"), iTxt=col("text_paper"), iCov=col("cover_paper"),
         iCol=col("colours"), iCoat=col("coating"), iEmb=col("embellishment"),
         iBind=col("binding"), iQty=col("qty"), iNK=col("nk_price"), iNotes=col("notes"), iSpec=col("spec");
+  // first number in a messy cell — "15000 (3000 per book)"→15000, "Rs.74,448/- + GST | 55,224"→74448
+  const firstNum = s => { const m=String(s||"").replace(/,/g,"").match(/\d+(?:\.\d+)?/); return m?parseFloat(m[0]):0; };
   auditStatus(`⏳ Running ${rows.length-1} jobs…`);
   const records=[];
   for(let r=1;r<rows.length;r++){
@@ -4234,7 +4276,12 @@ async function runDiagnosticSweep(urlArg, builtin){
     // Build a brief string from whatever the row supplies (either a `spec` cell or the split cols).
     const parts=[];
     const push=(k,v)=>{ if(v!=null && String(v).trim()!=="") parts.push(`${k}: ${v}`); };
-    if(iSpec>=0 && row[iSpec]) parts.push(String(row[iSpec]));
+    // Strip any price/amount lines + @mentions from a free-text spec — the estimator must NEVER see
+    // NK's price (Module 1 rule), and an inline "Amount - 77000" would also fool the quantity parser.
+    const stripPrice = s => String(s||"").split(/\r?\n/)
+      .filter(l=>!/\b(amount|price|value|rs\.?|₹|inr|gst|quotation|quote)\b/i.test(l) && !/@/.test(l))
+      .join("\n").trim();
+    if(iSpec>=0 && row[iSpec]) parts.push(stripPrice(row[iSpec]));
     else{
       push("Client", iClient>=0?row[iClient]:null);
       push("Product", iProd>=0?row[iProd]:null);
@@ -4254,19 +4301,18 @@ async function runDiagnosticSweep(urlArg, builtin){
       jobId: iId>=0 ? (row[iId]||`row${r}`) : `row${r}`,
       client: iClient>=0?row[iClient]:"",
       brief: parts.join("\n"),
-      qty: iQty>=0 ? parseInt(String(row[iQty]||"").replace(/[^0-9]/g,""),10)||0 : 0,
-      nk: iNK>=0 ? parseFloat(String(row[iNK]||"").replace(/[^0-9.]/g,""))||0 : 0
+      qty: iQty>=0 ? Math.round(firstNum(row[iQty])) : 0,
+      nk: iNK>=0 ? firstNum(row[iNK]) : 0
     });
   }
   runSweepRecords(records);
 }
 // Price one {jobId,client,brief,qty,nk} record through the estimator (mutates rec with est + components +
 // source labels). Never reads rec.nk into the calc — it's only used for the side-by-side gap.
-function priceAuditRecord(rec){
-  const brief=rec.brief;
-  // reset state before each job — otherwise a prior job's coating / binding / press pick / flags leak in
-  // (sir 2026-07-21 found ₹29k phantom coat on Medilab from a prior 'matt' spec). Reset every field the
-  // parser touches OR that has a sticky default.
+// Reset every field the parser touches OR that has a sticky default, so a prior job's coating / binding /
+// press pick / flags don't leak into the next one (sir 2026-07-21: ₹29k phantom coat on Medilab from a
+// prior 'matt' spec). Shared by the diagnostic sweep and the quick-set builder.
+function resetParserFields(){
   window.marginEdited=false; window.gangedEdited=false; window.flatRateEdited=false; window.bindingEdited=false;
   if(window.MACHINE_MODE!=null) window.MACHINE_MODE="auto";
   if(window.COVER_MACHINE_MODE!=null) window.COVER_MACHINE_MODE="auto";
@@ -4282,6 +4328,10 @@ function priceAuditRecord(rec){
   if($("ptagPaste")) $("ptagPaste").value=0;
   if($("flatRatePc")) $("flatRatePc").value="";
   if($("extentFlat")) $("extentFlat").value=1;
+}
+function priceAuditRecord(rec){
+  const brief=rec.brief;
+  resetParserFields();
   if($("voiceText")) $("voiceText").value=brief;
   applyVoiceSpec(brief);                               // parses the brief incl. any "quantity N"
   if(rec.qty>0){ if($("copies2")) $("copies2").value=rec.qty; if($("copies")) $("copies").value=rec.qty; }
@@ -4400,6 +4450,44 @@ function addQuoteToSet(){
   });
   saveSet(); renderSet();
 }
+// QUICK SET (NKK sir Module 2 — a set holds up to 4 quotes): type up to 4 sub-item briefs, one per line
+// as "brief | pcs-per-set" (pcs defaults to 1), each priced at (number of sets × pcs/set) and added as a
+// set item. Reuses the estimator + snapshotInputs so every item re-prices at any set quantity afterwards.
+function buildSetFromLines(){
+  const raw=($("setLines")&&$("setLines").value)||"";
+  let lines=raw.split(/\r?\n/).map(l=>l.trim()).filter(l=>l && !l.startsWith("#"));
+  const note=$("setBuildNote");
+  if(!lines.length){ if(note){ note.style.color="#c0392b"; note.textContent="Type at least one sub-item — one per line: brief | pcs per set"; } return; }
+  let capped=false;
+  if(lines.length>4){ lines=lines.slice(0,4); capped=true; }        // up to 4 quotes per set
+  const sets=Math.max(1,Math.round(num("setQty",1)));
+  const userSnap=snapshotInputs();                                  // preserve the live form
+  const added=[]; let failed=0;
+  for(const line of lines){
+    const p=line.split("|").map(s=>s.trim());
+    const brief=p[0]; if(!brief){ continue; }
+    const perSet=Math.max(0, p.length>1 ? (parseFloat(p[1].replace(/[^0-9.]/g,""))||1) : 1);
+    const need=Math.max(1, Math.round(sets*perSet));
+    try{
+      resetParserFields();
+      if($("voiceText")) $("voiceText").value=brief;
+      applyVoiceSpec(brief);
+      if($("copies2")) $("copies2").value=need; if($("copies")) $("copies").value=need;
+      applyGangedDefault(); applyMenuRateHint(); applyMarginDefault();
+      run();
+      const x=combinedPrice(); if(!x||!x.q||!(x.q.grand>0)){ failed++; continue; }
+      const prodSel=$("product"), prodName=($("product_name")&&$("product_name").value.trim())||"";
+      added.push({ name: prodName || (prodSel&&prodSel.selectedOptions[0]?prodSel.selectedOptions[0].text:"Item"),
+        product: prodSel?prodSel.value:"", qty: x.p.books, unit:+x.q.unit.toFixed(2), grand: Math.round(x.q.grand),
+        perSet, _inputs: snapshotInputs() });
+    }catch(e){ failed++; }
+  }
+  restoreInputs(userSnap,true);                                     // put the user's live form back exactly
+  if(!added.length){ if(note){ note.style.color="#c0392b"; note.textContent="Couldn't price any of those lines — check the briefs."; } return; }
+  SET_ITEMS.push(...added); saveSet(); renderSet();
+  if($("setLines")) $("setLines").value="";
+  if(note){ note.style.color="#1c7a52"; note.textContent=`✓ added ${added.length} item${added.length!==1?"s":""}`+(failed?` · ${failed} line(s) couldn't be priced`:"")+(capped?" · only the first 4 lines (a set holds up to 4 quotes)":"")+"."; }
+}
 function removeSetItem(i){ SET_ITEMS.splice(i,1); saveSet(); renderSet(); }
 function setPerSet(i,v){ const n=Math.max(0,parseFloat(v)||0); SET_ITEMS[i].perSet=n; saveSet(); renderSet(); }
 function clearSet(){ SET_ITEMS=[]; saveSet(); renderSet(); }
@@ -4409,15 +4497,16 @@ function setTotals(){
   const pcsPerSet=SET_ITEMS.reduce((s,i)=>s+(i.perSet||0),0);
   const items=SET_ITEMS.reduce((s,i)=>s+i.grand,0);
   const assembly=num("setAssembly",0)*sets;
-  const jacket=num("setJacket",0)*sets;                 // NKK sir: printed folder/wrap holding the set (one per set)
+  const jacket=num("setJacket",0)*sets;                 // NKK sir: printed folder holding the set (one per set)
   const pocket=num("setPocket",0)*sets;                 // die-cut card pocket glued into the jacket (one per set)
+  const wrapper=num("setWrapper",0)*sets;               // outer wrap / sleeve / belly-band (one per set)
   const shrinkPc=num("setShrinkPc",0)*pcsPerSet*sets;
   const polyPc=num("setPolyPc",0)*pcsPerSet*sets;
   const shrinkSet=num("setShrink",0)*sets;
   const perCarton=Math.max(1,Math.round(num("setPerCarton",50))), cartons=Math.ceil(sets/perCarton);
   const carton=cartons*num("setCartonRate",45);
-  const total=items+jacket+pocket+assembly+shrinkPc+polyPc+shrinkSet+carton;
-  return {sets,pcsPerSet,items,jacket,pocket,assembly,shrinkPc,polyPc,shrinkSet,cartons,carton,total,perSetCost:total/sets};
+  const total=items+jacket+pocket+wrapper+assembly+shrinkPc+polyPc+shrinkSet+carton;
+  return {sets,pcsPerSet,items,jacket,pocket,wrapper,assembly,shrinkPc,polyPc,shrinkSet,cartons,carton,total,perSetCost:total/sets};
 }
 function renderSet(){
   const box=$("setItems"), tot=$("setTotal"); if(!box||!tot) return;
@@ -4435,8 +4524,9 @@ function renderSet(){
   let t='<table style="width:100%;border-collapse:collapse;font-size:13px">';
   const row=(k,v)=>t+=`<tr><td style="padding:3px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`;
   row(`Items production (${SET_ITEMS.length} items, as quoted)`,T.items);
-  if(T.jacket>0) row(`Jacket — printed folder / wrap (${T.sets.toLocaleString("en-IN")} sets)`,T.jacket);
+  if(T.jacket>0) row(`Jacket — printed folder (${T.sets.toLocaleString("en-IN")} sets)`,T.jacket);
   if(T.pocket>0) row(`Pocket — die-cut card pocket (${T.sets.toLocaleString("en-IN")} sets)`,T.pocket);
+  if(T.wrapper>0) row(`Wrapper — outer wrap / sleeve (${T.sets.toLocaleString("en-IN")} sets)`,T.wrapper);
   if(T.assembly>0) row(`Set assembly (${T.sets.toLocaleString("en-IN")} sets)`,T.assembly);
   if(T.shrinkPc>0) row(`Individual shrink-wrap (${T.pcsPerSet} pcs/set)`,T.shrinkPc);
   if(T.polyPc>0) row(`Poly-sleeve insertion (${T.pcsPerSet} pcs/set)`,T.polyPc);
@@ -4481,7 +4571,7 @@ function renderSetMultiQty(){
   if(!extra.length){ box.innerHTML=""; return; }          // only surface when the user asks to compare
   const cands=[prim,...extra].filter((q,i,a)=>q>0&&a.indexOf(q)===i).sort((a,b)=>a-b);
   // read the packing rates ONCE up front (they live outside #inputCard, so the item re-pricing can't touch them)
-  const aR=num("setAssembly",0), jkR=num("setJacket",0), pkR=num("setPocket",0), spcR=num("setShrinkPc",0), ppR=num("setPolyPc",0), ssR=num("setShrink",0),
+  const aR=num("setAssembly",0), jkR=num("setJacket",0), pkR=num("setPocket",0), wrR=num("setWrapper",0), spcR=num("setShrinkPc",0), ppR=num("setPolyPc",0), ssR=num("setShrink",0),
         perCarton=Math.max(1,Math.round(num("setPerCarton",50))), cartonR=num("setCartonRate",45),
         pcsPerSet=SET_ITEMS.reduce((s,i)=>s+(i.perSet||0),0);
   _setMqBusy=true;
@@ -4491,7 +4581,7 @@ function renderSetMultiQty(){
   try{
     for(const n of cands){
       const r=priceSetItemsAt(n); anyLegacy=anyLegacy||r.anyLegacy;
-      const packing=aR*n + jkR*n + pkR*n + spcR*pcsPerSet*n + ppR*pcsPerSet*n + ssR*n + Math.ceil(n/perCarton)*cartonR;
+      const packing=aR*n + jkR*n + pkR*n + wrR*n + spcR*pcsPerSet*n + ppR*pcsPerSet*n + ssR*n + Math.ceil(n/perCarton)*cartonR;
       const total=r.itemsTotal+packing; rows.push({n,total,perSet:total/n});
     }
   }catch(e){}
@@ -4513,7 +4603,8 @@ function printSetQuote(){
   const pk=(k,v)=>v>0?`<tr><td colspan="3">${k}</td><td style="text-align:right">${money(v)}</td></tr>`:"";
   const body=docHeader("SET / BUNDLE QUOTATION",m)+
     `<table class="t"><thead><tr><th>Item</th><th>Job qty</th><th>Pcs/set</th><th>Job total</th></tr></thead><tbody>${rows}`+
-    pk(`Jacket — printed folder / wrap (${T.sets.toLocaleString("en-IN")} sets)`,T.jacket)+
+    pk(`Jacket — printed folder (${T.sets.toLocaleString("en-IN")} sets)`,T.jacket)+
+    pk(`Wrapper — outer wrap / sleeve (${T.sets.toLocaleString("en-IN")} sets)`,T.wrapper)+
     pk(`Pocket — die-cut card pocket (${T.sets.toLocaleString("en-IN")} sets)`,T.pocket)+
     pk(`Set assembly (${T.sets.toLocaleString("en-IN")} sets)`,T.assembly)+
     pk("Individual shrink-wrap",T.shrinkPc)+pk("Poly-sleeve insertion",T.polyPc)+
@@ -4529,7 +4620,7 @@ function setSummary(){
   return {date:new Date().toISOString().slice(0,10), quoteNo:m.no, customer:m.customer, product:"SET",
     name:`Set of ${SET_ITEMS.length} items`, size:"", pages:"", qty:T.sets, gsm:"", sheet:"", machine:"",
     paper:Math.round(T.items), printing:0, plates:0, coating:0,
-    packing:Math.round(T.jacket+T.pocket+T.shrinkPc+T.polyPc+T.shrinkSet+T.carton+T.assembly), freight:0, overhead:0,
+    packing:Math.round(T.jacket+T.pocket+T.wrapper+T.shrinkPc+T.polyPc+T.shrinkSet+T.carton+T.assembly), freight:0, overhead:0,
     margin:0, gst:0, grand:Math.round(T.total), unit:+T.perSetCost.toFixed(2)};
 }
 function saveSetCSV(){
