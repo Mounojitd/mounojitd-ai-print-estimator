@@ -125,13 +125,13 @@
   .drawerClose{display:none}
   /* desktop collapse: hide the sidebar, results take the whole width */
   @media(min-width:981px){
-    body.sidebar-collapsed .grid{grid-template-columns:1fr}
+    body.sidebar-collapsed .grid{grid-template-columns:minmax(0,1fr)}
     body.sidebar-collapsed #inputCard{display:none}
   }
 
   /* NARROW / mobile: no room for a sidebar → collapse inputs into a slide-in drawer opened by ☰ */
   @media(max-width:980px){
-    .grid{grid-template-columns:1fr}
+    .grid{grid-template-columns:minmax(0,1fr)}           /* minmax(0,…) caps the column to the viewport (plain 1fr let wide content push it) */
     #inputCard{position:fixed;top:0;left:0;bottom:0;width:min(468px,94vw);max-height:none;margin:0;
       border-radius:0 20px 20px 0;overflow-y:auto;z-index:130;transform:translateX(-103%);
       transition:transform .30s cubic-bezier(.4,0,.2,1);box-shadow:var(--shadow-lg)}
@@ -142,6 +142,13 @@
     #drawerToggle{display:inline-flex}
     .drawerClose{display:block;position:sticky;top:0;float:right;margin:-8px -6px 6px 8px;z-index:6;background:#fff;
       border:1px solid var(--line);border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:15px;color:var(--muted)}
+  }
+  /* keep wide result content inside its box on small screens: scale diagrams, scroll wide tables */
+  @media(max-width:980px){
+    #results,.wrap>.grid>.card{max-width:100%;overflow-wrap:break-word}
+    #results svg{max-width:100%;height:auto}             /* imposition diagrams shrink to fit */
+    #results table{display:block;max-width:100%;overflow-x:auto}   /* wide tables scroll within the card */
+    .rh-big{font-size:clamp(21px,6.5vw,34px);word-break:break-word}
   }
 
   /* slim in-app top bar: ☰ opener (mobile only) + brand + New estimate */
