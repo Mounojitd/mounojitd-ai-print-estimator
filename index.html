@@ -590,13 +590,15 @@
         <details id="auditPanel" class="pbox" style="margin-top:10px;border-color:#7c3aed;background:#f7f2ff">
           <summary style="cursor:pointer;font-weight:700;color:#5b21b6;font-size:13px">🔬 Diagnostic sweep — comparative test (NKK sir vs estimator)</summary>
           <div class="hint" style="margin:6px 0">
-            Fetches the TEST_JOBS tab from the master sheet, runs each row through the estimator, and produces
-            a comparative report — NK price vs Est price + component-wise gap. Sheet takes only the <b>spec</b>,
-            not the NK price (that's shown side-by-side for comparison, never used in the calc).
+            Runs each job spec through the estimator and produces a comparative report — NK price vs Est price +
+            component-wise gap. Only the <b>spec</b> is read, never the NK price (shown side-by-side, never in the calc).
+            Use the <b>built-in 11-job set</b> (bundled real quotes) to see the current gaps instantly, or paste a
+            TEST_JOBS tab URL from the master sheet for a live set.
           </div>
           <div class="prow" style="align-items:end;gap:8px">
-            <span style="flex:1"><label>TEST_JOBS CSV URL <span style="color:#6b7480">(export?format=csv&gid=…)</span></label><input id="auditUrl" type="text" placeholder="paste the tab URL from the master sheet" style="width:100%" /></span>
-            <span style="flex:0 0 auto"><button type="button" class="mbtn p" onclick="runDiagnosticSweep()">🔬 Run sweep</button></span>
+            <span style="flex:0 0 auto"><button type="button" class="mbtn p" onclick="runBuiltinSweep()">📋 Run built-in 11-job set</button></span>
+            <span style="flex:1"><label>…or a TEST_JOBS CSV URL <span style="color:#6b7480">(export?format=csv&gid=…)</span></label><input id="auditUrl" type="text" placeholder="paste the tab URL from the master sheet" style="width:100%" /></span>
+            <span style="flex:0 0 auto"><button type="button" class="mbtn s" onclick="runDiagnosticSweep()">🔬 Run sweep</button></span>
           </div>
           <div id="auditStatus" style="font-size:12px;color:#6b7480;margin-top:6px"></div>
           <div id="auditReport" style="margin-top:10px;overflow-x:auto"></div>
@@ -4051,14 +4053,17 @@ function importTemplates(input){
 // ----------------------------------------------------------------------------
 function auditStatus(html){ const el=$("auditStatus"); if(el) el.innerHTML=html; }
 function normalizeCol(h){ return String(h||"").trim().toLowerCase().replace(/[^a-z0-9]+/g,"_"); }
-async function runDiagnosticSweep(){
-  const url=($("auditUrl")&&$("auditUrl").value.trim())||"";
-  if(!url){ auditStatus('<span style="color:#c0392b">Paste a Google Sheet CSV URL first — the tab must be shared with anyone-with-link view access.</span>'); return; }
-  auditStatus('⏳ Fetching sheet…');
+// Run the bundled real-quote set (db/real_quotes/test_jobs.csv, served alongside index.html on GitHub
+// Pages). Lets sir see the current gaps instantly without pasting a sheet URL.
+function runBuiltinSweep(){ runDiagnosticSweep("db/real_quotes/test_jobs.csv", true); }
+async function runDiagnosticSweep(urlArg, builtin){
+  const url=urlArg||($("auditUrl")&&$("auditUrl").value.trim())||"";
+  if(!url){ auditStatus('<span style="color:#c0392b">Paste a Google Sheet CSV URL first — the tab must be shared with anyone-with-link view access — or use the built-in 11-job set.</span>'); return; }
+  auditStatus(builtin?'⏳ Loading built-in 11-job set…':'⏳ Fetching sheet…');
   let rows;
   try{ rows = await fetchCSV(url); }
-  catch(e){ auditStatus('<span style="color:#c0392b">Fetch failed — check the URL and that the sheet is shared read-only.</span>'); return; }
-  if(!rows||rows.length<2){ auditStatus('<span style="color:#c0392b">Sheet returned no rows.</span>'); return; }
+  catch(e){ auditStatus('<span style="color:#c0392b">'+(builtin?'Could not load the built-in set — db/real_quotes/test_jobs.csv must be served alongside this page (works on GitHub Pages; a plain file:// open may block it).':'Fetch failed — check the URL and that the sheet is shared read-only.')+'</span>'); return; }
+  if(!rows||rows.length<2){ auditStatus('<span style="color:#c0392b">'+(builtin?'Built-in set':'Sheet')+' returned no rows.</span>'); return; }
   const head = rows[0].map(normalizeCol);
   const col = n => head.indexOf(n);
   const iId=col("job_id"), iDate=col("date"), iClient=col("client"), iProd=col("product"),
@@ -4121,7 +4126,7 @@ async function runDiagnosticSweep(){
       if($("voiceText")) $("voiceText").value=brief;
       applyVoiceSpec(brief);
       if(qty>0){ if($("copies2")) $("copies2").value=qty; if($("copies")) $("copies").value=qty; }
-      applyGangedDefault(); applyMenuRateHint();
+      applyGangedDefault(); applyMenuRateHint(); applyMarginDefault();  // re-apply margin AFTER qty (volume-tiered design margin needs it)
       run();
       const x = combinedPrice();
       // component-wise capture with source labels
