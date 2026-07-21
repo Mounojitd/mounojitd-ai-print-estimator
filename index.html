@@ -102,6 +102,10 @@
   .pbox{background:#f8fafc;border:1px solid var(--line2);border-radius:13px;padding:14px;margin-top:14px}
   .ptitle{font-size:12px;font-weight:700;color:var(--brand);margin-bottom:9px;letter-spacing:.2px}
   .prow{display:flex;gap:10px;margin-bottom:9px} .prow span{flex:1}
+  /* commercial-settings row: don't cram many fields into slivers — wrap into a readable grid */
+  .prow-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px 12px;align-items:start}
+  .prow-wrap>span{flex:none;min-width:0}
+  .prow-wrap>span .hint{margin-top:4px;line-height:1.4}
   .prow label{font-size:11px;margin-bottom:3px} .prow input,.prow select{padding:8px 10px;font-size:13px;border-radius:9px}
 
   .mbtn{cursor:pointer;border:0;border-radius:10px;font-weight:600;font-size:13.5px;padding:11px 16px;margin:5px 7px 0 0;transition:.15s}
@@ -623,7 +627,7 @@
             <option value="tumble">Work &amp; tumble</option>
           </select></span>
         </div>
-        <div class="prow">
+        <div class="prow prow-wrap">
           <span><label>Margin %</label><input id="margin" type="number" value="40" oninput="marginEdited=true;showPrice();updateTargetMarginNote()" /><div class="hint">NKK sir: default varies by product (card/tag/leaflet 15–20%, brochure/catalogue 30–40%). Once you type, this stays fixed.</div></span>
           <span><label>Reprint (plates exist)</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="reprint" onchange="showPrice()" /> Yes — plates reused</label><div class="hint">NKK sir: reprint jobs reuse existing plates → cost drops to a handling fee (~10%). Fresh printing still charged.</div></span>
           <span><label>Ganged with other jobs</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="ganged" onchange="gangedEdited=true;showPrice()" /> Yes — shared sheet</label><input id="gangedShare" type="number" step="1" min="1" max="100" value="25" style="margin-top:6px" placeholder="% share" oninput="gangedEdited=true;showPrice()" /><div class="hint">NKK sir: small VCards / tags run ganged with other jobs on one plate + sheet. This job pays only its share (default 25%) of plates + printing + paper. Auto-ticked for cards ≤500 pcs.</div></span>
@@ -632,7 +636,6 @@
           <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
           <span><label>Paper discount %</label><input id="paperDiscount" type="number" value="0" step="0.5" oninput="showPrice()" /><div class="hint">NKK sir: vendor discount off paper cost (e.g. 13%)</div></span>
-          <span></span>
         </div>
       </div>
       <div class="pbox">
