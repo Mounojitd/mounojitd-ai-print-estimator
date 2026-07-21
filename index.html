@@ -2388,7 +2388,12 @@ function applyGangedDefault(){
   const inW = u==="mm" ? W/25.4 : (u==="cm" ? W/2.54 : W);
   const inH = u==="mm" ? H/25.4 : (u==="cm" ? H/2.54 : H);
   const area = inW*inH;
-  const smallPiece = area>0 && area<50;
+  // A visiting/ID card or hang-tag is INHERENTLY gang-sheet format, so when the brief carries no size
+  // (area unknown) still treat it as small — otherwise real card jobs without dimensions never gang and
+  // get charged a full standalone press run (NKK sir 2026-07-21 341-job reconcile: the ≤200-pc band was
+  // stuck at +255% for exactly this reason). Inserts stay strict (a loose insert can be a full A4 sheet).
+  const inherentlySmall = (p==="card"||p==="pasted_tag");
+  const smallPiece = area>0 ? area<50 : inherentlySmall;
   const shouldGang = GANGED_PRODUCTS.has(p) && smallQty && smallPiece;
   // Auto-tick when the heuristic says gang, but never silently UN-tick a gang the brief asked for
   // explicitly (parser sets window.gangSpecified when the spec contains "gang"/"ganged"). Product
@@ -3436,6 +3441,20 @@ function applyVoiceSpec(raw){
   if(f.orientation) setV("orientation",f.orientation);
   if(f.unit) setV("unit",f.unit);
   setV("W",f.W); setV("H",f.H);
+  // A card / hang-tag with NO size — or a card-INAPPROPRIATE size (≥50 sq.in, i.e. the parser grabbed an
+  // A4 from context or a fallback) — is defaulted to a real gang-sheet size. Sizeless/A4-defaulted cards
+  // were priced at ~14× the real area → huge over-quote AND blocked ganging (NKK sir 2026-07-21 341-job
+  // reconcile: the ≤200-pc band was stuck at +255%). Real cards are <50 sq.in, so a genuine VCard/tag
+  // size (e.g. 90×55mm = 7.7 sq.in) is left untouched. VCard ≈ 3.5×2 in, hang tag ≈ 1.6×3.6 in.
+  if(f.product==="card"||f.product==="pasted_tag"){
+    const uin=f.unit==="mm"?1/25.4:f.unit==="cm"?1/2.54:1;
+    const areaIn=(f.W&&f.H)?(f.W*uin)*(f.H*uin):0;
+    if(!f.W || !f.H || areaIn>=50){
+      const d=f.product==="card"?[3.5,2]:[1.6,3.6];
+      if($("unit")) $("unit").value="in"; setV("W",d[0]); setV("H",d[1]);
+      notes.push(`size ${d[0]}×${d[1]} in (${f.product==="card"?"card":"tag"} default${areaIn>=50?" — A4 mis-parse overridden":" — none in brief"})`);
+    }
+  }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
   if(f.extent!=null) setV("extentFlat",f.extent);   // calendars: leaves-per-copy
   setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
