@@ -2226,11 +2226,7 @@ function applyGangedDefault(){
   const qty=Math.round(num("copies2",0)||num("copies",0));
   // NKK sir 2026-07-18 batch #4: bump threshold 500→1000. Real Beekay/Pinax/Pinacle vcards at
   // 600-900 pcs are also ganged (₹3-5/pc menu rate); the earlier 500 cap missed them.
-  // NKK sir 2026-07-21 reconcile: visiting/credit cards stay on the shared gang sheet up to ~3000
-  // pcs — Sunili oran (2000 @ ₹3.05/pc) and rfid (2000 @ ₹4.15/pc) cards are both ganged rates, not
-  // full-plate. Tags/inserts keep the 1000 cap (their real runs are 10-50k and print on their own).
-  const qtyCap = p==="card" ? 3000 : 1000;
-  const smallQty = qty>0 && qty<=qtyCap;
+  const smallQty = qty>0 && qty<=1000;
   // Also require a SMALL piece size (<50 sq.in). VCards are ~15 sq.in, tags ~4-15 sq.in, credit
   // cards ~7 sq.in — all fit. A3 certificates (~200 sq.in), A4 letterheads (~95 sq.in) and A5
   // (~48 sq.in) do NOT auto-gang because they aren't run on a shared VCard gang sheet.
@@ -3130,8 +3126,13 @@ function parseSpec(raw){
   if(f.orientation) notes.push(f.orientation);
   // COLOURS — Explicit "N+M color" wins. Then "N color one side" → N+0. Then "N color both sides" → N+N.
   // Then fallbacks (4 color / cmyk / single / bw).
-  const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/);
-  if(cm){ f.cf=+cm[1]||4; f.cb=+cm[2]||4; notes.push("colours "+f.cf+"+"+f.cb); }
+  // Anchor on colour|print|side so the common trade shorthand "1+1 print" / "3+3 print" / "4+0"
+  // is caught — not just "N+N colour". Without this every "N+N print" card silently fell back to
+  // 4+4 (8 plates), so a 3+3 and a 1+1 priced identically (NKK sir 2026-07-21 rfid-card reconcile).
+  const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*(?:colou?r|print|side)/);
+  // NB: cm[1]/cm[2] are always \d, so DON'T `|| 4` — that turned a legit back "+0" (one-side print,
+  // e.g. "3+0 print") into +4, because 0 is falsy (NKK sir 2026-07-21 rfid-tag reconcile).
+  if(cm){ f.cf=+cm[1]; f.cb=+cm[2]; notes.push("colours "+f.cf+"+"+f.cb); }
   else {
     // "N color one side" OR "one side N color" — both orders
     const oneSide=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/)

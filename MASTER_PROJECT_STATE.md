@@ -115,24 +115,37 @@ reset → `applyVoiceSpec` → `run` → `combinedPrice` path as the in-app
 diagnostic sweep, printing a component-wise gap table. No Google Sheet / network
 needed (built-in rate fallbacks). Run: `node tools/reconcile.mjs`.
 
-Back-test of the 11-job set found + fixed a real gang bug:
-- **`applyGangedDefault` silently un-ticked** a gang set upstream (it did
-  `ganged.checked = shouldGang` unconditionally). Now it only auto-ticks and
-  never clears a gang the brief explicitly asked for (`window.gangSpecified`,
-  set in `applyVoiceSpec` when the spec contains "gang/ganged").
-- **Card gang qty cap bumped 1000 → 3000 for `product==='card'`** (tags/inserts
-  stay at 1000). Sir's data proves 2000-pc small cards are ganged: Sunili oran
-  (2000 @ ₹3.05/pc) and rfid (2000 @ ₹4.15/pc). Result: oran_card **+163% → −4%**,
-  no regression on the other 10 jobs.
-- **NEW gap flagged for sir:** the ganged cost model applies a flat 25% share to
-  plates+printing regardless of colour count, so a 3+3 card and a 1+1 card price
-  almost identically — but sir charges more for more colours (rfid 3+3 ₹4.15 vs
-  oran 1+1 ₹3.05). This pushed rfid_card to −54%. Needs sir's ganged
-  multi-colour convention before the share can be made colour-aware.
-- Still-open reds (unchanged this session): `udyogi_catalog` +54%,
-  `keventer_plan_brochure` +46% (176-pc reprint), `sunili_vcard` +128%
-  (400-pc tiny run — sir quotes the menu rate ₹3/pc, which the app already
-  shows alongside the cost).
+Back-test of the 11-job set traced the "rfid card" gap to its ROOT CAUSE —
+two plain colour-parse bugs, NOT a missing gang rule:
+- **`N+N print` was never parsed.** The colour regex anchored only on the word
+  "colour" (`(\d)…(\d)\s*colou?r`), so the common trade shorthand "1+1 print" /
+  "3+3 print" fell through and every such card silently defaulted to 4+4 (8
+  plates). A 3+3 and a 1+1 therefore priced identically. Anchor now also accepts
+  `print`/`side`.
+- **Back "+0" became "+4".** `f.cb = +cm[2] || 4` turned a legit one-side
+  "3+0 print" into 3+4, because `0` is falsy. Dropped the `|| 4` (a captured
+  `\d` is never NaN). "N+0" one-side jobs now parse correctly.
+- With colours correct, plate counts scale (1+1 → 2 plates, 3+3 → 6), so cards
+  price by their real colour load. **The earlier "gang cap 1000→3000" idea was
+  REVERTED** — it only looked good because over-counting plates (8) cancelled an
+  over-aggressive gang share; with plates correct, blanket-ganging 2000-pc cards
+  under-quotes. 2000-pc cards now price UN-ganged and land within ~25%.
+- Kept the harmless correctness guard: `applyGangedDefault` no longer silently
+  un-ticks a gang the brief explicitly asked for (`window.gangSpecified`).
+
+Result vs start of session — cards went from wild swings to a consistent slight
+over: `sunili_vcard` **+128% → +38%**, `sunili_rfid_card` **+56% → +25%**,
+`sunili_oran_card` +24%. `sunili_rfid_tag` restored to +1%.
+
+Still-open (calibration / data, flagged — do NOT guess):
+- **Cards ~+25% uniform over** (oran +24, rfid +25, vcard +38). A single
+  systematic factor (card margin default 15% or a minimum charge) — confirm with
+  sir before tuning.
+- **`ili_tag` −31%** — its test spec names NO board, so it defaults cheaper than
+  the 350gsm specialty board sir actually used (cf. `rfid_tag` which names the
+  board and lands +1%). Spec-completeness, not a code bug.
+- **Big jobs untouched:** `udyogi_catalog` +54%, `keventer_plan_brochure` +46%
+  (176-pc reprint), `keventer_sales_brochure` −27%.
 
 ### Pending next moves (in priority order)
 
@@ -160,9 +173,10 @@ Back-test of the 11-job set found + fixed a real gang bug:
 
 ### Pending sir's confirmed numbers (do NOT guess)
 
-- **Ganged multi-colour card share** — the flat 25% gang share ignores colour
-  count, so 3+3 cards under-quote vs 1+1 (rfid −54%). Need sir's rule: does a
-  3+3 card carry more of the shared sheet's plates/press than a 1+1? (2026-07-21)
+- **Card price calibration** — after the 2026-07-21 colour-parse fixes, small
+  cards land a uniform ~+25% over sir (oran +24, rfid +25, vcard +38). Confirm
+  whether sir wants the card margin default (15%) or a per-piece minimum tuned
+  down, or whether these should just quote at the menu rate the app already shows.
 - **Die-cut / hole-punch / paste** rates on the flat post-press panel (currently
   placeholders ₹300 / ₹150 / ₹100 per 1000). These flow into every tag/card.
 - **Screen printing gold** real per-piece rate for cover + back cover on 200–
