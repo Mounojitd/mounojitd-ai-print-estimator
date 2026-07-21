@@ -111,17 +111,97 @@
   .mbtn.s:hover{background:#e4edf6}
   .suggest{background:linear-gradient(#fff9ec,#fef4e0);border:1px solid #efd9a6;border-radius:12px;padding:11px 14px;
     font-size:12.5px;color:#7a5810;margin-top:12px;line-height:1.5}
+
+  /* ============================================================================================
+     REDESIGN 2026-07-21 (client): full-screen landing (Type or Speak) → results take the whole
+     screen; the detailed input form + diagrams live in a left slide-in drawer opened from the ☰.
+     ============================================================================================ */
+  .grid{grid-template-columns:1fr}                       /* results now span the full width */
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+
+  /* the whole input form becomes a left drawer, hidden until ☰ is tapped */
+  #inputCard{position:fixed;top:0;left:0;bottom:0;width:min(468px,94vw);margin:0;border-radius:0 20px 20px 0;
+    overflow-y:auto;z-index:130;transform:translateX(-103%);transition:transform .30s cubic-bezier(.4,0,.2,1);
+    box-shadow:var(--shadow-lg);border-left:none}
+  body.drawer-open #inputCard{transform:none}
+  #drawerBackdrop{position:fixed;inset:0;background:rgba(16,26,38,.42);opacity:0;pointer-events:none;
+    transition:opacity .30s;z-index:120}
+  body.drawer-open #drawerBackdrop{opacity:1;pointer-events:auto}
+  .drawerClose{position:sticky;top:0;float:right;margin:-8px -6px 6px 8px;z-index:6;background:#fff;
+    border:1px solid var(--line);border-radius:9px;width:32px;height:32px;cursor:pointer;font-size:15px;color:var(--muted)}
+  .drawerClose:hover{border-color:var(--brand2);color:var(--brand)}
+
+  /* slim in-app top bar: ☰ opener + brand + New estimate */
+  #drawerToggle{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:42px;padding:0 14px;font-size:15px;
+    font-weight:700;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.26);border-radius:12px;
+    cursor:pointer;flex:none}
+  #drawerToggle:hover{background:rgba(255,255,255,.22)}
+  .homeBtn{margin-left:auto;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.24);
+    border-radius:999px;padding:9px 17px;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap}
+  .homeBtn:hover{background:rgba(255,255,255,.22)}
+
+  /* ---- HERO landing ---- */
+  #hero{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:24px;text-align:center;overflow-y:auto;
+    background:radial-gradient(120% 120% at 50% -12%,rgba(184,134,47,.24),transparent 55%),
+      linear-gradient(160deg,#0c2137 0%,#13314f 55%,#1f5286 130%)}
+  #hero .heroInner{width:min(700px,100%);color:#fff;margin:auto}
+  #hero .heroMark{width:74px;height:74px;border-radius:21px;margin:0 auto 22px;display:flex;align-items:center;justify-content:center;
+    font-size:40px;background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.04));
+    border:1px solid rgba(255,255,255,.26);box-shadow:inset 0 1px 0 rgba(255,255,255,.2)}
+  #hero .heroBrand{font-size:14px;letter-spacing:3.5px;text-transform:uppercase;color:var(--accent2);font-weight:700;margin-bottom:8px}
+  #hero .heroTitle{font-size:clamp(32px,6.2vw,54px);font-weight:800;letter-spacing:-.6px;line-height:1.04;margin:0 0 12px}
+  #hero .heroSub{font-size:15.5px;opacity:.82;margin:0 auto 30px;line-height:1.55;max-width:520px}
+  #hero .heroCard{background:rgba(255,255,255,.99);border-radius:22px;padding:22px;box-shadow:var(--shadow-lg);text-align:left}
+  #hero textarea{width:100%;border:1px solid var(--line);border-radius:15px;padding:16px 18px;font-size:16px;font-family:inherit;
+    min-height:92px;resize:vertical;color:var(--ink);line-height:1.5}
+  #hero textarea::placeholder{color:#9aa4b2}
+  #hero textarea:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 4px rgba(31,82,134,.13)}
+  #hero .heroRow{display:flex;gap:10px;margin-top:13px;align-items:center;flex-wrap:wrap}
+  #hero .heroMic{display:inline-flex;align-items:center;gap:8px;background:#eef3fb;color:var(--brand);border:1px solid #d3e0f2;
+    border-radius:13px;padding:12px 18px;font-weight:700;cursor:pointer;font-size:14px}
+  #hero .heroMic:hover{background:#e3ecf8}
+  #hero .heroMic.live{background:#fdeaea;color:var(--bad);border-color:#f0c9c4}
+  #hero .heroGo{margin-left:auto;background:linear-gradient(135deg,var(--brand2),var(--brand));color:#fff;border:none;
+    border-radius:13px;padding:13px 28px;font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 7px 20px rgba(19,49,79,.35)}
+  #hero .heroGo:hover{filter:brightness(1.09)}
+  #hero .heroHint{font-size:12.5px;color:var(--muted);margin-top:11px}
+  #hero .heroSkip{margin-top:24px;font-size:13.5px}
+  #hero .heroSkip a{color:#cfe0f4;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+  #hero .heroSkip a:hover{color:#fff}
+  body.app-live #hero{display:none}                      /* revealed app hides the hero */
 </style>
 </head>
 <body>
+<!-- ===== REDESIGN: full-screen landing — Type or Speak ===== -->
+<div id="hero">
+  <div class="heroInner">
+    <div class="heroMark">📐</div>
+    <div class="heroBrand">Anderson Technology</div>
+    <h1 class="heroTitle">Print Estimator</h1>
+    <p class="heroSub">Type or speak your job brief — get a full costing, imposition diagram and quotation in seconds.</p>
+    <div class="heroCard">
+      <textarea id="heroInput" placeholder="e.g. A4 brochure, cover + 40 pages, 170gsm art inside, 4 colour both sides, section-sewn perfect binding, quantity 3000" oninput="heroMirror()" onkeydown="heroKey(event)"></textarea>
+      <div class="heroRow">
+        <button type="button" class="heroMic" id="heroMicBtn" onclick="heroMic()">🎤 Speak</button>
+        <button type="button" class="heroGo" onclick="heroGo()">Estimate →</button>
+      </div>
+      <div class="heroHint" id="heroHint">Paste a full brief and every field auto-fills — or tap Speak and dictate it. Press Ctrl+Enter to estimate.</div>
+    </div>
+    <div class="heroSkip"><a onclick="enterApp()">Skip — open the full input form ›</a></div>
+  </div>
+</div>
+<div id="drawerBackdrop" onclick="toggleDrawer(false)"></div>
+
 <header>
   <div class="masthead">
+    <button type="button" id="drawerToggle" onclick="toggleDrawer()" title="Open inputs, options &amp; diagram">☰ <span style="font-size:12.5px">Inputs</span></button>
     <div class="brandmark">📐</div>
     <div>
-      <h1>Print Estimator <span class="sub">· Paper &amp; Costing</span></h1>
+      <h1>Print Estimator <span class="sub">· Anderson Technology</span></h1>
       <p>Signature products use the <b>open (spread)</b> size automatically; sheet products skip it. Margins in mm. Rates from the vendor price master.</p>
     </div>
-    <span class="tagchip">Anderson Technology</span>
+    <button type="button" class="homeBtn" onclick="goHome()">＋ New estimate</button>
   </div>
 </header>
 
@@ -129,6 +209,7 @@
   <div class="grid">
     <!-- INPUTS -->
     <div class="card" id="inputCard">
+      <button type="button" class="drawerClose" onclick="toggleDrawer(false)" title="Close inputs">✕</button>
       <h2>Job</h2>
       <div id="liveDbStatus" style="font-size:11.5px;margin:0 0 8px"></div>
       <!-- VOICE FILL (NKK sir): speak the job spec → auto-fill the form. Browser Web Speech API (no server);
@@ -3370,6 +3451,24 @@ function applyVoiceSpec(raw){
   return notes;
 }
 function voiceApplyText(){ const el=$("voiceText"); if(el&&el.value.trim()) applyVoiceSpec(el.value.trim()); }
+/* ===== REDESIGN glue (2026-07-21): hero landing · left drawer · full-screen results ===== */
+function heroMirror(){ const h=$("heroInput"),v=$("voiceText"); if(h&&v) v.value=h.value; }   // keep the drawer's box in step
+function heroKey(e){ if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){ e.preventDefault(); heroGo(); } }
+function heroMic(){ const h=$("heroInput"); if(h) h.focus(); if(typeof voiceToggle==="function") voiceToggle(); }  // reuse the recogniser
+function heroGo(){
+  const h=$("heroInput"); const t=(h&&h.value.trim())||"";
+  if(t){ const v=$("voiceText"); if(v) v.value=t; if(typeof applyVoiceSpec==="function") applyVoiceSpec(t); }  // applyVoiceSpec runs the estimate
+  enterApp();
+  if(t){ const r=$("results"); if(r) setTimeout(()=>r.scrollIntoView({behavior:"smooth",block:"start"}),80); }
+}
+function enterApp(){ document.body.classList.add("app-live"); }
+function goHome(){ document.body.classList.remove("app-live","drawer-open");
+  const h=$("heroInput"); if(h){ h.focus(); } }
+function toggleDrawer(force){
+  const open = force===undefined ? !document.body.classList.contains("drawer-open") : !!force;
+  document.body.classList.toggle("drawer-open", open);
+  if(open) enterApp();
+}
 // AUTO-PARSE (NKK sir 2026-07-17 + Wispr Flow workflow): when the user pastes or dictates a spec
 // and stops typing for 1.2 s, auto-run the parser. Threshold ≥ 30 chars so tiny edits don't fire.
 let VOICE_AUTO_TIMER=null;
@@ -3393,6 +3492,7 @@ function voiceToggle(){
   const rec=new SR(); VOICE_REC=rec; rec.lang="en-IN"; rec.interimResults=true; rec.continuous=true; rec.maxAlternatives=1;
   const live=()=>{ const el=$("voiceText"); return (el?el.value:"")||VOICE_FINAL; };
   rec.onstart=()=>{ VOICE_ON=true; if(btn){btn.textContent="● Listening… tap when done";btn.style.background="#c0392b";}
+    { const hm=$("heroMicBtn"); if(hm){hm.textContent="● Listening… tap to stop";hm.classList.add("live");} }   // REDESIGN
     if(st) st.textContent="Listening — speak the whole spec slowly, pause whenever you like. Tap the button when you’ve finished."; };
   rec.onerror=e=>{ if(e.error==="no-speech"||e.error==="aborted") return;   // ignore silence timeouts (we restart)
     if(st) st.innerHTML=`<b style="color:#c0392b">Mic: ${e.error}</b> — allow microphone access, or type the spec below.`; };
@@ -3400,10 +3500,12 @@ function voiceToggle(){
     for(let i=e.resultIndex;i<e.results.length;i++){ const r=e.results[i]; if(r.isFinal) VOICE_FINAL+=r[0].transcript+" "; else interim+=r[0].transcript; }
     const heard=(VOICE_FINAL+interim).replace(/\s+/g," ").trim();
     const box=$("voiceText"); if(box) box.value=heard;
+    const hb=$("heroInput"); if(hb) hb.value=heard;                    // REDESIGN: keep hero box in sync while dictating
     if(st) st.textContent="Heard: "+heard; };
   rec.onend=()=>{
     if(VOICE_ON && !VOICE_STOP){ try{ rec.start(); return; }catch(err){} }   // engine auto-stopped on silence → keep going
     VOICE_ON=false; if(btn){btn.textContent="🎤 Speak the job";btn.style.background="#2456c7";}
+    { const hm=$("heroMicBtn"); if(hm){hm.textContent="🎤 Speak";hm.classList.remove("live");} }   // REDESIGN
     const txt=(VOICE_FINAL.trim()||live().trim()); if(txt) applyVoiceSpec(txt); };
   try{ rec.start(); }catch(err){ if(st) st.textContent="Could not start mic: "+err.message; }
 }
