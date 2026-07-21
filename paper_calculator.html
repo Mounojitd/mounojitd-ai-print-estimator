@@ -704,6 +704,11 @@
             <span style="flex:1"><label>…or a TEST_JOBS CSV URL <span style="color:#6b7480">(export?format=csv&gid=…)</span></label><input id="auditUrl" type="text" placeholder="paste the tab URL from the master sheet" style="width:100%" /></span>
             <span style="flex:0 0 auto"><button type="button" class="mbtn s" onclick="runDiagnosticSweep()">🔬 Run sweep</button></span>
           </div>
+          <div style="margin-top:12px;padding-top:12px;border-top:1px dashed #d9c9f2">
+            <label>✍️ Or type jobs line-by-line <span style="color:#6b7480">— one per line: <code>brief | your price</code> (optional <code>id | brief | price</code>). No sheet, no mic.</span></label>
+            <textarea id="auditLines" rows="4" placeholder="A4 catalogue, cover + 40 pages, 170gsm art inside, 4 colour both sides, section-sewn, quantity 3000 | 180000&#10;Visiting card 90x55mm, 300gsm, 4+0 print, ganged, quantity 400 | 1400&#10;# lines starting with # are ignored" style="width:100%;font-family:inherit;font-size:12.5px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;resize:vertical;margin-top:4px"></textarea>
+            <button type="button" class="mbtn p" style="margin-top:6px" onclick="runPastedSweep()">📋 Compare typed jobs</button>
+          </div>
           <div id="auditStatus" style="font-size:12px;color:#6b7480;margin-top:6px"></div>
           <div id="auditReport" style="margin-top:10px;overflow-x:auto"></div>
         </details>
@@ -3271,7 +3276,10 @@ function parseSpec(raw){
   // Anchor on colour|print|side so the common trade shorthand "1+1 print" / "3+3 print" / "4+0"
   // is caught — not just "N+N colour". Without this every "N+N print" card silently fell back to
   // 4+4 (8 plates), so a 3+3 and a 1+1 priced identically (NKK sir 2026-07-21 rfid-card reconcile).
-  const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*(?:colou?r|print|side)/);
+  let cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*(?:colou?r|print|side)/);
+  // Also accept a bare plus-separated "N+N" (e.g. quick-typed "4+0") — safe because sizes use × / x,
+  // never "+". Lookbehind/ahead guard against page counts like "10+2" and decimals (NKK sir 2026-07-21).
+  if(!cm) cm=t.match(/(?<![\d.])(\d)\s*\+\s*(\d)(?![\d.])/);
   // NB: cm[1]/cm[2] are always \d, so DON'T `|| 4` — that turned a legit back "+0" (one-side print,
   // e.g. "3+0 print") into +4, because 0 is falsy (NKK sir 2026-07-21 rfid-tag reconcile).
   if(cm){ f.cf=+cm[1]; f.cb=+cm[2]; notes.push("colours "+f.cf+"+"+f.cb); }
@@ -4218,7 +4226,7 @@ async function runDiagnosticSweep(urlArg, builtin){
         iCol=col("colours"), iCoat=col("coating"), iEmb=col("embellishment"),
         iBind=col("binding"), iQty=col("qty"), iNK=col("nk_price"), iNotes=col("notes"), iSpec=col("spec");
   auditStatus(`⏳ Running ${rows.length-1} jobs…`);
-  const audit=[]; let ok=0, err=0;
+  const records=[];
   for(let r=1;r<rows.length;r++){
     const row=rows[r]; if(!row||!row.length) continue;
     const has = row.some(c=>String(c||"").trim()!=="");
@@ -4242,69 +4250,93 @@ async function runDiagnosticSweep(urlArg, builtin){
       push("Binding", iBind>=0?row[iBind]:null);
       push("Quantity", iQty>=0?row[iQty]:null);
     }
-    const brief = parts.join("\n");
-    const jobId = iId>=0 ? (row[iId]||`row${r}`) : `row${r}`;
-    const qty   = iQty>=0 ? parseInt(String(row[iQty]||"").replace(/[^0-9]/g,""),10)||0 : 0;
-    const nk    = iNK>=0 ? parseFloat(String(row[iNK]||"").replace(/[^0-9.]/g,""))||0 : 0;
-    const rec = {jobId, client:iClient>=0?row[iClient]:"", brief, qty, nk};
-    try{
-      // reset state before each job — otherwise a prior job's coating / binding / press pick / flags
-      // leak into the next one (sir 2026-07-21 sweep found ₹29k phantom coat on Medilab from a prior
-      // 'matt' spec). Reset every DOM field the parser touches OR that has a sticky default.
-      window.marginEdited=false; window.gangedEdited=false; window.flatRateEdited=false;
-      window.bindingEdited=false;
-      if(window.MACHINE_MODE!=null) window.MACHINE_MODE="auto";
-      if(window.COVER_MACHINE_MODE!=null) window.COVER_MACHINE_MODE="auto";
-      ["coverEmb1","coverEmb2","coverEmb3","flatEmb1","flatEmb2","flatEmb3"].forEach(id=>{const el=$(id); if(el) el.value="none";});
-      // coating / binding / reprint / ganged all have sticky defaults that survive parseSpec when the
-      // new brief doesn't mention them. Reset to neutral so the parser starts clean.
-      if($("lam")) $("lam").value="none";
-      if($("coverLam")) $("coverLam").value="none";
-      if($("reprint")) $("reprint").checked=false;
-      if($("ganged")) $("ganged").checked=false;
-      if($("fppDie")) $("fppDie").value=0;
-      if($("fppPunch")) $("fppPunch").value=0;
-      if($("fppFold")) $("fppFold").value=0;
-      if($("fppScore")) $("fppScore").value=0;
-      if($("ptagPaste")) $("ptagPaste").value=0;
-      if($("flatRatePc")) $("flatRatePc").value="";
-      if($("extentFlat")) $("extentFlat").value=1;
-      if($("voiceText")) $("voiceText").value=brief;
-      applyVoiceSpec(brief);
-      if(qty>0){ if($("copies2")) $("copies2").value=qty; if($("copies")) $("copies").value=qty; }
-      applyGangedDefault(); applyMenuRateHint(); applyMarginDefault();  // re-apply margin AFTER qty (volume-tiered design margin needs it)
-      run();
-      const x = combinedPrice();
-      // component-wise capture with source labels
-      const q=x.q, t=x.text, cq=x.cover;
-      rec.est   = Math.round(q.grand||0);
-      rec.prod  = Math.round(q.prod||0);
-      rec.paper = Math.round(q.paper||0);
-      rec.print = Math.round((t&&t.printing)||0) + Math.round((cq&&cq.printing)||0);
-      rec.plate = Math.round((t&&t.plates)||0) + Math.round((cq&&cq.plates)||0);
-      rec.coat  = Math.round((t&&t.lam)||0) + Math.round((cq&&cq.lam)||0);
-      rec.emb   = Math.round(x.embTotal||0);
-      rec.bind  = Math.round(x.binding||0) + Math.round((x.mech&&x.mech.total)||0);
-      rec.pp    = Math.round((x.flatpp&&x.flatpp.total)||0) + Math.round((x.ptag&&x.ptag.total)||0) + Math.round((x.tablecal&&x.tablecal.total)||0) + Math.round((x.wallcal&&x.wallcal.total)||0);
-      rec.pack  = Math.round(q.packing||0);
-      rec.frt   = Math.round(q.freight||0);
-      rec.mgn   = Math.round(q.margin||0);
-      rec.gapPct = nk>0 ? Math.round((rec.est-nk)/nk*100) : "";
-      rec.product = $("product")?$("product").value:"";
-      rec.margin  = $("margin")?$("margin").value:"";
-      rec.ganged  = $("ganged")&&$("ganged").checked?"Y":"";
-      // source tags (which table each component came from)
-      rec.src_paper = LIVE_STATUS.paper && LIVE_STATUS.paper.ok ? "live sheet PAPER_PRICING" : "built-in";
-      rec.src_print = LIVE_STATUS.printing && LIVE_STATUS.printing.ok ? "live sheet PRINTING_RATES" : "built-in";
-      rec.src_coat  = LIVE_STATUS.postpress && LIVE_STATUS.postpress.ok ? "live sheet POST_PRESS" : "built-in";
-      rec.src_digital = LIVE_STATUS.digital && LIVE_STATUS.digital.ok ? "live sheet Digital press rate" : "built-in";
-      ok++;
-    }catch(e){ rec.err = String(e).slice(0,150); err++; }
+    records.push({
+      jobId: iId>=0 ? (row[iId]||`row${r}`) : `row${r}`,
+      client: iClient>=0?row[iClient]:"",
+      brief: parts.join("\n"),
+      qty: iQty>=0 ? parseInt(String(row[iQty]||"").replace(/[^0-9]/g,""),10)||0 : 0,
+      nk: iNK>=0 ? parseFloat(String(row[iNK]||"").replace(/[^0-9.]/g,""))||0 : 0
+    });
+  }
+  runSweepRecords(records);
+}
+// Price one {jobId,client,brief,qty,nk} record through the estimator (mutates rec with est + components +
+// source labels). Never reads rec.nk into the calc — it's only used for the side-by-side gap.
+function priceAuditRecord(rec){
+  const brief=rec.brief;
+  // reset state before each job — otherwise a prior job's coating / binding / press pick / flags leak in
+  // (sir 2026-07-21 found ₹29k phantom coat on Medilab from a prior 'matt' spec). Reset every field the
+  // parser touches OR that has a sticky default.
+  window.marginEdited=false; window.gangedEdited=false; window.flatRateEdited=false; window.bindingEdited=false;
+  if(window.MACHINE_MODE!=null) window.MACHINE_MODE="auto";
+  if(window.COVER_MACHINE_MODE!=null) window.COVER_MACHINE_MODE="auto";
+  ["coverEmb1","coverEmb2","coverEmb3","flatEmb1","flatEmb2","flatEmb3"].forEach(id=>{const el=$(id); if(el) el.value="none";});
+  if($("lam")) $("lam").value="none";
+  if($("coverLam")) $("coverLam").value="none";
+  if($("reprint")) $("reprint").checked=false;
+  if($("ganged")) $("ganged").checked=false;
+  if($("fppDie")) $("fppDie").value=0;
+  if($("fppPunch")) $("fppPunch").value=0;
+  if($("fppFold")) $("fppFold").value=0;
+  if($("fppScore")) $("fppScore").value=0;
+  if($("ptagPaste")) $("ptagPaste").value=0;
+  if($("flatRatePc")) $("flatRatePc").value="";
+  if($("extentFlat")) $("extentFlat").value=1;
+  if($("voiceText")) $("voiceText").value=brief;
+  applyVoiceSpec(brief);                               // parses the brief incl. any "quantity N"
+  if(rec.qty>0){ if($("copies2")) $("copies2").value=rec.qty; if($("copies")) $("copies").value=rec.qty; }
+  applyGangedDefault(); applyMenuRateHint(); applyMarginDefault();  // re-apply margin AFTER qty (volume-tiered)
+  run();
+  const x = combinedPrice(); const q=x.q, t=x.text, cq=x.cover;
+  if(!rec.qty){ const c=$("copies2")||$("copies"); rec.qty = c ? (parseInt(String(c.value).replace(/[^0-9]/g,""),10)||0) : 0; }  // show the qty the estimator used
+  rec.est   = Math.round(q.grand||0);
+  rec.prod  = Math.round(q.prod||0);
+  rec.paper = Math.round(q.paper||0);
+  rec.print = Math.round((t&&t.printing)||0) + Math.round((cq&&cq.printing)||0);
+  rec.plate = Math.round((t&&t.plates)||0) + Math.round((cq&&cq.plates)||0);
+  rec.coat  = Math.round((t&&t.lam)||0) + Math.round((cq&&cq.lam)||0);
+  rec.emb   = Math.round(x.embTotal||0);
+  rec.bind  = Math.round(x.binding||0) + Math.round((x.mech&&x.mech.total)||0);
+  rec.pp    = Math.round((x.flatpp&&x.flatpp.total)||0) + Math.round((x.ptag&&x.ptag.total)||0) + Math.round((x.tablecal&&x.tablecal.total)||0) + Math.round((x.wallcal&&x.wallcal.total)||0);
+  rec.pack  = Math.round(q.packing||0);
+  rec.frt   = Math.round(q.freight||0);
+  rec.mgn   = Math.round(q.margin||0);
+  rec.gapPct = rec.nk>0 ? Math.round((rec.est-rec.nk)/rec.nk*100) : "";
+  rec.product = $("product")?$("product").value:"";
+  rec.margin  = $("margin")?$("margin").value:"";
+  rec.ganged  = $("ganged")&&$("ganged").checked?"Y":"";
+  rec.src_paper = LIVE_STATUS.paper && LIVE_STATUS.paper.ok ? "live sheet PAPER_PRICING" : "built-in";
+  rec.src_print = LIVE_STATUS.printing && LIVE_STATUS.printing.ok ? "live sheet PRINTING_RATES" : "built-in";
+  rec.src_coat  = LIVE_STATUS.postpress && LIVE_STATUS.postpress.ok ? "live sheet POST_PRESS" : "built-in";
+  rec.src_digital = LIVE_STATUS.digital && LIVE_STATUS.digital.ok ? "live sheet Digital press rate" : "built-in";
+}
+// Price a batch of records and render the comparative report. Shared by the CSV sweep and the typed input.
+function runSweepRecords(records){
+  const audit=[]; let ok=0, err=0;
+  for(const rec of records){
+    try{ priceAuditRecord(rec); ok++; }
+    catch(e){ rec.err = String(e).slice(0,150); err++; }
     audit.push(rec);
   }
   renderAuditReport(audit);
-  auditStatus(`✓ ${ok} rows priced · ${err} errors · <a href="#" onclick="downloadAuditCSV(event)">download CSV</a>`);
+  auditStatus(`✓ ${ok} row${ok!==1?"s":""} priced · ${err} error${err!==1?"s":""} · <a href="#" onclick="downloadAuditCSV(event)">download CSV</a>`);
   window.__AUDIT_ROWS__ = audit;
+}
+// LINE-BY-LINE comparative input (NKK sir 2026-07-21): one job per line, no Google Sheet / no speech.
+// Format per line: "brief | manual price"  (optional 3-part: "id | brief | price"). '#' lines are comments.
+function runPastedSweep(){
+  const raw=($("auditLines")&&$("auditLines").value)||"";
+  const lines=raw.split(/\r?\n/).map(l=>l.trim()).filter(l=>l && !l.startsWith("#"));
+  if(!lines.length){ auditStatus('<span style="color:#c0392b">Type at least one job — one per line: <b>brief | your price</b></span>'); return; }
+  const money=s=>parseFloat(String(s||"").replace(/[^0-9.]/g,""))||0;
+  const records=lines.map((line,i)=>{
+    const p=line.split("|").map(s=>s.trim());
+    if(p.length>=3) return {jobId:p[0]||`job${i+1}`, client:"", brief:p[1], qty:0, nk:money(p[2])};
+    if(p.length===2) return {jobId:`job${i+1}`, client:"", brief:p[0], qty:0, nk:money(p[1])};
+    return {jobId:`job${i+1}`, client:"", brief:p[0], qty:0, nk:0};   // brief only → no gap
+  });
+  auditStatus(`⏳ Running ${records.length} job${records.length!==1?"s":""}…`);
+  setTimeout(()=>{ try{ runSweepRecords(records); }catch(e){ auditStatus('<span style="color:#c0392b">Error: '+String(e).slice(0,120)+'</span>'); } }, 20);
 }
 function renderAuditReport(rows){
   const el=$("auditReport"); if(!el) return;
