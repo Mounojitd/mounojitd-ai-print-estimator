@@ -114,8 +114,15 @@ historical archive: `~/.claude/projects/C--git/memory/real_quotes_dataset_v1.md`
 3. **Six product-category refactor** — sir wants each of the 6 categories to
    have a distinct input flow: softcover / hardcase / set-jobs / single-page /
    punched / calendar. Some already exist (calendar_sheet, calendar_table,
-   card, pasted_tag, booklet, hardcase via hardCasePlan). Missing: set-jobs
-   as a first-class product with jacket + pocket + card sub-items.
+   card, pasted_tag, booklet, hardcase via hardCasePlan).
+   **Set-jobs progress (2026-07-21):** the Set / bundle builder now carries a
+   **jacket** (printed folder / wrap holding the set) and **pocket** (die-cut
+   card pocket) as set-level components — `setJacket` / `setPocket` ₹/set
+   inputs, one per set, added on top of the item production. They flow through
+   `setTotals()`, `renderSet()`, the set-qty comparison (`renderSetMultiQty`),
+   `printSetQuote()`, and `setSummary()`. Card sub-items are already handled by
+   the per-item builder (add a `card` job to the set). Rates are placeholders —
+   confirm sir's real jacket + pocket ₹/set numbers.
 4. **Historical job catalog project** — parallel workstream. Not started.
    Waiting for sir's data collection.
 5. **Product-category-driven margin defaults are already in MARGIN_DEFAULT map**;
