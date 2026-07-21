@@ -2162,7 +2162,7 @@ function coverEmbList(){
 // screen job scales the per-pc rate AND the job minimum by the side count (window.screenGoldSides).
 // DISABLED by default → current behaviour (both Keventer brochures unchanged). Flip to true once sir
 // confirms whether his "~₹8k + ₹1.5/pc" is per-side or for-both, then tune SCREEN_SIDE_MIN_SCALE.
-const SCREEN_GOLD_SIDE_AWARE=false;
+const SCREEN_GOLD_SIDE_AWARE=true;
 const SCREEN_SIDE_MIN_SCALE=1.0;   // how much the ₹ job-minimum grows per extra side (1.0 = fully doubles for 2 sides)
 function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cover printed sheets
   const sides = (SCREEN_GOLD_SIDE_AWARE && window.screenGoldSides>1) ? window.screenGoldSides : 1;

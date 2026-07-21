@@ -167,14 +167,16 @@ harness; numbers are PLACEHOLDERS pending sir.
    the set). ⚠ Breakpoints/rates are still PLACEHOLDERS from one data point — get
    2-3 more catalogue quotes at different volumes and confirm with sir; set back
    to `false` to revert to the flat 40%.
-2. **`SCREEN_GOLD_SIDE_AWARE`** (+ `SCREEN_SIDE_MIN_SCALE`, near `coverEmbCost`).
-   Scales screen-print rate + job-min by cover sides. `applyVoiceSpec` sets
-   `window.screenGoldSides` (2 only for "back cover"/"cover and back"/"both
-   covers" — NOT plain "both sides", which is CMYK). **ON: `keventer_plan`
-   (cover+back) gold ₹8k → ₹16k; `keventer_sales` (cover only) stays ₹8k.**
-   Confirm with sir whether his "~₹8k + ₹1.5/pc" is per-side, then set
-   `SCREEN_SIDE_MIN_SCALE`. NB: this makes plan MORE over (+46→+57) because it's
-   accuracy, not plan's fix — plan's real driver is the 13-pass print (below).
+2. **`SCREEN_GOLD_SIDE_AWARE`** (+ `SCREEN_SIDE_MIN_SCALE`, near `coverEmbCost`) —
+   **NOW ENABLED (2026-07-21, user request).** Scales screen-print rate + job-min
+   by cover sides. `applyVoiceSpec` sets `window.screenGoldSides` (2 only for
+   "back cover"/"cover and back"/"both covers" — NOT plain "both sides", which is
+   CMYK). **`keventer_plan` (cover+back) gold ₹8k → ₹16k; `keventer_sales` (cover
+   only) stays ₹8k.** ⚠ `SCREEN_SIDE_MIN_SCALE=1.0` (a 2-side job fully doubles
+   the ₹8k min) is a PLACEHOLDER — confirm with sir whether his "~₹8k + ₹1.5/pc"
+   is per-side, then tune. NB: this pushed `keventer_plan` +46%→+57% — it is an
+   ACCURACY fix, not plan's fix; plan's real driver is the 13-pass tiny-run print
+   (below), still open for sir. Set the flag back to `false` to revert.
 
 ### Keventer brochures — profiled 2026-07-21 (two different small-run problems)
 
