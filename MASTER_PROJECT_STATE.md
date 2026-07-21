@@ -153,6 +153,27 @@ Still-open (calibration / data, flagged — do NOT guess):
 - **Big jobs untouched:** `udyogi_catalog` +54%, `keventer_plan_brochure` +46%
   (176-pc reprint), `keventer_sales_brochure` −27%.
 
+### udyogi_catalog +54% — diagnosed 2026-07-21 (needs sir, NOT a code bug)
+
+Cover+40pp A4 catalogue, 170gsm inside / 300gsm cover, 4+4, section-sewn,
+3000 qty. NK ₹1,80,000 (₹60/pc). Est ₹2,77,188 (₹92/pc).
+- **Cost is correct (~₹55/pc = ₹1,66,313).** Verified component-by-component:
+  text paper ₹63k (8125 A2 sheets @ ~₹7.8; ~8% waste — 40pp of 170gsm really is
+  ~212 g/copy ≈ ₹21/pc), plates 44 (=4+4 × 5 sigs + 4 cover), printing on the
+  small-*sheet* band (legit for an A4-off-A2 job), section-sewn bind ₹6.75/pc.
+  Nothing inflated.
+- **The whole +54% is margin.** At the 40% catalogue default, margin alone is
+  ₹1.1L. This job only supports **7.6% margin** to hit sir's ₹60/pc — because our
+  cost (₹55/pc) is already 92% of his selling price.
+- **Do NOT just drop catalogue margin.** 40% is shared with `brochure_multi` /
+  `annual` and was calibrated across several design-heavy jobs; matching this one
+  point would overfit. The real question for sir: **is a 3000-run catalogue
+  genuinely a ~10-15% job for you (i.e. margin should be volume-tiered:
+  design-heavy but high-volume → lower %), or is your input cost lower than our
+  rate card (esp. the 170gsm art paper ₹/kg)?** Answer decides between a
+  volume-tiered catalogue margin vs a paper-rate correction. Need ≥2-3 more real
+  catalogue quotes at different volumes before recalibrating.
+
 ### Pending next moves (in priority order)
 
 1. **Sir sets up the TEST_JOBS tab** and shares the CSV URL. Then the
