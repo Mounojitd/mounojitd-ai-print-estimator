@@ -199,7 +199,7 @@
         <div class="row3">
           <div class="fld"><label>Extent (text pages)</label><input id="pages" type="number" placeholder="e.g. 80" /><div class="hint">Inside pages only — a separate cover is +4pp extra.</div></div>
           <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select></div>
-          <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" oninput="applyGangedDefault();applyMenuRateHint()" /></div>
+          <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" oninput="applyGangedDefault();applyMenuRateHint();applyMarginDefault()" /></div>
         </div>
         <div class="fld"><label>Cover type</label>
           <select id="coverType" onchange="onCoverChange()">
@@ -332,7 +332,7 @@
       </div>
       <div id="flatFields" style="display:none">
         <div class="row">
-          <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" oninput="applyGangedDefault();applyMenuRateHint()" /></div>
+          <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" oninput="applyGangedDefault();applyMenuRateHint();applyMarginDefault()" /></div>
           <div class="fld"><label>Extent (sheets/versions per product)</label><input id="extentFlat" type="number" value="1" placeholder="1" />
             <div class="hint">Multiplies paper (e.g. table calendar = 12 leaves). Default 1.</div></div>
         </div>
@@ -2157,8 +2157,20 @@ function coverEmbList(){
   const ids = isFlat ? ["flatEmb1","flatEmb2","flatEmb3"] : ["coverEmb1","coverEmb2","coverEmb3"];
   return ids.map(id=>$(id)&&$(id).value||"none").filter(v=>v!=="none");
 }
+// SIR-GATED TOGGLE 2 (2026-07-21): screen printing on cover + back cover costs more than cover-only,
+// but today screen_gold is flat (floors at ₹8k min) regardless of sides. When enabled, a 2-side
+// screen job scales the per-pc rate AND the job minimum by the side count (window.screenGoldSides).
+// DISABLED by default → current behaviour (both Keventer brochures unchanged). Flip to true once sir
+// confirms whether his "~₹8k + ₹1.5/pc" is per-side or for-both, then tune SCREEN_SIDE_MIN_SCALE.
+const SCREEN_GOLD_SIDE_AWARE=false;
+const SCREEN_SIDE_MIN_SCALE=1.0;   // how much the ₹ job-minimum grows per extra side (1.0 = fully doubles for 2 sides)
 function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cover printed sheets
-  return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none; return {name:e.name, cost:Math.max(e.r*(area/100)*sheets, e.min)}; });
+  const sides = (SCREEN_GOLD_SIDE_AWARE && window.screenGoldSides>1) ? window.screenGoldSides : 1;
+  return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none;
+    const isScreen = /^screen_/.test(v);
+    const s = isScreen ? sides : 1;                       // only screen embellishments are side-scaled
+    const minScaled = e.min*(1+(s-1)*SCREEN_SIDE_MIN_SCALE);
+    return {name:e.name+(isScreen&&s>1?` (×${s} sides)`:""), cost:Math.max(e.r*(area/100)*sheets*s, minScaled)}; });
 }
 function setCoverColours(v){ if(!v)return; const p=v.split("+").map(Number); $("coverCf").value=p[0]; $("coverCb").value=p[1]; showPrice(); }
 // binding ₹/book + job minimum — real POST_PRESS rates (hardcase 95, perfect 9, section-sew+perfect 6.75, centre-stitch 3.5)
@@ -2212,9 +2224,30 @@ const MARGIN_DEFAULT={
   envelope:20, folder:25, sleeve:25, carton_tuck:25, carton_seal:25,
   slipcase:40
 };
+// ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
+// Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
+// still design-heavy but priced far leaner than a 500-run premium book. This lets margin step DOWN
+// with quantity. DISABLED by default → the flat MARGIN_DEFAULT above is used (current behaviour, all
+// 11 reconcile gaps unchanged). Flip DESIGN_MARGIN_TIERS_ENABLED=true ONLY once sir confirms the
+// breakpoints + %. The numbers below are PLACEHOLDERS from a single data point (udyogi) — get 2-3
+// more real catalogue quotes at different volumes before trusting them.
+const DESIGN_MARGIN_TIERS_ENABLED=false;
+const DESIGN_MARGIN_TIERS={   // product → [{maxQty, margin}] ascending; first tier whose maxQty ≥ qty wins
+  catalogue:     [{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:12}],
+  brochure_multi:[{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:12}],
+  annual:        [{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:15}]
+};
+function designMarginTier(p,qty){
+  if(!DESIGN_MARGIN_TIERS_ENABLED) return null;
+  const t=DESIGN_MARGIN_TIERS[p]; if(!t||!qty) return null;
+  const hit=t.find(x=>qty<=x.maxQty); return hit?hit.margin:null;
+}
 function applyMarginDefault(){
   if(marginEdited) return;
   const p=$("product")&&$("product").value;
+  const qty=Math.round(num("copies2",0)||num("copies",0));
+  const tier=designMarginTier(p,qty);   // sir-gated; null when the toggle is off → flat default
+  if(tier!=null && $("margin")){ $("margin").value=tier; return; }
   const def=MARGIN_DEFAULT[p];
   if(def!=null && $("margin")){ $("margin").value=def; }
 }
@@ -3272,6 +3305,10 @@ function applyVoiceSpec(raw){
   // did the brief explicitly ask for ganging? ("ganged with other jobs", "gang up", "gang run").
   // Set before parseSpec so the onProductChange→applyGangedDefault below already honours it.
   window.gangSpecified = /\bgang(?:ed|ing|s)?\b/i.test(String(raw||""));
+  // SIR-GATED TOGGLE 2 (2026-07-21): how many COVER sides carry the screen print / embellishment.
+  // Must be cover-specific — plain "both sides" refers to CMYK printing, not gold on both covers, so
+  // only "back cover" / "cover and back" / "both covers" count. Consumed when SCREEN_GOLD_SIDE_AWARE is on.
+  window.screenGoldSides = /back\s*cover|cover\s*(?:and|&|\+|\/)\s*back|both\s*covers/i.test(String(raw||"")) ? 2 : 1;
   const {fields:f,notes}=parseSpec(raw);
   const setV=(id,v)=>{ const el=$(id); if(el&&v!=null){ el.value=v; return true; } return false; };
   if(f.product){ setV("product",f.product); if(typeof onProductChange==="function") onProductChange(); }

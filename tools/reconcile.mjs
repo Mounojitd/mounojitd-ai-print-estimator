@@ -72,7 +72,7 @@ for(const j of jobs){
       if($("voiceText")) $("voiceText").value=job.spec;
       applyVoiceSpec(job.spec);
       if(job.qty>0){ if($("copies2")) $("copies2").value=job.qty; if($("copies")) $("copies").value=job.qty; }
-      applyGangedDefault(); applyMenuRateHint();
+      applyGangedDefault(); applyMenuRateHint(); applyMarginDefault();  // mirror the live qty-input handler
       run();
       const x = combinedPrice(); const q=x.q, t=x.text, cq=x.cover;
       return { ok:true, product:$("product")?$("product").value:"", est:Math.round(q.grand||0),
