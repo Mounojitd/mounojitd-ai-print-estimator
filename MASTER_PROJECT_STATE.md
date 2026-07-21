@@ -103,6 +103,126 @@ Commits `6533283` through `5b2e656` — see `git log --oneline`. Highlights:
 Full run raw data: `db/real_quotes/` folder. Reconcile log:
 `~/.claude/projects/C--git/memory/real_job_quotes.md`. Anchor to the 200-job
 historical archive: `~/.claude/projects/C--git/memory/real_quotes_dataset_v1.md`.
+**Note:** the local memory logs + `dataset_2025-02_to_2026-07.tsv` are NOT in
+the repo (private-use policy) — a fresh web clone only has the 11-job
+`db/real_quotes/test_jobs.csv`. Batch #7+ raw specs must be re-supplied.
+
+### Reconcile session 2026-07-21 (offline harness)
+
+New reusable tool: **`tools/reconcile.mjs`** — loads `paper_calculator.html` in
+headless Chromium and runs every job in `test_jobs.csv` through the same
+reset → `applyVoiceSpec` → `run` → `combinedPrice` path as the in-app
+diagnostic sweep, printing a component-wise gap table. No Google Sheet / network
+needed (built-in rate fallbacks). Run: `node tools/reconcile.mjs`.
+
+Back-test of the 11-job set traced the "rfid card" gap to its ROOT CAUSE —
+two plain colour-parse bugs, NOT a missing gang rule:
+- **`N+N print` was never parsed.** The colour regex anchored only on the word
+  "colour" (`(\d)…(\d)\s*colou?r`), so the common trade shorthand "1+1 print" /
+  "3+3 print" fell through and every such card silently defaulted to 4+4 (8
+  plates). A 3+3 and a 1+1 therefore priced identically. Anchor now also accepts
+  `print`/`side`.
+- **Back "+0" became "+4".** `f.cb = +cm[2] || 4` turned a legit one-side
+  "3+0 print" into 3+4, because `0` is falsy. Dropped the `|| 4` (a captured
+  `\d` is never NaN). "N+0" one-side jobs now parse correctly.
+- With colours correct, plate counts scale (1+1 → 2 plates, 3+3 → 6), so cards
+  price by their real colour load. **The earlier "gang cap 1000→3000" idea was
+  REVERTED** — it only looked good because over-counting plates (8) cancelled an
+  over-aggressive gang share; with plates correct, blanket-ganging 2000-pc cards
+  under-quotes. 2000-pc cards now price UN-ganged and land within ~25%.
+- Kept the harmless correctness guard: `applyGangedDefault` no longer silently
+  un-ticks a gang the brief explicitly asked for (`window.gangSpecified`).
+
+Result vs start of session — cards went from wild swings to a consistent slight
+over: `sunili_vcard` **+128% → +38%**, `sunili_rfid_card` **+56% → +25%**,
+`sunili_oran_card` +24%. `sunili_rfid_tag` restored to +1%.
+
+**Card margin tuned 15 → 8% (2026-07-21).** Margin-sweep back-test showed the
+uniform card overshoot was pure margin: at 8% the volume cards land in range —
+`oran_card` +24%→**+14%**, `rfid_card` +25%→**+16%**, `vcard` +38%→+27%. Only
+`MARGIN_DEFAULT.card` changed (no other product touched). Reds on the 11-job set
+5→3. Drop to 5% if sir wants rfid greener (oran +5 / rfid +12 there); 400-pc
+vcard stays ~+20% and is a menu-rate job regardless.
+
+Still-open (calibration / data, flagged — do NOT guess):
+- **`sunili_vcard` +27%** — 400-pc run, fixed costs dominate; sir quotes the
+  menu rate (₹3/pc) the app already shows. Not worth chasing on cost.
+- **`ili_tag` −31%** — its test spec names NO board, so it defaults cheaper than
+  the 350gsm specialty board sir actually used (cf. `rfid_tag` which names the
+  board and lands +1%). Spec-completeness, not a code bug.
+- **Big jobs untouched:** `udyogi_catalog` +54%, `keventer_plan_brochure` +46%
+  (176-pc reprint), `keventer_sales_brochure` −27%.
+
+### Sir-gated toggles — wired 2026-07-21, DEFAULT OFF (flip when sir confirms)
+
+Both are OFF by default → every reconcile gap is byte-for-byte unchanged. Each is
+a single `const` flag in `paper_calculator.html`. Verified ON effect in the
+harness; numbers are PLACEHOLDERS pending sir.
+
+1. **`DESIGN_MARGIN_TIERS_ENABLED`** (near `MARGIN_DEFAULT`) — **NOW ENABLED
+   (2026-07-21, user request to land udyogi).** Steps catalogue / brochure_multi /
+   annual margin DOWN with quantity (`DESIGN_MARGIN_TIERS`: ≤750→40%, ≤2000→25%,
+   else 12%). Re-evaluates on qty change (wired into the qty inputs + the harness).
+   **Landed `udyogi_catalog` +54% → +5%**; no other job moved (only catalogue in
+   the set). ⚠ Breakpoints/rates are still PLACEHOLDERS from one data point — get
+   2-3 more catalogue quotes at different volumes and confirm with sir; set back
+   to `false` to revert to the flat 40%.
+2. **`SCREEN_GOLD_SIDE_AWARE`** (+ `SCREEN_SIDE_MIN_SCALE`, near `coverEmbCost`) —
+   **NOW ENABLED (2026-07-21, user request).** Scales screen-print rate + job-min
+   by cover sides. `applyVoiceSpec` sets `window.screenGoldSides` (2 only for
+   "back cover"/"cover and back"/"both covers" — NOT plain "both sides", which is
+   CMYK). **`keventer_plan` (cover+back) gold ₹8k → ₹16k; `keventer_sales` (cover
+   only) stays ₹8k.** ⚠ `SCREEN_SIDE_MIN_SCALE=1.0` (a 2-side job fully doubles
+   the ₹8k min) is a PLACEHOLDER — confirm with sir whether his "~₹8k + ₹1.5/pc"
+   is per-side, then tune. NB: this pushed `keventer_plan` +46%→+57% — it is an
+   ACCURACY fix, not plan's fix; plan's real driver is the 13-pass tiny-run print
+   (below), still open for sir. Set the flag back to `false` to revert.
+
+### Keventer brochures — profiled 2026-07-21 (two different small-run problems)
+
+Both are "reprint" specialty brochures with Montblanc cover + gold screen, but
+they fail in OPPOSITE directions for DIFFERENT reasons — not one shared factor.
+
+- **plan +46%** (176 pc, 52pp, 11×13 landscape, saddle, gold on cover+back).
+  Driver is `print ₹75,600`. The big 11×13 page images only **1 form per press
+  sheet** (2-up won't fit a small-band sheet), so 52pp saddle = **13 press
+  passes**, each carrying makeready — on only 176 copies. Real tiny-run cost;
+  sir's ₹591/pc is high for the same reason, ours (₹863/pc) just higher. Q for
+  sir: do you run this 2-up on a bigger sheet / share makeready across forms, or
+  is 13 passes right and the per-forme minimum just needs trimming?
+- **sales −27%** (600 pc, 80pp, 9×9, section-sewn, gold cover, varnish inside).
+  Our cost ₹146/pc, sir sells ₹287/pc — ~50% over cost, well above the 30%
+  booklet default. Nothing under-built stands out; looks like sir prices premium
+  specialty books at a fatter margin tier. Q for sir: is premium
+  section-sewn specialty a higher-margin tier (→ add it), or is a cost line
+  (Montblanc cover ₹/kg, aqueous varnish) under our rate card?
+- **Margin is neutral across the pair** — both use the 30% booklet default;
+  raising it helps sales but worsens plan. So the fix is NOT margin.
+- **Gold screen is ~right, not the driver.** `screen_gold {r:1.10/100sqin/sheet,
+  min:8000}` floors at ₹8,000 for both (per-pc term ~₹350 at these qty), matching
+  sir's "~₹8k + ₹1.5/pc". Minor gap: it's insensitive to number of sides (plan's
+  cover+back = sales' cover-only). Make it side-aware once sir confirms the ₹/pc.
+
+### udyogi_catalog +54% — diagnosed 2026-07-21 (needs sir, NOT a code bug)
+
+Cover+40pp A4 catalogue, 170gsm inside / 300gsm cover, 4+4, section-sewn,
+3000 qty. NK ₹1,80,000 (₹60/pc). Est ₹2,77,188 (₹92/pc).
+- **Cost is correct (~₹55/pc = ₹1,66,313).** Verified component-by-component:
+  text paper ₹63k (8125 A2 sheets @ ~₹7.8; ~8% waste — 40pp of 170gsm really is
+  ~212 g/copy ≈ ₹21/pc), plates 44 (=4+4 × 5 sigs + 4 cover), printing on the
+  small-*sheet* band (legit for an A4-off-A2 job), section-sewn bind ₹6.75/pc.
+  Nothing inflated.
+- **The whole +54% is margin.** At the 40% catalogue default, margin alone is
+  ₹1.1L. This job only supports **7.6% margin** to hit sir's ₹60/pc — because our
+  cost (₹55/pc) is already 92% of his selling price.
+- **Do NOT just drop catalogue margin.** 40% is shared with `brochure_multi` /
+  `annual` and was calibrated across several design-heavy jobs; matching this one
+  point would overfit. The real question for sir: **is a 3000-run catalogue
+  genuinely a ~10-15% job for you (i.e. margin should be volume-tiered:
+  design-heavy but high-volume → lower %), or is your input cost lower than our
+  rate card (esp. the 170gsm art paper ₹/kg)?** Answer decides between a
+  volume-tiered catalogue margin vs a paper-rate correction. Need ≥2-3 more real
+  catalogue quotes at different volumes before recalibrating.
 
 ### Pending next moves (in priority order)
 
@@ -114,8 +234,15 @@ historical archive: `~/.claude/projects/C--git/memory/real_quotes_dataset_v1.md`
 3. **Six product-category refactor** — sir wants each of the 6 categories to
    have a distinct input flow: softcover / hardcase / set-jobs / single-page /
    punched / calendar. Some already exist (calendar_sheet, calendar_table,
-   card, pasted_tag, booklet, hardcase via hardCasePlan). Missing: set-jobs
-   as a first-class product with jacket + pocket + card sub-items.
+   card, pasted_tag, booklet, hardcase via hardCasePlan).
+   **Set-jobs progress (2026-07-21):** the Set / bundle builder now carries a
+   **jacket** (printed folder / wrap holding the set) and **pocket** (die-cut
+   card pocket) as set-level components — `setJacket` / `setPocket` ₹/set
+   inputs, one per set, added on top of the item production. They flow through
+   `setTotals()`, `renderSet()`, the set-qty comparison (`renderSetMultiQty`),
+   `printSetQuote()`, and `setSummary()`. Card sub-items are already handled by
+   the per-item builder (add a `card` job to the set). Rates are placeholders —
+   confirm sir's real jacket + pocket ₹/set numbers.
 4. **Historical job catalog project** — parallel workstream. Not started.
    Waiting for sir's data collection.
 5. **Product-category-driven margin defaults are already in MARGIN_DEFAULT map**;
@@ -123,6 +250,9 @@ historical archive: `~/.claude/projects/C--git/memory/real_quotes_dataset_v1.md`
 
 ### Pending sir's confirmed numbers (do NOT guess)
 
+- **Card margin now 8%** (was 15%) — set 2026-07-21 from the margin sweep so the
+  2000-pc cards land ~+14-16%. If sir confirms cards run even leaner, 5% greens
+  rfid too. Tiny (<500 pc) cards stay over on cost → quote at menu rate.
 - **Die-cut / hole-punch / paste** rates on the flat post-press panel (currently
   placeholders ₹300 / ₹150 / ₹100 per 1000). These flow into every tag/card.
 - **Screen printing gold** real per-piece rate for cover + back cover on 200–

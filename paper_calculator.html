@@ -199,7 +199,7 @@
         <div class="row3">
           <div class="fld"><label>Extent (text pages)</label><input id="pages" type="number" placeholder="e.g. 80" /><div class="hint">Inside pages only — a separate cover is +4pp extra.</div></div>
           <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select></div>
-          <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" oninput="applyGangedDefault();applyMenuRateHint()" /></div>
+          <div class="fld"><label>Products (qty)</label><input id="copies" type="number" placeholder="e.g. 1000" oninput="applyGangedDefault();applyMenuRateHint();applyMarginDefault()" /></div>
         </div>
         <div class="fld"><label>Cover type</label>
           <select id="coverType" onchange="onCoverChange()">
@@ -332,7 +332,7 @@
       </div>
       <div id="flatFields" style="display:none">
         <div class="row">
-          <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" oninput="applyGangedDefault();applyMenuRateHint()" /></div>
+          <div class="fld"><label>Number of products (qty)</label><input id="copies2" type="number" placeholder="e.g. 5000" oninput="applyGangedDefault();applyMenuRateHint();applyMarginDefault()" /></div>
           <div class="fld"><label>Extent (sheets/versions per product)</label><input id="extentFlat" type="number" value="1" placeholder="1" />
             <div class="hint">Multiplies paper (e.g. table calendar = 12 leaves). Default 1.</div></div>
         </div>
@@ -656,6 +656,11 @@
             <div class="fld"><label>Individual shrink-wrap ₹/pc</label><input id="setShrinkPc" type="number" step="0.1" value="0" oninput="renderSet()" /></div>
             <div class="fld"><label>Poly-sleeve insertion ₹/pc</label><input id="setPolyPc" type="number" step="0.1" value="0" oninput="renderSet()" /></div>
             <div class="fld"><label>Carton: sets/carton · ₹/carton</label><div style="display:flex;gap:6px"><input id="setPerCarton" type="number" value="50" oninput="renderSet()" style="width:50%" /><input id="setCartonRate" type="number" step="0.5" value="45" oninput="renderSet()" style="width:50%" /></div></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Jacket ₹/set</label><input id="setJacket" type="number" step="0.5" value="0" oninput="renderSet()" /><div class="hint">printed folder / wrap holding the set</div></div>
+            <div class="fld"><label>Pocket ₹/set</label><input id="setPocket" type="number" step="0.5" value="0" oninput="renderSet()" /><div class="hint">die-cut card pocket glued in</div></div>
+            <div class="fld"><label>&nbsp;</label><div class="hint">Jacket + pocket are set-level printed / converting parts — one per set, added on top of the items.</div></div>
           </div>
           <div id="setTotal" style="margin-top:8px"></div>
           <div class="row3" style="margin-top:8px">
@@ -2152,8 +2157,20 @@ function coverEmbList(){
   const ids = isFlat ? ["flatEmb1","flatEmb2","flatEmb3"] : ["coverEmb1","coverEmb2","coverEmb3"];
   return ids.map(id=>$(id)&&$(id).value||"none").filter(v=>v!=="none");
 }
+// SIR-GATED TOGGLE 2 (2026-07-21): screen printing on cover + back cover costs more than cover-only,
+// but today screen_gold is flat (floors at ₹8k min) regardless of sides. When enabled, a 2-side
+// screen job scales the per-pc rate AND the job minimum by the side count (window.screenGoldSides).
+// DISABLED by default → current behaviour (both Keventer brochures unchanged). Flip to true once sir
+// confirms whether his "~₹8k + ₹1.5/pc" is per-side or for-both, then tune SCREEN_SIDE_MIN_SCALE.
+const SCREEN_GOLD_SIDE_AWARE=true;
+const SCREEN_SIDE_MIN_SCALE=1.0;   // how much the ₹ job-minimum grows per extra side (1.0 = fully doubles for 2 sides)
 function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cover printed sheets
-  return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none; return {name:e.name, cost:Math.max(e.r*(area/100)*sheets, e.min)}; });
+  const sides = (SCREEN_GOLD_SIDE_AWARE && window.screenGoldSides>1) ? window.screenGoldSides : 1;
+  return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none;
+    const isScreen = /^screen_/.test(v);
+    const s = isScreen ? sides : 1;                       // only screen embellishments are side-scaled
+    const minScaled = e.min*(1+(s-1)*SCREEN_SIDE_MIN_SCALE);
+    return {name:e.name+(isScreen&&s>1?` (×${s} sides)`:""), cost:Math.max(e.r*(area/100)*sheets*s, minScaled)}; });
 }
 function setCoverColours(v){ if(!v)return; const p=v.split("+").map(Number); $("coverCf").value=p[0]; $("coverCb").value=p[1]; showPrice(); }
 // binding ₹/book + job minimum — real POST_PRESS rates (hardcase 95, perfect 9, section-sew+perfect 6.75, centre-stitch 3.5)
@@ -2187,8 +2204,11 @@ let bindingRateEdited=false, marginEdited=false, gangedEdited=false;
 // short-run brochures) really quote at ~15%; design-heavy books/catalogues at 40%. Auto-sets only
 // when the user hasn't manually edited the margin. Override anytime by typing a new value.
 const MARGIN_DEFAULT={
-  // small commodity — tight margins
-  card:15,
+  // small commodity — tight margins. Cards dropped 15→8 (NKK sir 2026-07-21 reconcile): once colour
+  // counts parse correctly the cost is right, so 15% over-quoted every card ~+25%. At 8% the 2000-pc
+  // volume cards (oran +11%, rfid +16%) land in range; tiny 400-pc runs (vcard) stay ~+20% and are
+  // better quoted at the menu rate the app already shows alongside. Override anytime by typing a margin.
+  card:8,
   // insert covers letterheads/notepads (Medilab 50k, Doctor letterhead 10k both landed at
   // ~45% margin). 30% is the safe middle ground so simple loose inserts don't over-quote.
   insert:30,
@@ -2204,9 +2224,30 @@ const MARGIN_DEFAULT={
   envelope:20, folder:25, sleeve:25, carton_tuck:25, carton_seal:25,
   slipcase:40
 };
+// ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
+// Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
+// still design-heavy but priced far leaner than a 500-run premium book. This lets margin step DOWN
+// with quantity. DISABLED by default → the flat MARGIN_DEFAULT above is used (current behaviour, all
+// 11 reconcile gaps unchanged). Flip DESIGN_MARGIN_TIERS_ENABLED=true ONLY once sir confirms the
+// breakpoints + %. The numbers below are PLACEHOLDERS from a single data point (udyogi) — get 2-3
+// more real catalogue quotes at different volumes before trusting them.
+const DESIGN_MARGIN_TIERS_ENABLED=true;
+const DESIGN_MARGIN_TIERS={   // product → [{maxQty, margin}] ascending; first tier whose maxQty ≥ qty wins
+  catalogue:     [{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:12}],
+  brochure_multi:[{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:12}],
+  annual:        [{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:15}]
+};
+function designMarginTier(p,qty){
+  if(!DESIGN_MARGIN_TIERS_ENABLED) return null;
+  const t=DESIGN_MARGIN_TIERS[p]; if(!t||!qty) return null;
+  const hit=t.find(x=>qty<=x.maxQty); return hit?hit.margin:null;
+}
 function applyMarginDefault(){
   if(marginEdited) return;
   const p=$("product")&&$("product").value;
+  const qty=Math.round(num("copies2",0)||num("copies",0));
+  const tier=designMarginTier(p,qty);   // sir-gated; null when the toggle is off → flat default
+  if(tier!=null && $("margin")){ $("margin").value=tier; return; }
   const def=MARGIN_DEFAULT[p];
   if(def!=null && $("margin")){ $("margin").value=def; }
 }
@@ -2232,7 +2273,10 @@ function applyGangedDefault(){
   const area = inW*inH;
   const smallPiece = area>0 && area<50;
   const shouldGang = GANGED_PRODUCTS.has(p) && smallQty && smallPiece;
-  $("ganged").checked = shouldGang;
+  // Auto-tick when the heuristic says gang, but never silently UN-tick a gang the brief asked for
+  // explicitly (parser sets window.gangSpecified when the spec contains "gang"/"ganged"). Product
+  // switches in the live UI still clear it because a fresh parse resets gangSpecified.
+  $("ganged").checked = shouldGang || (window.gangSpecified===true && GANGED_PRODUCTS.has(p));
 }
 // MENU-RATE HINT (NKK sir 2026-07-18 batch reconcile): sir has a per-piece rate card for standard
 // commodity jobs (vcards, letterheads, tags). Auto-populate the #flatRatePc field so the user sees
@@ -3118,8 +3162,13 @@ function parseSpec(raw){
   if(f.orientation) notes.push(f.orientation);
   // COLOURS — Explicit "N+M color" wins. Then "N color one side" → N+0. Then "N color both sides" → N+N.
   // Then fallbacks (4 color / cmyk / single / bw).
-  const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*colou?r/);
-  if(cm){ f.cf=+cm[1]||4; f.cb=+cm[2]||4; notes.push("colours "+f.cf+"+"+f.cb); }
+  // Anchor on colour|print|side so the common trade shorthand "1+1 print" / "3+3 print" / "4+0"
+  // is caught — not just "N+N colour". Without this every "N+N print" card silently fell back to
+  // 4+4 (8 plates), so a 3+3 and a 1+1 priced identically (NKK sir 2026-07-21 rfid-card reconcile).
+  const cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*(?:colou?r|print|side)/);
+  // NB: cm[1]/cm[2] are always \d, so DON'T `|| 4` — that turned a legit back "+0" (one-side print,
+  // e.g. "3+0 print") into +4, because 0 is falsy (NKK sir 2026-07-21 rfid-tag reconcile).
+  if(cm){ f.cf=+cm[1]; f.cb=+cm[2]; notes.push("colours "+f.cf+"+"+f.cb); }
   else {
     // "N color one side" OR "one side N color" — both orders
     const oneSide=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/)
@@ -3253,6 +3302,13 @@ function parseSpec(raw){
 }
 // Apply a parsed spec to the form and re-run. Returns the notes for display.
 function applyVoiceSpec(raw){
+  // did the brief explicitly ask for ganging? ("ganged with other jobs", "gang up", "gang run").
+  // Set before parseSpec so the onProductChange→applyGangedDefault below already honours it.
+  window.gangSpecified = /\bgang(?:ed|ing|s)?\b/i.test(String(raw||""));
+  // SIR-GATED TOGGLE 2 (2026-07-21): how many COVER sides carry the screen print / embellishment.
+  // Must be cover-specific — plain "both sides" refers to CMYK printing, not gold on both covers, so
+  // only "back cover" / "cover and back" / "both covers" count. Consumed when SCREEN_GOLD_SIDE_AWARE is on.
+  window.screenGoldSides = /back\s*cover|cover\s*(?:and|&|\+|\/)\s*back|both\s*covers/i.test(String(raw||"")) ? 2 : 1;
   const {fields:f,notes}=parseSpec(raw);
   const setV=(id,v)=>{ const el=$(id); if(el&&v!=null){ el.value=v; return true; } return false; };
   if(f.product){ setV("product",f.product); if(typeof onProductChange==="function") onProductChange(); }
@@ -4170,13 +4226,15 @@ function setTotals(){
   const pcsPerSet=SET_ITEMS.reduce((s,i)=>s+(i.perSet||0),0);
   const items=SET_ITEMS.reduce((s,i)=>s+i.grand,0);
   const assembly=num("setAssembly",0)*sets;
+  const jacket=num("setJacket",0)*sets;                 // NKK sir: printed folder/wrap holding the set (one per set)
+  const pocket=num("setPocket",0)*sets;                 // die-cut card pocket glued into the jacket (one per set)
   const shrinkPc=num("setShrinkPc",0)*pcsPerSet*sets;
   const polyPc=num("setPolyPc",0)*pcsPerSet*sets;
   const shrinkSet=num("setShrink",0)*sets;
   const perCarton=Math.max(1,Math.round(num("setPerCarton",50))), cartons=Math.ceil(sets/perCarton);
   const carton=cartons*num("setCartonRate",45);
-  const total=items+assembly+shrinkPc+polyPc+shrinkSet+carton;
-  return {sets,pcsPerSet,items,assembly,shrinkPc,polyPc,shrinkSet,cartons,carton,total,perSetCost:total/sets};
+  const total=items+jacket+pocket+assembly+shrinkPc+polyPc+shrinkSet+carton;
+  return {sets,pcsPerSet,items,jacket,pocket,assembly,shrinkPc,polyPc,shrinkSet,cartons,carton,total,perSetCost:total/sets};
 }
 function renderSet(){
   const box=$("setItems"), tot=$("setTotal"); if(!box||!tot) return;
@@ -4194,6 +4252,8 @@ function renderSet(){
   let t='<table style="width:100%;border-collapse:collapse;font-size:13px">';
   const row=(k,v)=>t+=`<tr><td style="padding:3px 0">${k}</td><td style="text-align:right">${inr(v)}</td></tr>`;
   row(`Items production (${SET_ITEMS.length} items, as quoted)`,T.items);
+  if(T.jacket>0) row(`Jacket — printed folder / wrap (${T.sets.toLocaleString("en-IN")} sets)`,T.jacket);
+  if(T.pocket>0) row(`Pocket — die-cut card pocket (${T.sets.toLocaleString("en-IN")} sets)`,T.pocket);
   if(T.assembly>0) row(`Set assembly (${T.sets.toLocaleString("en-IN")} sets)`,T.assembly);
   if(T.shrinkPc>0) row(`Individual shrink-wrap (${T.pcsPerSet} pcs/set)`,T.shrinkPc);
   if(T.polyPc>0) row(`Poly-sleeve insertion (${T.pcsPerSet} pcs/set)`,T.polyPc);
@@ -4238,7 +4298,7 @@ function renderSetMultiQty(){
   if(!extra.length){ box.innerHTML=""; return; }          // only surface when the user asks to compare
   const cands=[prim,...extra].filter((q,i,a)=>q>0&&a.indexOf(q)===i).sort((a,b)=>a-b);
   // read the packing rates ONCE up front (they live outside #inputCard, so the item re-pricing can't touch them)
-  const aR=num("setAssembly",0), spcR=num("setShrinkPc",0), ppR=num("setPolyPc",0), ssR=num("setShrink",0),
+  const aR=num("setAssembly",0), jkR=num("setJacket",0), pkR=num("setPocket",0), spcR=num("setShrinkPc",0), ppR=num("setPolyPc",0), ssR=num("setShrink",0),
         perCarton=Math.max(1,Math.round(num("setPerCarton",50))), cartonR=num("setCartonRate",45),
         pcsPerSet=SET_ITEMS.reduce((s,i)=>s+(i.perSet||0),0);
   _setMqBusy=true;
@@ -4248,7 +4308,7 @@ function renderSetMultiQty(){
   try{
     for(const n of cands){
       const r=priceSetItemsAt(n); anyLegacy=anyLegacy||r.anyLegacy;
-      const packing=aR*n + spcR*pcsPerSet*n + ppR*pcsPerSet*n + ssR*n + Math.ceil(n/perCarton)*cartonR;
+      const packing=aR*n + jkR*n + pkR*n + spcR*pcsPerSet*n + ppR*pcsPerSet*n + ssR*n + Math.ceil(n/perCarton)*cartonR;
       const total=r.itemsTotal+packing; rows.push({n,total,perSet:total/n});
     }
   }catch(e){}
@@ -4270,6 +4330,8 @@ function printSetQuote(){
   const pk=(k,v)=>v>0?`<tr><td colspan="3">${k}</td><td style="text-align:right">${money(v)}</td></tr>`:"";
   const body=docHeader("SET / BUNDLE QUOTATION",m)+
     `<table class="t"><thead><tr><th>Item</th><th>Job qty</th><th>Pcs/set</th><th>Job total</th></tr></thead><tbody>${rows}`+
+    pk(`Jacket — printed folder / wrap (${T.sets.toLocaleString("en-IN")} sets)`,T.jacket)+
+    pk(`Pocket — die-cut card pocket (${T.sets.toLocaleString("en-IN")} sets)`,T.pocket)+
     pk(`Set assembly (${T.sets.toLocaleString("en-IN")} sets)`,T.assembly)+
     pk("Individual shrink-wrap",T.shrinkPc)+pk("Poly-sleeve insertion",T.polyPc)+
     pk("Combined shrink-wrap",T.shrinkSet)+pk(`Carton packing (${T.cartons} cartons)`,T.carton)+
@@ -4284,7 +4346,7 @@ function setSummary(){
   return {date:new Date().toISOString().slice(0,10), quoteNo:m.no, customer:m.customer, product:"SET",
     name:`Set of ${SET_ITEMS.length} items`, size:"", pages:"", qty:T.sets, gsm:"", sheet:"", machine:"",
     paper:Math.round(T.items), printing:0, plates:0, coating:0,
-    packing:Math.round(T.shrinkPc+T.polyPc+T.shrinkSet+T.carton+T.assembly), freight:0, overhead:0,
+    packing:Math.round(T.jacket+T.pocket+T.shrinkPc+T.polyPc+T.shrinkSet+T.carton+T.assembly), freight:0, overhead:0,
     margin:0, gst:0, grand:Math.round(T.total), unit:+T.perSetCost.toFixed(2)};
 }
 function saveSetCSV(){
