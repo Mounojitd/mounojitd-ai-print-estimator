@@ -1,0 +1,12 @@
+job_id,date,client,spec,qty,nk_price,notes
+udyogi_catalog,2026-06-01,Udyogi,"A4 portrait catalogue, cover + 40 pages, cover 300gsm gloss art board, inside 170gsm gloss art, 4 color both sides throughout, matt lam outer cover, section-sewn perfect binding, quantity 3000",3000,180000,Sanjit-da Q-00010 target ₹1.8L
+sunili_ili_tag,2026-06-04,Sunili ILI,"Hang tag 41x93mm, 4+0 print, gloss lamination one side, back-to-back paste, die cut with hole punch on top, pasted tag, quantity 15000",15000,33000,~₹2.20/pc pasted_tag
+keventer_plan_brochure,2026-07-17,Keventer,"Landscape 11x13 inch brochure booklet, cover + 52 pages, cover 270gsm Montblanc specialty paper, inside 170gsm imported art, 4 color both sides throughout, gold screen printing on cover and back cover, centre stitch saddle, reprint, quantity 176",176,104000,~₹591/pc reprint small qty
+keventer_sales_brochure,2026-07-17,Keventer,"9x9 inch square brochure booklet, cover + 80 pages, cover 270gsm Montblanc specialty paper, inside 130gsm imported art, 4 color both sides throughout, throughout online gloss aqueous varnish coating inside, gold screen printing on cover, section-sewn perfect binding, reprint, quantity 600",600,172000,~₹287/pc reprint
+sunili_oran_card,2026-07-17,Sunili Leather,"Credit card 54x85mm, 1+1 print, 350gsm gloss art board, matt lam both sides, die punching, quantity 2000",2000,6100,~₹3.05/pc card
+sunili_rfid_card,2026-07-17,Sunili Leather,"Card 54x85mm, 3+3 print, 300gsm gloss art board, no lamination, die punching, quantity 2000",2000,8300,~₹4.15/pc
+sunili_vcard,2026-06-03,Sunili Leather,"Visiting card 55x90mm, 300gsm matt art board, 4+0 print, finish cutting only, ganged with other jobs, quantity 400",400,1400,ganged 200x2 designs
+sunili_rfid_tag,2026-06-04,Sunili,"Hang tag 41x93mm, 3+0 print (3 color one side), 350gsm Emami Gamkot board, gloss lam one side, back-to-back paste, die punching with hole on top, pasted tag, quantity 15000",15000,31500,~₹2.10/pc
+sunili_folded_card,2026-03-17,Sunili Leathern,"Folded card, close size 40x70mm, open size 40x140mm, folded once, 4 pages, 1+1 print, 300gsm art board, matt lam both sides, die punching, one fold, hole on top, quantity 3000",3000,11250,~₹3.75/pc leaflet
+egra_medilab_letterhead,2026-03-10,Egra Medilab,"A4 portrait letterhead insert, single side 4 color, 90gsm Maplitho, offset, cut and finish, quantity 50000",50000,66000,~₹1.32/pc
+doctors_letterhead,2026-03-10,Doctor,"A4 portrait letterhead insert, single side 4 color, 100gsm Maplitho, offset, cut and finish, quantity 10000",10000,18200,~₹1.82/pc

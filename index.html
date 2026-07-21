@@ -3163,7 +3163,16 @@ function parseSpec(raw){
     [/\bbopp\b/,"bopp","BOPP"],[/drip/,"drip","Drip-off UV"],[/varnish/,"varnish","Varnish"],[/\buv\b/,"uv","Gloss UV"],
     // fallbacks (only fire on isolated 'matt'/'gloss' — paper-name context stripped above)
     [/\bmatt\b|\bmatte\b/,"matt","Matt lam"],[/\bgloss\b/,"gloss","Gloss lam"]];
-  if(/lamination|\blam\b|coating|\buv\b|varnish|bopp|matt|gloss|matte/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){ f.coverLam=v; notes.push("cover coating: "+lbl); break; } }
+  if(/lamination|\blam\b|coating|\buv\b|varnish|bopp|matt|gloss|matte/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){
+    // 2026-07-21: coating clause with 'inside' / 'text' / 'throughout ... inside' targets inside, not cover.
+    // Look for those words in ±40 chars around the match.
+    const m=tl.match(re); const idx=m?tl.indexOf(m[0]):-1;
+    const ctx=idx>=0?tl.slice(Math.max(0,idx-40),idx+40):"";
+    const inside=/\b(inside|inner|all\s*sheets|text\s*(?:page|sheet|side))\b/.test(ctx);
+    if(inside){ f.lam=v; notes.push("inside coating: "+lbl); }
+    else { f.coverLam=v; notes.push("cover coating: "+lbl); }
+    break;
+  } }
   // COVER EMBELLISHMENTS (NKK sir: Spot UV etc. were being dropped) — up to 3 combinable.
   // Screen printing MUST come before generic 'foil' — gold screen ≠ foil (a common Keventer mix-up).
   const EMB=[[/(?:gold|golden)\s*screen(?:\s*print(?:ing)?)?|screen(?:\s*print(?:ing)?)\s*(?:in\s*)?gold/,"screen_gold","Screen printing — gold"],
@@ -3209,7 +3218,11 @@ function parseSpec(raw){
   if(isTag && b2bMention) f.product="pasted_tag";
   // FOLDED FLAT: 'one fold / single fold / folded' with no book-binding keyword → leaflet, not booklet.
   // A 4pp folded card (like the Sunili Leathern job) has pages=4 but is a flat folded piece, not a book.
-  if(!f.product && foldHit && !/(perfect|section|saddle|stitch|sew|wire|spiral|hardbound|hard\s*case)/.test(t)) f.product="leaflet";
+  const noBookBind=!/(perfect|section|saddle|stitch|sew|wire|spiral|hardbound|hard\s*case)/.test(t);
+  if(!f.product && foldHit && noBookBind) f.product="leaflet";
+  // "Folded card" / "greeting card with a fold" is a leaflet, not a visiting card (sir 2026-07-21).
+  // The generic /\bcard\b/ rule wins on the LITERAL word 'card' in "Folded card" — downgrade to leaflet.
+  if(f.product==="card" && foldHit && noBookBind) f.product="leaflet";
   // REPRINT (NKK sir 2026-07-17 Keventer): 'reprint' / 'reprinting' → plates already exist.
   if(/\brepri?nt(?:ing)?\b/.test(t)){ f.reprint=true; notes.push("reprint — plates reused (10% fee)"); }
   // Pasted-tag / flat products: clear the b2b binding (it's the product, not a book-binding), and
@@ -4028,9 +4041,25 @@ async function runDiagnosticSweep(){
     const nk    = iNK>=0 ? parseFloat(String(row[iNK]||"").replace(/[^0-9.]/g,""))||0 : 0;
     const rec = {jobId, client:iClient>=0?row[iClient]:"", brief, qty, nk};
     try{
-      // reset state before each job
+      // reset state before each job — otherwise a prior job's coating / binding / press pick / flags
+      // leak into the next one (sir 2026-07-21 sweep found ₹29k phantom coat on Medilab from a prior
+      // 'matt' spec). Reset every DOM field the parser touches OR that has a sticky default.
       window.marginEdited=false; window.gangedEdited=false; window.flatRateEdited=false;
+      window.bindingEdited=false;
+      if(window.MACHINE_MODE!=null) window.MACHINE_MODE="auto";
+      if(window.COVER_MACHINE_MODE!=null) window.COVER_MACHINE_MODE="auto";
       ["coverEmb1","coverEmb2","coverEmb3","flatEmb1","flatEmb2","flatEmb3"].forEach(id=>{const el=$(id); if(el) el.value="none";});
+      // coating / binding / reprint / ganged all have sticky defaults that survive parseSpec when the
+      // new brief doesn't mention them. Reset to neutral so the parser starts clean.
+      if($("lam")) $("lam").value="none";
+      if($("coverLam")) $("coverLam").value="none";
+      if($("reprint")) $("reprint").checked=false;
+      if($("ganged")) $("ganged").checked=false;
+      if($("fppDie")) $("fppDie").value=0;
+      if($("fppPunch")) $("fppPunch").value=0;
+      if($("fppFold")) $("fppFold").value=0;
+      if($("fppScore")) $("fppScore").value=0;
+      if($("ptagPaste")) $("ptagPaste").value=0;
       if($("flatRatePc")) $("flatRatePc").value="";
       if($("extentFlat")) $("extentFlat").value=1;
       if($("voiceText")) $("voiceText").value=brief;
