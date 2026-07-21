@@ -4225,12 +4225,29 @@ async function runDiagnosticSweep(urlArg, builtin){
   catch(e){ auditStatus('<span style="color:#c0392b">'+(builtin?'Could not load the built-in set — db/real_quotes/test_jobs.csv must be served alongside this page (works on GitHub Pages; a plain file:// open may block it).':'Fetch failed — check the URL and that the sheet is shared read-only.')+'</span>'); return; }
   if(!rows||rows.length<2){ auditStatus('<span style="color:#c0392b">'+(builtin?'Built-in set':'Sheet')+' returned no rows.</span>'); return; }
   const head = rows[0].map(normalizeCol);
-  const col = n => head.indexOf(n);
+  // Header aliases (NKK sir 2026-07-21): also recognise the real master-log column names, so his own
+  // job sheet reads directly — not only the TEST_JOBS format. First matching alias wins.
+  const ALIASES={
+    job_id:["job_id","id","job_no","sl_no"], date:["date","job_date"], client:["client","customer","party"],
+    product:["product","job","item"], orientation:["orientation"],
+    close_size:["close_size","closed_finished_size","closed_size","finished_size","close_finished_size"],
+    open_size:["open_size","open_lay_flat_size","lay_flat_size","open_flat_size"],
+    extent:["extent","extent_cover_pages","pages","cover_pages"],
+    text_paper:["text_paper","paper","paper_board","inside_paper"], cover_paper:["cover_paper","cover"],
+    colours:["colours","colors","printing","print"], coating:["coating","lamination","fabrication"],
+    embellishment:["embellishment","embellishments","finishing_extras"], process:["process"],
+    binding:["binding","binding_finishing","bindingfinishing","binding_and_finishing"],
+    qty:["qty","quantity","qnty"], nk_price:["nk_price","amount","price","value","rate"],
+    notes:["notes","note","remarks"], spec:["spec","full_original_spec","full_spec","original_spec"]
+  };
+  const col = key => { for(const a of (ALIASES[key]||[key])){ const i=head.indexOf(a); if(i>=0) return i; } return -1; };
   const iId=col("job_id"), iDate=col("date"), iClient=col("client"), iProd=col("product"),
         iOr=col("orientation"), iCS=col("close_size"), iOS=col("open_size"),
         iExt=col("extent"), iTxt=col("text_paper"), iCov=col("cover_paper"),
         iCol=col("colours"), iCoat=col("coating"), iEmb=col("embellishment"),
         iBind=col("binding"), iQty=col("qty"), iNK=col("nk_price"), iNotes=col("notes"), iSpec=col("spec");
+  // first number in a messy cell — "15000 (3000 per book)"→15000, "Rs.74,448/- + GST | 55,224"→74448
+  const firstNum = s => { const m=String(s||"").replace(/,/g,"").match(/\d+(?:\.\d+)?/); return m?parseFloat(m[0]):0; };
   auditStatus(`⏳ Running ${rows.length-1} jobs…`);
   const records=[];
   for(let r=1;r<rows.length;r++){
@@ -4240,7 +4257,12 @@ async function runDiagnosticSweep(urlArg, builtin){
     // Build a brief string from whatever the row supplies (either a `spec` cell or the split cols).
     const parts=[];
     const push=(k,v)=>{ if(v!=null && String(v).trim()!=="") parts.push(`${k}: ${v}`); };
-    if(iSpec>=0 && row[iSpec]) parts.push(String(row[iSpec]));
+    // Strip any price/amount lines + @mentions from a free-text spec — the estimator must NEVER see
+    // NK's price (Module 1 rule), and an inline "Amount - 77000" would also fool the quantity parser.
+    const stripPrice = s => String(s||"").split(/\r?\n/)
+      .filter(l=>!/\b(amount|price|value|rs\.?|₹|inr|gst|quotation|quote)\b/i.test(l) && !/@/.test(l))
+      .join("\n").trim();
+    if(iSpec>=0 && row[iSpec]) parts.push(stripPrice(row[iSpec]));
     else{
       push("Client", iClient>=0?row[iClient]:null);
       push("Product", iProd>=0?row[iProd]:null);
@@ -4260,8 +4282,8 @@ async function runDiagnosticSweep(urlArg, builtin){
       jobId: iId>=0 ? (row[iId]||`row${r}`) : `row${r}`,
       client: iClient>=0?row[iClient]:"",
       brief: parts.join("\n"),
-      qty: iQty>=0 ? parseInt(String(row[iQty]||"").replace(/[^0-9]/g,""),10)||0 : 0,
-      nk: iNK>=0 ? parseFloat(String(row[iNK]||"").replace(/[^0-9.]/g,""))||0 : 0
+      qty: iQty>=0 ? Math.round(firstNum(row[iQty])) : 0,
+      nk: iNK>=0 ? firstNum(row[iNK]) : 0
     });
   }
   runSweepRecords(records);
