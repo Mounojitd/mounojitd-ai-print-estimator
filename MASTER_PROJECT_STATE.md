@@ -153,6 +153,31 @@ Still-open (calibration / data, flagged — do NOT guess):
 - **Big jobs untouched:** `udyogi_catalog` +54%, `keventer_plan_brochure` +46%
   (176-pc reprint), `keventer_sales_brochure` −27%.
 
+### Keventer brochures — profiled 2026-07-21 (two different small-run problems)
+
+Both are "reprint" specialty brochures with Montblanc cover + gold screen, but
+they fail in OPPOSITE directions for DIFFERENT reasons — not one shared factor.
+
+- **plan +46%** (176 pc, 52pp, 11×13 landscape, saddle, gold on cover+back).
+  Driver is `print ₹75,600`. The big 11×13 page images only **1 form per press
+  sheet** (2-up won't fit a small-band sheet), so 52pp saddle = **13 press
+  passes**, each carrying makeready — on only 176 copies. Real tiny-run cost;
+  sir's ₹591/pc is high for the same reason, ours (₹863/pc) just higher. Q for
+  sir: do you run this 2-up on a bigger sheet / share makeready across forms, or
+  is 13 passes right and the per-forme minimum just needs trimming?
+- **sales −27%** (600 pc, 80pp, 9×9, section-sewn, gold cover, varnish inside).
+  Our cost ₹146/pc, sir sells ₹287/pc — ~50% over cost, well above the 30%
+  booklet default. Nothing under-built stands out; looks like sir prices premium
+  specialty books at a fatter margin tier. Q for sir: is premium
+  section-sewn specialty a higher-margin tier (→ add it), or is a cost line
+  (Montblanc cover ₹/kg, aqueous varnish) under our rate card?
+- **Margin is neutral across the pair** — both use the 30% booklet default;
+  raising it helps sales but worsens plan. So the fix is NOT margin.
+- **Gold screen is ~right, not the driver.** `screen_gold {r:1.10/100sqin/sheet,
+  min:8000}` floors at ₹8,000 for both (per-pc term ~₹350 at these qty), matching
+  sir's "~₹8k + ₹1.5/pc". Minor gap: it's insensitive to number of sides (plan's
+  cover+back = sales' cover-only). Make it side-aware once sir confirms the ₹/pc.
+
 ### udyogi_catalog +54% — diagnosed 2026-07-21 (needs sir, NOT a code bug)
 
 Cover+40pp A4 catalogue, 170gsm inside / 300gsm cover, 4+4, section-sewn,
