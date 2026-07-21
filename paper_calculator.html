@@ -3483,7 +3483,7 @@ function isNarrow(){ return window.matchMedia("(max-width:980px)").matches; }
 function toggleDrawer(force){
   if(!isNarrow() && force===undefined){                  // desktop → collapse / expand the sidebar
     document.body.classList.toggle("sidebar-collapsed");
-    updateToggleLabel(); return;
+    saveSidebarState(); updateToggleLabel(); return;     // remember the choice for next visit
   }
   const open = force===undefined ? !document.body.classList.contains("drawer-open") : !!force;
   document.body.classList.toggle("drawer-open", open);
@@ -3496,6 +3496,12 @@ function updateToggleLabel(){
   t.innerHTML=collapsed ? '☰&nbsp;<span style="font-size:12.5px">Show inputs</span>'
                         : '⟨&nbsp;<span style="font-size:12.5px">Hide inputs</span>';
 }
+// PERSIST the desktop collapse choice across visits (this browser). The collapse CSS is scoped to
+// ≥981px, so a remembered "collapsed" is inert on mobile (the drawer takes over there).
+const SIDEBAR_KEY="SIDEBAR_COLLAPSED";
+function saveSidebarState(){ try{ localStorage.setItem(SIDEBAR_KEY, document.body.classList.contains("sidebar-collapsed")?"1":"0"); }catch(e){} }
+function restoreSidebarState(){ try{ if(localStorage.getItem(SIDEBAR_KEY)==="1") document.body.classList.add("sidebar-collapsed"); }catch(e){} updateToggleLabel(); }
+if(document.readyState!=="loading") restoreSidebarState(); else window.addEventListener("DOMContentLoaded", restoreSidebarState);
 window.addEventListener("resize", updateToggleLabel);
 // AUTO-PARSE (NKK sir 2026-07-17 + Wispr Flow workflow): when the user pastes or dictates a spec
 // and stops typing for 1.2 s, auto-run the parser. Threshold ≥ 30 chars so tiny edits don't fire.
