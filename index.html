@@ -2226,7 +2226,11 @@ function applyGangedDefault(){
   const qty=Math.round(num("copies2",0)||num("copies",0));
   // NKK sir 2026-07-18 batch #4: bump threshold 500→1000. Real Beekay/Pinax/Pinacle vcards at
   // 600-900 pcs are also ganged (₹3-5/pc menu rate); the earlier 500 cap missed them.
-  const smallQty = qty>0 && qty<=1000;
+  // NKK sir 2026-07-21 reconcile: visiting/credit cards stay on the shared gang sheet up to ~3000
+  // pcs — Sunili oran (2000 @ ₹3.05/pc) and rfid (2000 @ ₹4.15/pc) cards are both ganged rates, not
+  // full-plate. Tags/inserts keep the 1000 cap (their real runs are 10-50k and print on their own).
+  const qtyCap = p==="card" ? 3000 : 1000;
+  const smallQty = qty>0 && qty<=qtyCap;
   // Also require a SMALL piece size (<50 sq.in). VCards are ~15 sq.in, tags ~4-15 sq.in, credit
   // cards ~7 sq.in — all fit. A3 certificates (~200 sq.in), A4 letterheads (~95 sq.in) and A5
   // (~48 sq.in) do NOT auto-gang because they aren't run on a shared VCard gang sheet.
@@ -2237,7 +2241,10 @@ function applyGangedDefault(){
   const area = inW*inH;
   const smallPiece = area>0 && area<50;
   const shouldGang = GANGED_PRODUCTS.has(p) && smallQty && smallPiece;
-  $("ganged").checked = shouldGang;
+  // Auto-tick when the heuristic says gang, but never silently UN-tick a gang the brief asked for
+  // explicitly (parser sets window.gangSpecified when the spec contains "gang"/"ganged"). Product
+  // switches in the live UI still clear it because a fresh parse resets gangSpecified.
+  $("ganged").checked = shouldGang || (window.gangSpecified===true && GANGED_PRODUCTS.has(p));
 }
 // MENU-RATE HINT (NKK sir 2026-07-18 batch reconcile): sir has a per-piece rate card for standard
 // commodity jobs (vcards, letterheads, tags). Auto-populate the #flatRatePc field so the user sees
@@ -3258,6 +3265,9 @@ function parseSpec(raw){
 }
 // Apply a parsed spec to the form and re-run. Returns the notes for display.
 function applyVoiceSpec(raw){
+  // did the brief explicitly ask for ganging? ("ganged with other jobs", "gang up", "gang run").
+  // Set before parseSpec so the onProductChange→applyGangedDefault below already honours it.
+  window.gangSpecified = /\bgang(?:ed|ing|s)?\b/i.test(String(raw||""));
   const {fields:f,notes}=parseSpec(raw);
   const setV=(id,v)=>{ const el=$(id); if(el&&v!=null){ el.value=v; return true; } return false; };
   if(f.product){ setV("product",f.product); if(typeof onProductChange==="function") onProductChange(); }

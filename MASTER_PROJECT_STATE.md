@@ -103,6 +103,36 @@ Commits `6533283` through `5b2e656` — see `git log --oneline`. Highlights:
 Full run raw data: `db/real_quotes/` folder. Reconcile log:
 `~/.claude/projects/C--git/memory/real_job_quotes.md`. Anchor to the 200-job
 historical archive: `~/.claude/projects/C--git/memory/real_quotes_dataset_v1.md`.
+**Note:** the local memory logs + `dataset_2025-02_to_2026-07.tsv` are NOT in
+the repo (private-use policy) — a fresh web clone only has the 11-job
+`db/real_quotes/test_jobs.csv`. Batch #7+ raw specs must be re-supplied.
+
+### Reconcile session 2026-07-21 (offline harness)
+
+New reusable tool: **`tools/reconcile.mjs`** — loads `paper_calculator.html` in
+headless Chromium and runs every job in `test_jobs.csv` through the same
+reset → `applyVoiceSpec` → `run` → `combinedPrice` path as the in-app
+diagnostic sweep, printing a component-wise gap table. No Google Sheet / network
+needed (built-in rate fallbacks). Run: `node tools/reconcile.mjs`.
+
+Back-test of the 11-job set found + fixed a real gang bug:
+- **`applyGangedDefault` silently un-ticked** a gang set upstream (it did
+  `ganged.checked = shouldGang` unconditionally). Now it only auto-ticks and
+  never clears a gang the brief explicitly asked for (`window.gangSpecified`,
+  set in `applyVoiceSpec` when the spec contains "gang/ganged").
+- **Card gang qty cap bumped 1000 → 3000 for `product==='card'`** (tags/inserts
+  stay at 1000). Sir's data proves 2000-pc small cards are ganged: Sunili oran
+  (2000 @ ₹3.05/pc) and rfid (2000 @ ₹4.15/pc). Result: oran_card **+163% → −4%**,
+  no regression on the other 10 jobs.
+- **NEW gap flagged for sir:** the ganged cost model applies a flat 25% share to
+  plates+printing regardless of colour count, so a 3+3 card and a 1+1 card price
+  almost identically — but sir charges more for more colours (rfid 3+3 ₹4.15 vs
+  oran 1+1 ₹3.05). This pushed rfid_card to −54%. Needs sir's ganged
+  multi-colour convention before the share can be made colour-aware.
+- Still-open reds (unchanged this session): `udyogi_catalog` +54%,
+  `keventer_plan_brochure` +46% (176-pc reprint), `sunili_vcard` +128%
+  (400-pc tiny run — sir quotes the menu rate ₹3/pc, which the app already
+  shows alongside the cost).
 
 ### Pending next moves (in priority order)
 
@@ -130,6 +160,9 @@ historical archive: `~/.claude/projects/C--git/memory/real_quotes_dataset_v1.md`
 
 ### Pending sir's confirmed numbers (do NOT guess)
 
+- **Ganged multi-colour card share** — the flat 25% gang share ignores colour
+  count, so 3+3 cards under-quote vs 1+1 (rfid −54%). Need sir's rule: does a
+  3+3 card carry more of the shared sheet's plates/press than a 1+1? (2026-07-21)
 - **Die-cut / hole-punch / paste** rates on the flat post-press panel (currently
   placeholders ₹300 / ₹150 / ₹100 per 1000). These flow into every tag/card.
 - **Screen printing gold** real per-piece rate for cover + back cover on 200–
