@@ -137,10 +137,16 @@ Result vs start of session — cards went from wild swings to a consistent sligh
 over: `sunili_vcard` **+128% → +38%**, `sunili_rfid_card` **+56% → +25%**,
 `sunili_oran_card` +24%. `sunili_rfid_tag` restored to +1%.
 
+**Card margin tuned 15 → 8% (2026-07-21).** Margin-sweep back-test showed the
+uniform card overshoot was pure margin: at 8% the volume cards land in range —
+`oran_card` +24%→**+14%**, `rfid_card` +25%→**+16%**, `vcard` +38%→+27%. Only
+`MARGIN_DEFAULT.card` changed (no other product touched). Reds on the 11-job set
+5→3. Drop to 5% if sir wants rfid greener (oran +5 / rfid +12 there); 400-pc
+vcard stays ~+20% and is a menu-rate job regardless.
+
 Still-open (calibration / data, flagged — do NOT guess):
-- **Cards ~+25% uniform over** (oran +24, rfid +25, vcard +38). A single
-  systematic factor (card margin default 15% or a minimum charge) — confirm with
-  sir before tuning.
+- **`sunili_vcard` +27%** — 400-pc run, fixed costs dominate; sir quotes the
+  menu rate (₹3/pc) the app already shows. Not worth chasing on cost.
 - **`ili_tag` −31%** — its test spec names NO board, so it defaults cheaper than
   the 350gsm specialty board sir actually used (cf. `rfid_tag` which names the
   board and lands +1%). Spec-completeness, not a code bug.
@@ -173,10 +179,9 @@ Still-open (calibration / data, flagged — do NOT guess):
 
 ### Pending sir's confirmed numbers (do NOT guess)
 
-- **Card price calibration** — after the 2026-07-21 colour-parse fixes, small
-  cards land a uniform ~+25% over sir (oran +24, rfid +25, vcard +38). Confirm
-  whether sir wants the card margin default (15%) or a per-piece minimum tuned
-  down, or whether these should just quote at the menu rate the app already shows.
+- **Card margin now 8%** (was 15%) — set 2026-07-21 from the margin sweep so the
+  2000-pc cards land ~+14-16%. If sir confirms cards run even leaner, 5% greens
+  rfid too. Tiny (<500 pc) cards stay over on cost → quote at menu rate.
 - **Die-cut / hole-punch / paste** rates on the flat post-press panel (currently
   placeholders ₹300 / ₹150 / ₹100 per 1000). These flow into every tag/card.
 - **Screen printing gold** real per-piece rate for cover + back cover on 200–
