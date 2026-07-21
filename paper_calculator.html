@@ -102,6 +102,10 @@
   .pbox{background:#f8fafc;border:1px solid var(--line2);border-radius:13px;padding:14px;margin-top:14px}
   .ptitle{font-size:12px;font-weight:700;color:var(--brand);margin-bottom:9px;letter-spacing:.2px}
   .prow{display:flex;gap:10px;margin-bottom:9px} .prow span{flex:1}
+  /* commercial-settings row: don't cram many fields into slivers — wrap into a readable grid */
+  .prow-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px 12px;align-items:start}
+  .prow-wrap>span,.prow-wrap>.fld{flex:none;min-width:0;margin-bottom:0}
+  .prow-wrap>span .hint,.prow-wrap>.fld .hint{margin-top:4px;line-height:1.4}
   .prow label{font-size:11px;margin-bottom:3px} .prow input,.prow select{padding:8px 10px;font-size:13px;border-radius:9px}
 
   .mbtn{cursor:pointer;border:0;border-radius:10px;font-weight:600;font-size:13.5px;padding:11px 16px;margin:5px 7px 0 0;transition:.15s}
@@ -500,7 +504,7 @@
           <div class="fld"><label>Wiro ₹ / calendar</label><input id="tcWiroRate" type="number" step="0.5" value="0" oninput="showPrice()" /></div>
           <div class="fld"><label>Punching ₹ / calendar</label><input id="tcPunch" type="number" step="0.1" value="1.5" oninput="showPrice()" /><div class="hint">only if wiro</div></div>
         </div>
-        <div class="row3">
+        <div class="row3 prow-wrap">
           <div class="fld"><label>Back stand</label><select id="tcStand" onchange="showPrice()"><option value="none" selected>None</option><option value="tent">Tent stand (chip + PLC + backing)</option></select></div>
           <div class="fld"><label>Stand board mm · ₹/sq.in</label><div style="display:flex;gap:6px"><input id="tcBoardTh" type="number" step="0.5" value="2" style="width:50%" oninput="showPrice()" /><input id="tcBoardRate" type="number" step="0.01" value="0.05" style="width:50%" oninput="showPrice()" /></div></div>
           <div class="fld"><label>PLC ₹/sq.in · backing ₹/sq.in</label><div style="display:flex;gap:6px"><input id="tcPLCRate" type="number" step="0.01" value="0.12" style="width:50%" oninput="showPrice()" /><input id="tcBackRate" type="number" step="0.01" value="0.02" style="width:50%" oninput="showPrice()" /></div></div>
@@ -605,7 +609,7 @@
           <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
           <span></span>
         </div>
-        <div class="prow">
+        <div class="prow prow-wrap">
           <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="if(RESULT)run();else showPrice()">
             <option value="anderson" selected>Naba Mudran (agreement)</option>
             <option value="nabamudran">Nabamudran Heidelberg-102</option>
@@ -623,7 +627,7 @@
             <option value="tumble">Work &amp; tumble</option>
           </select></span>
         </div>
-        <div class="prow">
+        <div class="prow prow-wrap">
           <span><label>Margin %</label><input id="margin" type="number" value="40" oninput="marginEdited=true;showPrice();updateTargetMarginNote()" /><div class="hint">NKK sir: default varies by product (card/tag/leaflet 15–20%, brochure/catalogue 30–40%). Once you type, this stays fixed.</div></span>
           <span><label>Reprint (plates exist)</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="reprint" onchange="showPrice()" /> Yes — plates reused</label><div class="hint">NKK sir: reprint jobs reuse existing plates → cost drops to a handling fee (~10%). Fresh printing still charged.</div></span>
           <span><label>Ganged with other jobs</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="ganged" onchange="gangedEdited=true;showPrice()" /> Yes — shared sheet</label><input id="gangedShare" type="number" step="1" min="1" max="100" value="25" style="margin-top:6px" placeholder="% share" oninput="gangedEdited=true;showPrice()" /><div class="hint">NKK sir: small VCards / tags run ganged with other jobs on one plate + sheet. This job pays only its share (default 25%) of plates + printing + paper. Auto-ticked for cards ≤500 pcs.</div></span>
@@ -632,12 +636,11 @@
           <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
           <span><label>Paper discount %</label><input id="paperDiscount" type="number" value="0" step="0.5" oninput="showPrice()" /><div class="hint">NKK sir: vendor discount off paper cost (e.g. 13%)</div></span>
-          <span></span>
         </div>
       </div>
       <div class="pbox">
         <div class="ptitle">📑 Type of binding &amp; finishing</div>
-        <div class="prow" id="bindingFields">
+        <div class="prow prow-wrap" id="bindingFields">
           <span><label>Type of binding (spine recommends)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="side">Side stitch</option><option value="sewn">Section sewn</option><option value="perfect">Perfect binding</option><option value="sewn_perfect">Section sewn + Perfect</option><option value="soft">Soft cover book</option><option value="case">Hard case book</option><option value="wireo">Wire-O</option><option value="spiral">Spiral</option><option value="comb">Comb</option><option value="pad">Pad binding</option><option value="b2b">Back-to-back paste</option><option value="other">Other / custom</option></select></span>
           <span><label>Binding ₹/book (auto by pages·qty)</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="bindingRateEdited=true;showPrice()" /></span>
           <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
