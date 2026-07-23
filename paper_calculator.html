@@ -347,7 +347,7 @@
             <div class="fld" style="grid-column:span 2"></div>
           </div>
           <div class="row3">
-            <div class="fld"><label>Cover coating</label><select id="coverLam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></div>
+            <div class="fld"><label>Cover coating</label><select id="coverLam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="velvet">Velvet / soft-touch lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></div>
             <div class="fld"><label>Embellishment 1</label><select id="coverEmb1" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
             <div class="fld"><label>Embellishment 2</label><select id="coverEmb2" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
           </div>
@@ -605,7 +605,7 @@
           <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
         </div>
         <div class="prow">
-          <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></span>
+          <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="velvet">Velvet / soft-touch lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></span>
           <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
           <span></span>
         </div>
@@ -2287,8 +2287,8 @@ function activePrint(){ return PRINT_SOURCES[($("printSrc")&&$("printSrc").value
 function plateRate(src,band){ return src.mode==="band" ? PRINT[band].plate : src.plate; }
 // coating rate sources (per 100 sq.in + job minimum)
 const COAT_SOURCES={
-  card:{label:"Standard card (current)",r:{none:{r:0,min:0},matt:{r:0.44,min:1000},gloss:{r:0.24,min:800},bopp:{r:0.45,min:1000},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}},
-  anderson:{label:"Anderson agreement",r:{none:{r:0,min:0},matt:{r:0.44,min:0},gloss:{r:0.24,min:0},bopp:{r:0.40,min:0},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.18,min:600},maqua:{r:0.30,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}}
+  card:{label:"Standard card (current)",r:{none:{r:0,min:0},matt:{r:0.44,min:1000},gloss:{r:0.24,min:800},velvet:{r:0.90,min:1500},bopp:{r:0.45,min:1000},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}},
+  anderson:{label:"Anderson agreement",r:{none:{r:0,min:0},matt:{r:0.44,min:0},gloss:{r:0.24,min:0},velvet:{r:0.90,min:1500},bopp:{r:0.40,min:0},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.18,min:600},maqua:{r:0.30,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}}
 };
 function activeCoat(){ return (COAT_SOURCES[($("coatSrc")&&$("coatSrc").value)||"card"]||COAT_SOURCES.card).r; }
 // COVER EMBELLISHMENTS (NKK sir): coating + up to 3 combinable embellishments (foil/spot-UV/emboss/drip).
@@ -3380,11 +3380,12 @@ function parseSpec(raw){
           .replace(/\b(?:matt|matte|gloss)\s*(?:art|paper|board|coated|c2s|imported|cover|inside|text|finish\s+cutting)\b/g," ")
           .replace(/\bgloss(?:y)?\s*ink\b/g," ");
   const L=[[/matt\s*uv/,"mattuv","Matt UV"],[/matt\s*(?:lam|lamination|coating|coat|finish)|matte\s*(?:lam|lamination|coating|coat|finish)|matt\s*lam(?:inat)?/,"matt","Matt lam"],
+    [/\bvelvet\b|\bvelvate\b|soft\s*touch|suede\s*(?:lam|finish|coat)/,"velvet","Velvet lam"],   // velvet / soft-touch (premium)
     [/gloss\s*uv/,"uv","Gloss UV"],[/gloss\s*(?:lam|lamination|coating|coat|finish)/,"gloss","Gloss lam"],
     [/\bbopp\b/,"bopp","BOPP"],[/drip/,"drip","Drip-off UV"],[/varnish/,"varnish","Varnish"],[/\buv\b/,"uv","Gloss UV"],
     // fallbacks (only fire on isolated 'matt'/'gloss' — paper-name context stripped above)
     [/\bmatt\b|\bmatte\b/,"matt","Matt lam"],[/\bgloss\b/,"gloss","Gloss lam"]];
-  if(/lamination|\blam\b|coating|\buv\b|varnish|bopp|matt|gloss|matte/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){
+  if(/lamination|\blam\b|coating|\buv\b|varnish|bopp|matt|gloss|matte|velvet|velvate|soft\s*touch|suede/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){
     // 2026-07-21: coating clause with 'inside' / 'text' / 'throughout ... inside' targets inside, not cover.
     // Look for those words in ±40 chars around the match.
     const m=tl.match(re); const idx=m?tl.indexOf(m[0]):-1;
@@ -3398,8 +3399,11 @@ function parseSpec(raw){
   // Screen printing MUST come before generic 'foil' — gold screen ≠ foil (a common Keventer mix-up).
   const EMB=[[/(?:gold|golden)\s*screen(?:\s*print(?:ing)?)?|screen(?:\s*print(?:ing)?)\s*(?:in\s*)?gold/,"screen_gold","Screen printing — gold"],
     [/(?:silver)\s*screen(?:\s*print(?:ing)?)?|screen(?:\s*print(?:ing)?)\s*(?:in\s*)?silver/,"screen_silver","Screen printing — silver"],
+    [/\bmgi\s*uv|mgi\s*gold|sand\s*uv|digital\s*gold/,"mgi_uv","MGI / digital gold"],   // digital gold = MGI-type, before generic gold
+    // generic gold/silver DECORATION (printing/ink/foil), not a paper name (e.g. 'gold art paper') or edge-gilding
+    [/\bgold(?:en)?\s*(?:print(?:ing)?|ink|foil|block(?:ing)?|stamp(?:ing)?|deco|decoration)|(?:print(?:ing)?|ink|foil|block(?:ing)?)\s*(?:in\s*)?gold\b/,"screen_gold","Gold printing"],
+    [/\bsilver\s*(?:print(?:ing)?|ink|foil|block(?:ing)?|stamp(?:ing)?)|(?:print(?:ing)?|ink|foil|block(?:ing)?)\s*(?:in\s*)?silver\b/,"screen_silver","Silver printing"],
     [/screen\s*print(?:ing)?/,"screen_other","Screen printing — other"],
-    [/\bmgi\s*uv|mgi\s*gold|sand\s*uv/,"mgi_uv","MGI UV"],
     [/metal\s*stamp(?:ing)?|steel\s*plate/,"metal_stamp","Metal stamping"],
     [/spot\s*uv/,"spotuv","Spot UV"],[/raised\s*uv|textured\s*uv/,"raiseduv","Raised UV"],[/\bfoil(?:ing|ed|s)?\b/,"foil","Foil"],
     [/\bemboss/,"emboss","Emboss"],[/\bdeboss/,"deboss","Deboss"],[/\btexture\b/,"texture","Texture effect"]];
@@ -3408,6 +3412,9 @@ function parseSpec(raw){
     // NKK sir 2026-07-18: 'screen_other' fires on 'screen printing' fragment even when 'gold/silver
     // screen printing' already matched. Skip it if a specific screen colour was already picked.
     if(v==="screen_other" && (embs.includes("screen_gold")||embs.includes("screen_silver"))) continue;
+    // One gold decoration only: 'digital gold' matches mgi_uv AND the generic gold-print line (screen_gold).
+    // Whichever fires first wins; skip the second so gold isn't double-charged.
+    const GOLD=["screen_gold","mgi_uv"]; if(GOLD.includes(v) && embs.some(e=>GOLD.includes(e))) continue;
     embs.push(v); notes.push("embellishment: "+lbl);
   }
   if(embs.length) f.coverEmb=embs.slice(0,3);
