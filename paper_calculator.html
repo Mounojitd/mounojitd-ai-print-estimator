@@ -3487,7 +3487,8 @@ function parseSpec(raw){
   // unrecognised (an honest "no matching product") until a dedicated rate model exists.
   const P=[[/prospectus|admission\s*kit/,"catalogue"],
     [/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/\bmanual\b/,"manual"],[/annual/,"annual"],
-    [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag/,"pasted_tag"],
+    [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag|\btag\b(?!\s*line)/,"pasted_tag"],
+    [/floor\s*plan|site\s*plan/,"poster"],
     [/letter\s*head|note\s*pad|note\s*head|writing\s*pad|\bform\b/,"insert"],
     [/certificate|marks\s*sheet|diploma/,"card"],
     [/note\s*book|notebook|\bdiary\b/,"booklet"],
