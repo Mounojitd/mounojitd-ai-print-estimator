@@ -3478,15 +3478,27 @@ function parseSpec(raw){
   // "back-to-back paste/pasting" in the same brief is a pasted_tag (not a book b2b binding).
   const isTag=/\bhang\s*tag\b|\btag\b(?!\s*line)/.test(t);
   const b2bMention=/back\s*to\s*back|\bb2b\b/.test(t);
-  const P=[[/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/manual/,"manual"],[/annual/,"annual"],
+  // Product detection — recorded NK product types → the estimator's nearest cost model. Order: specific →
+  // generic. Added 2026-07-23 so the AI RECOGNISES more recorded types. Only DEFENSIBLE mappings are here:
+  // prospectus→catalogue, diary/notebook→booklet, menu/ticket→card, form→insert, wall-cal→sheet-calendar,
+  // gift-wrap→sleeve, sticker/label→insert (flat + die-cut). Standee/banner is mapped to poster (closest
+  // large flat) but is really large-format — confirm its rate. Genuinely different families with no model
+  // yet — BAG, POUCH, LANYARD — are deliberately NOT mapped: they'd mis-price as a box/card, so they stay
+  // unrecognised (an honest "no matching product") until a dedicated rate model exists.
+  const P=[[/prospectus|admission\s*kit/,"catalogue"],
+    [/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/\bmanual\b/,"manual"],[/annual/,"annual"],
     [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag/,"pasted_tag"],
-    [/letter\s*head|note\s*pad|note\s*head|writing\s*pad/,"insert"],
+    [/letter\s*head|note\s*pad|note\s*head|writing\s*pad|\bform\b/,"insert"],
     [/certificate|marks\s*sheet|diploma/,"card"],
-    [/leaflet|flyer/,"leaflet"],[/poster/,"poster"],
-    [/table\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],[/dangler|tent/,"dangler"],
-    [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve/,"sleeve"],[/carton|box/,"carton_tuck"],
+    [/note\s*book|notebook|\bdiary\b/,"booklet"],
+    [/wall\s*calendar/,"calendar_sheet"],[/table\s*calendar|desk\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],
+    [/\bsticker\b|\blabel\b/,"insert"],
+    [/leaflet|flyer/,"leaflet"],[/poster|standee|\bbanner\b|backdrop/,"poster"],
+    [/dangler|tent/,"dangler"],
+    [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve|gift\s*wrap/,"sleeve"],[/carton|\bbox\b/,"carton_tuck"],
     [/slipcase/,"slipcase"],
-    [/visiting|greeting|\bcard\b/,"card"],
+    [/menu(?:\s*card)?|\bticket\b/,"card"],
+    [/visiting|greeting|invite|\bcard\b/,"card"],
     [/booklet|brochure|book\b/,"booklet"]];
   for(const [re,v] of P){ if(re.test(t)){ f.product=v; break; } }
   // If we saw "tag" + "back-to-back" it's a pasted tag, even if the explicit "pasted tag" phrase wasn't used.
