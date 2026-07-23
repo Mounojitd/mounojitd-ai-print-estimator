@@ -1264,6 +1264,10 @@ function render(r){
 // re-impose for a digital press, override the make-ready + running spoilage to digital-realistic values.
 const DIGITAL_MR=3;       // make-ready sheets for the whole digital job (vs ~100/form on offset)
 const DIGITAL_SPOIL=1;    // running spoilage % on digital (vs ~5% offset)
+// Minimum digital-print (click) charge per job — a digital press won't be fired up for a handful of clicks;
+// the shop bills a floor that covers file handling / RIP / a test print / minimum run. EDITABLE — confirm the
+// real figure with sir. This is a defensible shop-floor default, NOT tuned to any recorded amount.
+let DIGITAL_MIN_JOB=300;  // ₹ floor on the digital printing line (0 disables)
 // MACHINE CUT (NKK sir): a manually-chosen smaller press → cut the purchased sheet down to the machine
 // size and recompute the imposition on the cut sheet. For a DIGITAL press we also re-impose (even if the
 // sheet already fits) so the digital make-ready above replaces the offset one baked into the base option.
@@ -2914,6 +2918,8 @@ function priceJob(o,p,machine){
     const gsmUsed = (LASTINP&&LASTINP.gsm)||num("gsm",170);
     digitalRate=digitalRateFor(!!p.isSpecial, o.sw, o.sh, gsmUsed, sidesUsed);
     printing=digitalRate*sheets;                                   // sheets = printed sheets (both sides/sheet)
+    // Minimum digital-job floor: a tiny click count can't cost less than the shop's minimum charge.
+    if(DIGITAL_MIN_JOB>0 && printing<DIGITAL_MIN_JOB) printing=DIGITAL_MIN_JOB;
     plateCount=0; plates=0;
   } else {
     // PER-MACHINE rate card (printing depends on the SELECTED machine) — else band/source rates.
@@ -4553,8 +4559,8 @@ function recordLearning(rows){
 const LEARN_RULES={
   DIGITAL_AUTO:{ cause:"SHORT_RUN_LOADING", dir:"over",
     title:"Route flat short-runs to digital (digital-native imposition)",
-    detail:"For FLAT products (cards, leaflets, letterheads, forms, tags), when a digital route is cheaper than the chosen offset press, use it. Digital has no plates and near-zero make-ready — the fix imposes on a 13×19 / 12×18 digital sheet with digital spoilage (≈3 sheets) instead of inheriting the offset ~100-sheet make-ready. Books/catalogues/magazines are excluded (offset work). No margin change.\n\n✔ MEASURED 2026-07-23 on the 50-record set with LIVE NEW SUSHMA rates: 25/39 flat rows route to digital; 12 land closer to recorded, 2 worse. The genuine short-run over-quotes collapse — e.g. a 17-pc ID card +399%→−11%, premium card +575%→+19%, digital letterhead +537%→+5%. Residual: a few cards now UNDER-quote because digital has no minimum-job floor yet (e.g. #35 −57%) — a follow-up (add a digital minimum charge). Sizeless-insert and per-piece rows are separate issues, untouched here.",
-    proposal:"Enable to route flat short-runs to digital when cheaper. Verify the residual card under-quotes against a digital minimum-job charge before relying on it for tiny runs." }
+    detail:"For FLAT products (cards, leaflets, letterheads, forms, tags), when a digital route is cheaper than the chosen offset press, use it. Digital has no plates and near-zero make-ready — the fix imposes on a 13×19 / 12×18 digital sheet with digital spoilage (≈3 sheets) instead of inheriting the offset ~100-sheet make-ready. Books/catalogues/magazines are excluded (offset work). No margin change.\n\n✔ MEASURED 2026-07-23 on the 50-record set with LIVE NEW SUSHMA rates: 25/39 flat rows route to digital; 12 land closer to recorded, 2 worse. The genuine short-run over-quotes collapse — e.g. a 17-pc ID card +399%→−11%, premium card +575%→+19%, digital letterhead +537%→+5%. A digital minimum-job floor (DIGITAL_MIN_JOB, default ₹300, editable) guards degenerate tiny jobs; on this set it's ~neutral (₹200–500 all hold the aligned count), because the remaining under-quotes are embellishment/premium/mid-run — not minimum-shaped — and NK's tiny-card prices are non-monotonic. Sizeless-insert and per-piece rows are separate issues, untouched here.",
+    proposal:"Enable to route flat short-runs to digital when cheaper. Digital minimum-job floor is in (₹300 default, editable) — set the real shop minimum with sir; residual under-quotes on premium/embellished cards are a separate cost-capture follow-up, not a floor issue." }
 };
 function loadLearnFlags(){ try{ return JSON.parse(localStorage.getItem("LEARN_FLAGS")||"{}")||{}; }catch(e){ return {}; } }
 function saveLearnFlags(f){ try{ localStorage.setItem("LEARN_FLAGS", JSON.stringify(f)); }catch(e){} }
