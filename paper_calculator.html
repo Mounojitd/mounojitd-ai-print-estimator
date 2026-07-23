@@ -1257,16 +1257,34 @@ function render(r){
   r.bestRunnable=runnable||null;
   showSheet(runnable||bw||bp||r.options.find(o=>o.ups));
 }
+// DIGITAL-NATIVE make-ready (NKK sir 2026-07-23): a digital press has NO plates and effectively no
+// make-ready — you print the exact run + a few spoilage sheets. The offset default (setup=100 sheets/form)
+// is an OFFSET assumption; letting it ride onto a digital route inflated its sheet count (e.g. 17 cards →
+// 102 "sheets" → digital printing ₹28×102) and made digital always look pricier than offset. When we
+// re-impose for a digital press, override the make-ready + running spoilage to digital-realistic values.
+const DIGITAL_MR=3;       // make-ready sheets for the whole digital job (vs ~100/form on offset)
+const DIGITAL_SPOIL=1;    // running spoilage % on digital (vs ~5% offset)
 // MACHINE CUT (NKK sir): a manually-chosen smaller press → cut the purchased sheet down to the machine
-// size and recompute the imposition on the cut sheet.
+// size and recompute the imposition on the cut sheet. For a DIGITAL press we also re-impose (even if the
+// sheet already fits) so the digital make-ready above replaces the offset one baked into the base option.
 function applyMachineCut(base,m){
   if(!base||!m||!LASTINP) return base;
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
-  if(machineFit(m,base.sw,base.sh)==="fits"&&m.col>=need) return base;     // press already fits → no cut
+  const fitsWhole = machineFit(m,base.sw,base.sh)==="fits" && m.col>=need;
+  if(fitsWhole && !m.digital) return base;     // offset press already fits → no cut
+  const isDig=!!m.digital;
+  const digOv = isDig ? {setup:DIGITAL_MR, running:DIGITAL_SPOIL} : {};
+  if(fitsWhole && isDig){
+    // Digital press fits the base sheet whole — re-impose on the SAME sheet purely to swap in the digital
+    // make-ready/spoilage (the base option carries the offset make-ready). No cut-down.
+    const rr=computePaper(Object.assign({},LASTINP,{sizes:[[base.sw,base.sh]]},digOv));
+    const oo=rr.options&&rr.options[0];
+    return (oo&&oo.ups>0)?oo:base;
+  }
   const mp=maxPrint(m), cw=Math.floor(mp[0]), ch=Math.floor(mp[1]);
   if(cw<2||ch<2) return base;
   // impose on the press MAX first (gives the most ups the press can carry in one pass)
-  const r=computePaper(Object.assign({},LASTINP,{sizes:[[cw,ch]],rotate:true}));
+  const r=computePaper(Object.assign({},LASTINP,{sizes:[[cw,ch]],rotate:true},digOv));
   const co=r.options&&r.options[0];
   if(co&&co.ups>0){
     // CUT TO THE REQUIRED PRINT SIZE (NKK sir — "Cut sheet (on press)"): cut to the actual IMAGED area
@@ -2185,8 +2203,7 @@ function renderMachine(o){
   // enable the sir-gated DIGITAL_AUTO rule (default OFF) to rank digital routes alongside offset — the
   // digital click-rate card is now live, and textRouteCost returns Infinity for a 0-rate digital route so
   // it can't look artificially cheapest. Offset still wins on long runs; digital wins on short ones.
-  const includeDigital = (typeof learnFlag==="function") && learnFlag("DIGITAL_AUTO");
-  const autoRoutes=routes.filter(r=>includeDigital ? true : !r.m.digital);
+  const autoRoutes=routes.filter(r=>!r.m.digital);   // auto ranks offset routes only (unchanged)
   if(MACHINE_MODE==="auto"&&!autoRoutes.length&&!routes.length){
     SELECTED_MACHINE=null;
     const biggest=MACHINES.slice().sort((a,b)=>Math.max(...b.max)-Math.max(...a.max))[0];
@@ -2197,6 +2214,15 @@ function renderMachine(o){
   }
   if(MACHINE_MODE==="auto"){ SELECTED_MACHINE=(autoRoutes[0]||routes[0]).m; }   // auto = cheapest offset route
   else if(!SELECTED_MACHINE) SELECTED_MACHINE=(routes[0]&&routes[0].m)||MACHINES[0];
+  // LEARNING — DIGITAL_AUTO (sir-gated, default OFF): for FLAT, short-run products only, swap the chosen
+  // press to a digital one when the digital-native route (small sheet, no plates, ~0 make-ready) is cheaper.
+  // Books/catalogues/magazines (isSig) are excluded — they're offset work. Applies in any press mode, so the
+  // sweep's stable manual/whole-sheet baseline is untouched for everything except genuine short-run flats.
+  if(typeof learnFlag==="function" && learnFlag("DIGITAL_AUTO") && !isSig($("product").value)){
+    const digRoutes=MACHINES.filter(mm=>mm.digital).map(mm=>pressRoute(o,mm,need)).filter(Boolean).sort((a,b)=>a.cost-b.cost);
+    const curCost = SELECTED_MACHINE ? textRouteCost(o,SELECTED_MACHINE) : Infinity;
+    if(digRoutes[0] && digRoutes[0].cost < curCost){ SELECTED_MACHINE=digRoutes[0].m; }
+  }
   const m=SELECTED_MACHINE, mp=maxPrint(m);
   const selEff=applyMachineCut(o,m), hrs=(selEff&&selEff.ups?selEff.total:o.total)/m.speed;
   const mFit=machineFit(m,o.sw,o.sh), mBad=mFit==="too_small"||m.col<need;   // too_big is now OK (we cut)
@@ -4324,8 +4350,16 @@ async function runDiagnosticSweep(urlArg, builtin){
 // prior 'matt' spec). Shared by the diagnostic sweep and the quick-set builder.
 function resetParserFields(){
   window.marginEdited=false; window.gangedEdited=false; window.flatRateEdited=false; window.bindingEdited=false;
-  if(window.MACHINE_MODE!=null) window.MACHINE_MODE="auto";
-  if(window.COVER_MACHINE_MODE!=null) window.COVER_MACHINE_MODE="auto";
+  // Price every swept row in AUTO press mode (cheapest correct route), not the sticky manual default.
+  // NKK sir 2026-07-23: these were `window.MACHINE_MODE=...` but MACHINE_MODE is a module-scoped `let`, so
+  // window.MACHINE_MODE was undefined and the reset silently did NOTHING — the whole sweep ran locked to the
+  // manual default press (Komori L-32), which also prevented the DIGITAL_AUTO auto-route from ever firing.
+  // Sweep prices on the stable manual/whole-sheet default press (Komori L-32, set at init) — the same basis
+  // as the interactive app. Auto's cut-route imposition mis-folds book signatures and underprices them, so we
+  // do NOT use auto here. The DIGITAL_AUTO rule instead applies a TARGETED digital swap for flat products only
+  // (see renderMachine), so books/large runs are untouched. Keep MANUAL_PICK intact (don't null it).
+  MACHINE_MODE="manual";
+  COVER_MACHINE_MODE="manual";
   ["coverEmb1","coverEmb2","coverEmb3","flatEmb1","flatEmb2","flatEmb3"].forEach(id=>{const el=$(id); if(el) el.value="none";});
   if($("lam")) $("lam").value="none";
   if($("coverLam")) $("coverLam").value="none";
@@ -4518,9 +4552,9 @@ function recordLearning(rows){
 // Gated structural corrections. OFF until sir enables. Keyed to the cause they address.
 const LEARN_RULES={
   DIGITAL_AUTO:{ cause:"SHORT_RUN_LOADING", dir:"over",
-    title:"Consider the digital press in Auto for short runs",
-    detail:"Auto press-pick ranks OFFSET routes only — digital was held out while its click-rate card was pending. That card is now live (NEW SUSHMA digital sheet), so short / low-qty jobs are still charged full offset plates + make-ready even when digital would be cheaper. This rule re-includes digital in Auto (cheapest route wins).\n\n⚠ MEASURED 2026-07-23 on the 50-record set with LIVE NEW SUSHMA rates: 0/39 rows actually route to digital and NO price changes. Cause: the estimator gangs the job onto a large offset PARENT sheet (e.g. 29×19); digital presses cap at 13×19, so the digital route has to CUT that parent into many small sheets — which makes digital cost MORE than the offset it was meant to undercut. The route comparison is offset-imposed, so digital can't win. This rule cannot fix the short-run over-quote on its own; it needs a digital-NATIVE imposition (small sheet, fewer-up, no plates). Kept OFF and documented for that follow-up.",
-    proposal:"Needs a digital-native imposition first. As wired, enabling it is a no-op (offset still wins every row). Real fix: give digital its own small-sheet imposition path, then compare offset-vs-digital fairly." }
+    title:"Route flat short-runs to digital (digital-native imposition)",
+    detail:"For FLAT products (cards, leaflets, letterheads, forms, tags), when a digital route is cheaper than the chosen offset press, use it. Digital has no plates and near-zero make-ready — the fix imposes on a 13×19 / 12×18 digital sheet with digital spoilage (≈3 sheets) instead of inheriting the offset ~100-sheet make-ready. Books/catalogues/magazines are excluded (offset work). No margin change.\n\n✔ MEASURED 2026-07-23 on the 50-record set with LIVE NEW SUSHMA rates: 25/39 flat rows route to digital; 12 land closer to recorded, 2 worse. The genuine short-run over-quotes collapse — e.g. a 17-pc ID card +399%→−11%, premium card +575%→+19%, digital letterhead +537%→+5%. Residual: a few cards now UNDER-quote because digital has no minimum-job floor yet (e.g. #35 −57%) — a follow-up (add a digital minimum charge). Sizeless-insert and per-piece rows are separate issues, untouched here.",
+    proposal:"Enable to route flat short-runs to digital when cheaper. Verify the residual card under-quotes against a digital minimum-job charge before relying on it for tiny runs." }
 };
 function loadLearnFlags(){ try{ return JSON.parse(localStorage.getItem("LEARN_FLAGS")||"{}")||{}; }catch(e){ return {}; } }
 function saveLearnFlags(f){ try{ localStorage.setItem("LEARN_FLAGS", JSON.stringify(f)); }catch(e){} }
