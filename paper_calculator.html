@@ -4355,7 +4355,19 @@ async function runDiagnosticSweep(urlArg, builtin){
 // press pick / flags don't leak into the next one (sir 2026-07-21: ₹29k phantom coat on Medilab from a
 // prior 'matt' spec). Shared by the diagnostic sweep and the quick-set builder.
 function resetParserFields(){
-  window.marginEdited=false; window.gangedEdited=false; window.flatRateEdited=false; window.bindingEdited=false;
+  // These are module-scoped `let`s, NOT window props — the old `window.marginEdited=...` set a useless window
+  // property and NEVER reset the real flag, so margin/ganged/binding overrides leaked across sweep rows. Assign
+  // the bare bindings. Also reset spineEdited + bindingRateEdited (previously never reset) and clear the spine
+  // field, so a booklet's spine thickness (which drives cover size + cost) always auto-recomputes deterministically.
+  marginEdited=false; gangedEdited=false; flatRateEdited=false; bindingEdited=false;
+  spineEdited=false; bindingRateEdited=false;
+  if($("spineMM")) $("spineMM").value="";
+  // CRITICAL: null the imposition globals. If run() bails on THIS row (missing field, or pages not a valid
+  // multiple for the binding), it returns WITHOUT recomputing these — so combinedPrice() would otherwise
+  // price the PREVIOUS row's leftover CHOSEN/LASTINP and report it as this row's number. Nulling them makes a
+  // bailed run fall through combinedPrice()'s !CHOSEN guard → an honest "unpriceable", never a stale price.
+  CHOSEN=null; CHOSEN_BASE=null; RESULT=null; LASTINP=null;
+  if($("err")) $("err").textContent="";
   // Price every swept row in AUTO press mode (cheapest correct route), not the sticky manual default.
   // NKK sir 2026-07-23: these were `window.MACHINE_MODE=...` but MACHINE_MODE is a module-scoped `let`, so
   // window.MACHINE_MODE was undefined and the reset silently did NOTHING — the whole sweep ran locked to the
@@ -4398,6 +4410,18 @@ function resetParserFields(){
   if($("coverGrade")){ if(typeof fillGradeList==="function") fillGradeList("coverGrade",""); $("coverGrade").value="__auto"; }
   if($("colpreset")) $("colpreset").value="";
   if($("coverColPreset")) $("coverColPreset").value="";
+  // SHEET-SIZE chips: restore the canonical default set. applyVoiceSpec only re-ticks these when the brief
+  // NAMES sheet sizes; otherwise a row inherits the previous row's ticks (and any custom chip a prior row
+  // appended lingers in the DOM), so the imposition — and the price — depended on sweep ORDER. Remove custom
+  // chips and reset the six standard ones to their fresh-page checked state so every row imposes identically.
+  const ssChips=$("ssChips");
+  if(ssChips){
+    const DEFAULT_SS={"18,25":false,"20,30":true,"23,36":true,"25,36":true,"28,40":true,"30,40":true};
+    [...ssChips.querySelectorAll(".ss")].forEach(c=>{
+      if(DEFAULT_SS[c.value]===undefined){ const lab=c.closest("label"); if(lab) lab.remove(); }  // drop custom-added chip
+      else { c.checked=DEFAULT_SS[c.value]; }                                                       // reset standard chip
+    });
+  }
 }
 function priceAuditRecord(rec){
   const brief=rec.brief;
@@ -4407,8 +4431,10 @@ function priceAuditRecord(rec){
   if(rec.qty>0){ if($("copies2")) $("copies2").value=rec.qty; if($("copies")) $("copies").value=rec.qty; }
   applyGangedDefault(); applyMenuRateHint(); applyMarginDefault();  // re-apply margin AFTER qty (volume-tiered)
   run();
+  const runErr = $("err") ? $("err").textContent.trim() : "";   // run() bailed → don't trust a stale price
   const x = combinedPrice(); const q=x.q, t=x.text, cq=x.cover;
-  rec.unpriceable = !!x.unpriceable; if(x.unpriceable) rec.unpriceReason = x.reason;
+  rec.unpriceable = !!x.unpriceable || !!runErr;
+  if(rec.unpriceable) rec.unpriceReason = runErr || x.reason;
   if(!rec.qty){ const c=$("copies2")||$("copies"); rec.qty = c ? (parseInt(String(c.value).replace(/[^0-9]/g,""),10)||0) : 0; }  // show the qty the estimator used
   rec.est   = Math.round(q.grand||0);
   rec.prod  = Math.round(q.prod||0);
@@ -4464,7 +4490,8 @@ const DX_LABEL={
   UNDER_REVIEW:"Under-quote — needs review",
   OVER_REVIEW:"Over-quote — needs review"
 };
-const DX_NO_BREAKDOWN=new Set(["INCOMPLETE_SIZE","NO_PRODUCT","BASIS_PERPIECE","NO_AMOUNT"]);
+DX_LABEL.SPEC_UNPRICEABLE="Spec could not be priced";
+const DX_NO_BREAKDOWN=new Set(["INCOMPLETE_SIZE","SPEC_UNPRICEABLE","NO_PRODUCT","BASIS_PERPIECE","NO_AMOUNT"]);
 function diagnoseRecord(rec){
   const set=(code,conf,dir,signals)=>{ rec.dxCode=code; rec.dxReason=DX_LABEL[code]; rec.dxConfidence=conf;
     rec.dxDirection=dir; rec.dxSignals=signals; rec.dxNoBreakdown=DX_NO_BREAKDOWN.has(code);
@@ -4473,7 +4500,11 @@ function diagnoseRecord(rec){
   const nk=Number(rec.nk)||0, est=Number(rec.est)||0, qty=Number(rec.qty)||0;
   const gap=(rec.gapPct===""||rec.gapPct==null)?null:Number(rec.gapPct);
   // ---- 1) data / basis problems: only a total exists, no like-for-like comparison possible ----
-  if(rec.unpriceable) return set("INCOMPLETE_SIZE","high","n/a","run() found no sheet — width/height absent");
+  if(rec.unpriceable){ const why=String(rec.unpriceReason||"").trim();
+    const code = (!why || /width|height|size|sheet/i.test(why)) ? "INCOMPLETE_SIZE" : "SPEC_UNPRICEABLE";
+    const r=set(code,"high","n/a", why||"run() found no valid sheet — width/height absent");
+    if(why && code==="SPEC_UNPRICEABLE") rec.dxReason="Spec could not be priced — "+why;
+    return r; }
   if(!rec.product)     return set("NO_PRODUCT","high","n/a","estimator produced no product for this spec");
   if(nk>0 && qty>0 && nk<qty) return set("BASIS_PERPIECE","high","n/a",`recorded ₹${nk} < qty ${qty} — total can't be below piece count`);
   if(qty<=0 && nk>0)   return set("BASIS_PERPIECE","high","n/a","quantity not recorded — order total not computable");
