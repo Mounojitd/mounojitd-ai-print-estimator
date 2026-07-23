@@ -10,3 +10,6 @@ _xlsx_probe/
 tools/*.exe
 !tools/smoke_test_products.js
 # NOTE: db/files/*.xlsx ARE committed on purpose — they are the master data.
+
+# NKK sir confidential pre-production price DB — keep LOCAL, never publish (Pages is public)
+db/pre_production/
