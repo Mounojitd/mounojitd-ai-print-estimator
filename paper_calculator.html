@@ -711,6 +711,7 @@
           </div>
           <div id="auditStatus" style="font-size:12px;color:#6b7480;margin-top:6px"></div>
           <div id="auditReport" style="margin-top:10px;overflow-x:auto"></div>
+          <div id="learnPanel" style="margin-top:14px"></div>
         </details>
         <div id="priceChangeBanner"></div>
         <div id="m_price" style="margin-top:10px"></div>
@@ -2162,7 +2163,9 @@ function setMachineMode(v){ MACHINE_MODE=v; if(CHOSEN){renderMachine(CHOSEN); sh
 // parent down to a cheaper small-band press (NKK sir: e.g. Komori L-32).
 function textRouteCost(base,m){ try{
   const eff=applyMachineCut(base,m); if(!eff||!eff.ups) return Infinity;
-  const q=priceJob(eff,currentPriceParams(),m); return q.paper+q.printing+q.plates;
+  const q=priceJob(eff,currentPriceParams(),m);
+  if(m.digital && !(q.printing>0)) return Infinity;   // guard: a 0-rate digital route must not look artificially cheapest
+  return q.paper+q.printing+q.plates;
 }catch(e){ return Infinity; } }
 // A press can run a sheet WHOLE (fits) or via a CUT-down to its print size (sheet too big). Returns the route.
 function pressRoute(o,m,need){
@@ -2178,9 +2181,12 @@ function renderMachine(o){
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4))), box=$("machine");
   // every press that can run this job WHOLE or via a CUT, cheapest total cost first (NKK sir's cut-to-save logic)
   const routes=MACHINES.map(m=>pressRoute(o,m,need)).filter(Boolean).sort((a,b)=>a.cost-b.cost);
-  // DIGITAL excluded from AUTO pick (no plates + click-rate card pending → it looks artificially cheapest);
-  // it stays selectable in Manual. Auto ranks offset presses by total route cost.
-  const autoRoutes=routes.filter(r=>!r.m.digital);
+  // DIGITAL excluded from AUTO pick by default (it stays selectable in Manual). The LEARNING module can
+  // enable the sir-gated DIGITAL_AUTO rule (default OFF) to rank digital routes alongside offset — the
+  // digital click-rate card is now live, and textRouteCost returns Infinity for a 0-rate digital route so
+  // it can't look artificially cheapest. Offset still wins on long runs; digital wins on short ones.
+  const includeDigital = (typeof learnFlag==="function") && learnFlag("DIGITAL_AUTO");
+  const autoRoutes=routes.filter(r=>includeDigital ? true : !r.m.digital);
   if(MACHINE_MODE==="auto"&&!autoRoutes.length&&!routes.length){
     SELECTED_MACHINE=null;
     const biggest=MACHINES.slice().sort((a,b)=>Math.max(...b.max)-Math.max(...a.max))[0];
@@ -4332,6 +4338,26 @@ function resetParserFields(){
   if($("ptagPaste")) $("ptagPaste").value=0;
   if($("flatRatePc")) $("flatRatePc").value="";
   if($("extentFlat")) $("extentFlat").value=1;
+  // NKK sir 2026-07-23: reset every SPEC field a brief might leave unset back to its fresh-page default,
+  // so a row that omits (say) colours or paper type can't silently inherit the PREVIOUS row's value.
+  // Without this, batch pricing is order-dependent — a job's price changes based on what was priced before
+  // it (e.g. a single-colour leaflet leaking 1+1 into a card that didn't state its colours). It also keeps
+  // the "no size recorded" flag honest: a sizeless row must stay sizeless, not borrow the last W/H.
+  if($("cf")) $("cf").value=4;
+  if($("cb")) $("cb").value=4;
+  if($("gsm")) $("gsm").value="";
+  if($("W")) $("W").value="";
+  if($("H")) $("H").value="";
+  if($("unit")) $("unit").value="in";
+  if($("pages")) $("pages").value="";
+  if($("coverGsm")) $("coverGsm").value=300;
+  if($("coverCf")) $("coverCf").value=4;
+  if($("coverCb")) $("coverCb").value=4;
+  if($("paperTypeSel")) $("paperTypeSel").value="";
+  if($("paperGrade")){ if(typeof fillGradeList==="function") fillGradeList("paperGrade",""); $("paperGrade").value="__auto"; }
+  if($("coverGrade")){ if(typeof fillGradeList==="function") fillGradeList("coverGrade",""); $("coverGrade").value="__auto"; }
+  if($("colpreset")) $("colpreset").value="";
+  if($("coverColPreset")) $("coverColPreset").value="";
 }
 function priceAuditRecord(rec){
   const brief=rec.brief;
@@ -4448,6 +4474,8 @@ function runSweepRecords(records){
     audit.push(rec);
   }
   renderAuditReport(audit);
+  recordLearning(audit);   // remember the confirmed diagnoses, then surface learned patterns
+  renderLearnPanel();
   auditStatus(`✓ ${ok} row${ok!==1?"s":""} priced · ${err} error${err!==1?"s":""} · <a href="#" onclick="downloadAuditCSV(event)">download CSV</a>`);
   window.__AUDIT_ROWS__ = audit;
 }
@@ -4466,6 +4494,99 @@ function runPastedSweep(){
   });
   auditStatus(`⏳ Running ${records.length} job${records.length!==1?"s":""}…`);
   setTimeout(()=>{ try{ runSweepRecords(records); }catch(e){ auditStatus('<span style="color:#c0392b">Error: '+String(e).slice(0,120)+'</span>'); } }, 20);
+}
+/* ===================================================================================================
+   LEARNING MODULE (NKK sir 2026-07-23) — the system REMEMBERS confirmed diagnoses and turns recurring
+   ones into structural correction PROPOSALS. It never fits a price and never changes live estimates on
+   its own: every proposed fix is a sir-gate that is OFF by default. Sir sees the evidence + a before/after
+   impact preview, then decides. Nothing here calibrates numbers to match the recorded amounts.
+   =================================================================================================== */
+function loadLedger(){ try{ return JSON.parse(localStorage.getItem("LEARN_LEDGER")||"[]")||[]; }catch(e){ return []; } }
+function saveLedger(l){ try{ localStorage.setItem("LEARN_LEDGER", JSON.stringify(l.slice(-2000))); }catch(e){} }
+function clearLedger(){ try{ localStorage.removeItem("LEARN_LEDGER"); }catch(e){} renderLearnPanel(); }
+// Append the confirmed diagnoses from a sweep. One record per job+cause; a re-run updates it in place.
+function recordLearning(rows){
+  const led=loadLedger(), day=new Date().toISOString().slice(0,10);
+  for(const r of rows){ if(r.err||!r.dxCode) continue;
+    const key=(r.jobId||"?")+"|"+r.dxCode, i=led.findIndex(e=>e.key===key);
+    const rec={key,day,jobId:r.jobId||"",product:r.product||"",dxCode:r.dxCode,reason:r.dxReason,
+      conf:r.dxConfidence,dir:r.dxDirection,gap:(r.gapPct===""||r.gapPct==null?null:Number(r.gapPct)),qty:Number(r.qty)||0};
+    if(i>=0) led[i]=rec; else led.push(rec);
+  }
+  saveLedger(led); return led;
+}
+// Gated structural corrections. OFF until sir enables. Keyed to the cause they address.
+const LEARN_RULES={
+  DIGITAL_AUTO:{ cause:"SHORT_RUN_LOADING", dir:"over",
+    title:"Consider the digital press in Auto for short runs",
+    detail:"Auto press-pick ranks OFFSET routes only — digital was held out while its click-rate card was pending. That card is now live (NEW SUSHMA digital sheet), so short / low-qty jobs are still charged full offset plates + make-ready even when digital is cheaper. Re-including digital in Auto (cheapest route wins, offset still wins on long runs) removes that fixed-cost loading — the confirmed driver of the short-run over-quotes.",
+    proposal:"In Auto, rank digital routes alongside offset and pick the cheapest total. Offset naturally wins on long runs; digital wins on short ones. No margin change." }
+};
+function loadLearnFlags(){ try{ return JSON.parse(localStorage.getItem("LEARN_FLAGS")||"{}")||{}; }catch(e){ return {}; } }
+function saveLearnFlags(f){ try{ localStorage.setItem("LEARN_FLAGS", JSON.stringify(f)); }catch(e){} }
+function learnFlag(k){ return !!loadLearnFlags()[k]; }
+function setLearnFlag(k,v){ const f=loadLearnFlags(); f[k]=!!v; saveLearnFlags(f);
+  auditStatus(v?`✓ Rule "${k}" ENABLED — live estimates now use it. Re-run the sweep to see the effect.`:`Rule "${k}" disabled — live estimates unchanged.`);
+  if(typeof RESULT!=="undefined"&&RESULT) run(); renderLearnPanel(); }
+// Mine the ledger into recurring patterns (grouped by cause) with evidence.
+function mineLearnings(){
+  const led=loadLedger(), by={};
+  for(const e of led){ const b=(by[e.dxCode]=by[e.dxCode]||{code:e.dxCode,reason:e.reason,dir:e.dir,jobs:[],conf:{high:0,med:0,low:0},prods:{},gaps:[]});
+    b.jobs.push(e.jobId); if(b.conf[e.conf]!=null)b.conf[e.conf]++; if(e.product)b.prods[e.product]=(b.prods[e.product]||0)+1; if(e.gap!=null)b.gaps.push(e.gap); }
+  return Object.values(by).map(b=>{ b.n=b.jobs.length;
+    const g=b.gaps.slice().sort((x,y)=>x-y); b.medGap=g.length?g[Math.floor(g.length/2)]:null;
+    b.rule=Object.entries(LEARN_RULES).find(([k,r])=>r.cause===b.code); return b; })
+    .sort((a,b)=>b.n-a.n);
+}
+// Re-price the ledger's short-run rows via the digital route to PREVIEW the DIGITAL_AUTO rule's effect,
+// without touching live estimates. Shows offset (today) vs digital (proposed) vs recorded.
+function previewDigitalImpact(ev){ if(ev) ev.preventDefault();
+  const rows=(window.__AUDIT_ROWS__||[]).filter(r=>!r.err && r.dxCode==="SHORT_RUN_LOADING");
+  if(!rows.length){ auditStatus("Run a sweep with short-run rows first, then preview."); return; }
+  const was=learnFlag("DIGITAL_AUTO"), f=loadLearnFlags();
+  const out=[];
+  f.DIGITAL_AUTO=true; saveLearnFlags(f);                 // temporarily on, live UI not re-run
+  try{ for(const r of rows){ const rec={brief:r.brief,qty:r.qty,nk:r.nk}; try{ priceAuditRecord(rec); out.push({jobId:r.jobId,nk:r.nk,offset:r.est,digital:rec.est,prod:rec.product}); }catch(e){} } }
+  finally{ f.DIGITAL_AUTO=was; saveLearnFlags(f); }
+  const inr=n=>n==null?"—":"₹"+Number(n).toLocaleString("en-IN");
+  const impr=out.map(o=>{ const bo=o.nk>0?Math.round((o.offset-o.nk)/o.nk*100):null, bd=o.nk>0?Math.round((o.digital-o.nk)/o.nk*100):null;
+    const better=bd!=null&&bo!=null&&Math.abs(bd)<Math.abs(bo);
+    return `<tr><td style="text-align:left;padding:3px 8px">${o.jobId}</td><td style="padding:3px 8px">${inr(o.nk)}</td><td style="padding:3px 8px">${inr(o.offset)}${bo!=null?` <span style="color:#c0392b">(${bo>=0?"+":""}${bo}%)</span>`:""}</td><td style="padding:3px 8px">${inr(o.digital)}${bd!=null?` <span style="color:${better?"#1c7a52":"#a9761a"}">(${bd>=0?"+":""}${bd}%)</span>`:""}</td><td style="padding:3px 8px">${better?"✓ closer":"—"}</td></tr>`; }).join("");
+  const closer=out.filter(o=>{ const bo=o.nk>0?Math.abs((o.offset-o.nk)/o.nk):9, bd=o.nk>0?Math.abs((o.digital-o.nk)/o.nk):9; return bd<bo; }).length;
+  const el=$("learnPreview"); if(el) el.innerHTML=`<div style="margin-top:8px;font-size:12px"><b>Impact preview — digital route on ${out.length} short-run rows:</b> ${closer}/${out.length} land closer to recorded. Live estimates unchanged (preview only).<div style="overflow-x:auto"><table style="border-collapse:collapse;margin-top:6px;font-size:11.5px"><thead><tr><th style="text-align:left;padding:3px 8px">Job</th><th style="padding:3px 8px">Recorded</th><th style="padding:3px 8px">Offset (today)</th><th style="padding:3px 8px">Digital (proposed)</th><th style="padding:3px 8px"></th></tr></thead><tbody>${impr}</tbody></table></div></div>`;
+}
+function renderLearnPanel(){
+  const el=$("learnPanel"); if(!el) return;
+  const pats=mineLearnings();
+  if(!pats.length){ el.innerHTML=`<div style="font-size:12px;color:#8a7aa6">🎓 No learnings yet — run a diagnostic sweep and confirmed causes accumulate here (remembered between visits).</div>`; return; }
+  const total=loadLedger().length;
+  const card=p=>{ const col=p.dir==="over"?"#c0392b":p.dir==="under"?"#2563a8":p.dir==="aligned"?"#1c7a52":"#6b7480";
+    const prods=Object.entries(p.prods).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`${k}×${v}`).join(", ");
+    const conf=`${p.conf.high}H · ${p.conf.med}M · ${p.conf.low}L`;
+    let rule="";
+    if(p.rule){ const [k,r]=p.rule; const on=learnFlag(k);
+      rule=`<div style="margin-top:8px;background:#fff;border:1px dashed ${on?"#1c7a52":"#c9b8ec"};border-radius:8px;padding:9px 11px">
+        <div style="font-weight:700;color:#3a1276;font-size:12px">🛠 Proposed correction: ${r.title}</div>
+        <div style="font-size:11.5px;color:#5a5170;margin:5px 0">${r.detail}</div>
+        <div style="font-size:11.5px;color:#3a1276;margin-bottom:7px"><b>Rule:</b> ${r.proposal}</div>
+        <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:${on?"#1c7a52":"#6b3fb3"};cursor:pointer">
+          <input type="checkbox" ${on?"checked":""} onchange="setLearnFlag('${k}',this.checked)"> ${on?"Enabled in live estimates (sir-confirmed)":"Apply in live estimates (sir-confirmed) — OFF"}</label>
+        <a href="#" onclick="previewDigitalImpact(event)" style="margin-left:12px;font-size:12px;color:#6b3fb3">Preview impact →</a>
+      </div>`;
+    } else {
+      rule=`<div style="margin-top:6px;font-size:11.5px;color:#8a7aa6">No automatic correction proposed — this cause is a data/basis or spec-capture issue to fix at the source record, not a pricing rule.</div>`;
+    }
+    return `<div style="background:#f7f2fe;border:1px solid #e6def7;border-left:4px solid ${col};border-radius:9px;padding:11px 13px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
+        <div style="font-weight:800;color:${col};font-size:13px">${p.reason} <span style="color:#8a7aa6;font-weight:600">· ${p.n} rows</span></div>
+        <div style="font-size:11px;color:#8a7aa6">conf ${conf}${p.medGap!=null?` · median gap ${p.medGap>=0?"+":""}${p.medGap}%`:""}</div>
+      </div>
+      ${prods?`<div style="font-size:11px;color:#8a7aa6;margin-top:3px">seen on: ${prods}</div>`:""}
+      ${rule}</div>`;
+  };
+  el.innerHTML=`<div style="font-weight:800;color:#3a1276;font-size:13px;margin-bottom:9px">🎓 What the system learned <span style="color:#8a7aa6;font-weight:600">— ${total} confirmed diagnoses remembered · <a href="#" onclick="clearLedger();return false" style="color:#a37">reset</a></span></div>
+    ${pats.map(card).join("")}
+    <div id="learnPreview"></div>`;
 }
 // Diagnostic rollup: group priced rows by cause so the dominant problem is visible at a glance.
 function diagnosisRollup(rows){
