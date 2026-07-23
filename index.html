@@ -4519,8 +4519,8 @@ function recordLearning(rows){
 const LEARN_RULES={
   DIGITAL_AUTO:{ cause:"SHORT_RUN_LOADING", dir:"over",
     title:"Consider the digital press in Auto for short runs",
-    detail:"Auto press-pick ranks OFFSET routes only — digital was held out while its click-rate card was pending. That card is now live (NEW SUSHMA digital sheet), so short / low-qty jobs are still charged full offset plates + make-ready even when digital is cheaper. Re-including digital in Auto (cheapest route wins, offset still wins on long runs) removes that fixed-cost loading — the confirmed driver of the short-run over-quotes.",
-    proposal:"In Auto, rank digital routes alongside offset and pick the cheapest total. Offset naturally wins on long runs; digital wins on short ones. No margin change." }
+    detail:"Auto press-pick ranks OFFSET routes only — digital was held out while its click-rate card was pending. That card is now live (NEW SUSHMA digital sheet), so short / low-qty jobs are still charged full offset plates + make-ready even when digital would be cheaper. This rule re-includes digital in Auto (cheapest route wins).\n\n⚠ MEASURED 2026-07-23 on the 50-record set with LIVE NEW SUSHMA rates: 0/39 rows actually route to digital and NO price changes. Cause: the estimator gangs the job onto a large offset PARENT sheet (e.g. 29×19); digital presses cap at 13×19, so the digital route has to CUT that parent into many small sheets — which makes digital cost MORE than the offset it was meant to undercut. The route comparison is offset-imposed, so digital can't win. This rule cannot fix the short-run over-quote on its own; it needs a digital-NATIVE imposition (small sheet, fewer-up, no plates). Kept OFF and documented for that follow-up.",
+    proposal:"Needs a digital-native imposition first. As wired, enabling it is a no-op (offset still wins every row). Real fix: give digital its own small-sheet imposition path, then compare offset-vs-digital fairly." }
 };
 function loadLearnFlags(){ try{ return JSON.parse(localStorage.getItem("LEARN_FLAGS")||"{}")||{}; }catch(e){ return {}; } }
 function saveLearnFlags(f){ try{ localStorage.setItem("LEARN_FLAGS", JSON.stringify(f)); }catch(e){} }
@@ -4567,7 +4567,7 @@ function renderLearnPanel(){
     if(p.rule){ const [k,r]=p.rule; const on=learnFlag(k);
       rule=`<div style="margin-top:8px;background:#fff;border:1px dashed ${on?"#1c7a52":"#c9b8ec"};border-radius:8px;padding:9px 11px">
         <div style="font-weight:700;color:#3a1276;font-size:12px">🛠 Proposed correction: ${r.title}</div>
-        <div style="font-size:11.5px;color:#5a5170;margin:5px 0">${r.detail}</div>
+        <div style="font-size:11.5px;color:#5a5170;margin:5px 0;white-space:pre-line">${r.detail}</div>
         <div style="font-size:11.5px;color:#3a1276;margin-bottom:7px"><b>Rule:</b> ${r.proposal}</div>
         <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:${on?"#1c7a52":"#6b3fb3"};cursor:pointer">
           <input type="checkbox" ${on?"checked":""} onchange="setLearnFlag('${k}',this.checked)"> ${on?"Enabled in live estimates (sir-confirmed)":"Apply in live estimates (sir-confirmed) — OFF"}</label>
