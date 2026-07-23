@@ -3514,6 +3514,15 @@ function applyVoiceSpec(raw){
       notes.push(`size ${d[0]}×${d[1]} in (${f.product==="card"?"card":"tag"} default${areaIn>=50?" — A4 mis-parse overridden":" — none in brief"})`);
     }
   }
+  // SIGNATURE product (booklet / catalogue / magazine) with a PAGE COUNT but no trim size in the brief:
+  // magazines & catalogues are routinely quoted by page count alone. Assume a standard A4 portrait trim so
+  // the job can be priced, and flag the assumption (editable). NKK sir 2026-07-23. Cards/tags keep their own
+  // default above; flat products with no size still (correctly) fail — a leaflet needs a real size.
+  if(typeof isSig==="function" && isSig(f.product) && f.pages>0 && (!f.W || !f.H)){
+    if($("unit")) $("unit").value="in"; setV("W",8.27); setV("H",11.69);
+    if($("orientation") && !f.orientation){ $("orientation").value="portrait"; }
+    notes.push("size 8.27×11.69 in (A4 portrait assumed — no trim size in brief)");
+  }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
   if(f.extent!=null) setV("extentFlat",f.extent);   // calendars: leaves-per-copy
   setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
