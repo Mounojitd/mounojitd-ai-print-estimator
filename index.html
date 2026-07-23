@@ -1315,6 +1315,12 @@ function applyMachineCut(base,m){
     co.paperWtSheet=+pWt.toFixed(4); co.paperWeight=+(pWt*parentSheets).toFixed(2);
     return co;
   }
+  // Digital press can't image the spread even cut down (e.g. an A4 book spread wider than the 13" digital
+  // sheet): still cost it as a DIGITAL job on the base sheet layout — no plates, digital make-ready — rather
+  // than returning `base` with the offset 100-sheet/layout make-ready baked in. Short-run digital books are
+  // the target; area/rate is per the base sheet (an approximation, flagged for sir).
+  if(isDig){ const rr=computePaper(Object.assign({},LASTINP,{sizes:[[base.sw,base.sh]]},digOv));
+    const oo=rr.options&&rr.options[0]; if(oo&&oo.ups>0) return oo; }
   return base;
 }
 function sheetSummary(o){
@@ -2202,6 +2208,9 @@ function pressRoute(o,m,need){
   if(fit==="fits") return {m,route:"whole",cost:textRouteCost(o,m)};
   const eff=applyMachineCut(o,m);                                   // too_big → try cut to press size
   if(eff&&eff.ups&&eff.cutMachine) return {m,route:"cut",cutTo:eff.cutTo,cost:textRouteCost(o,m)};
+  // Digital press that can't image the spread even cut down: applyMachineCut falls back to the base layout
+  // priced as a digital job (no plates). It carries no cutMachine, so accept it explicitly as a digital route.
+  if(eff&&eff.ups&&m.digital) return {m,route:"digital",cost:textRouteCost(o,m)};
   return null;
 }
 function renderMachine(o){
@@ -2223,11 +2232,12 @@ function renderMachine(o){
   }
   if(MACHINE_MODE==="auto"){ SELECTED_MACHINE=(autoRoutes[0]||routes[0]).m; }   // auto = cheapest offset route
   else if(!SELECTED_MACHINE) SELECTED_MACHINE=(routes[0]&&routes[0].m)||MACHINES[0];
-  // LEARNING — DIGITAL_AUTO (sir-gated, default OFF): for FLAT, short-run products only, swap the chosen
-  // press to a digital one when the digital-native route (small sheet, no plates, ~0 make-ready) is cheaper.
-  // Books/catalogues/magazines (isSig) are excluded — they're offset work. Applies in any press mode, so the
-  // sweep's stable manual/whole-sheet baseline is untouched for everything except genuine short-run flats.
-  if(typeof learnFlag==="function" && learnFlag("DIGITAL_AUTO") && !isSig($("product").value)){
+  // LEARNING — DIGITAL_AUTO (sir-gated, default OFF): swap the chosen press to a digital one when the
+  // digital route (no plates, digital make-ready) is cheaper than the offset pick. Applies to flat AND
+  // signature products: short-run books route to digital too (no plates on a 10-copy magazine), while long
+  // runs keep offset because the per-sheet digital click still loses on volume. Any press mode, so the
+  // sweep's manual/whole-sheet baseline is untouched except where digital genuinely wins.
+  if(typeof learnFlag==="function" && learnFlag("DIGITAL_AUTO")){
     const digRoutes=MACHINES.filter(mm=>mm.digital).map(mm=>pressRoute(o,mm,need)).filter(Boolean).sort((a,b)=>a.cost-b.cost);
     const curCost = SELECTED_MACHINE ? textRouteCost(o,SELECTED_MACHINE) : Infinity;
     if(digRoutes[0] && digRoutes[0].cost < curCost){ SELECTED_MACHINE=digRoutes[0].m; }
