@@ -3355,19 +3355,40 @@ function parseSpec(raw){
   // ORIENTATION
   if(/\bportrait\b/.test(t)) f.orientation="portrait"; else if(/\blandscape\b/.test(t)) f.orientation="landscape";
   if(f.orientation) notes.push(f.orientation);
+  // COVER vs INSIDE/TEXT colours (NKK sir 2026-07-23): a separate-cover book often states BOTH, e.g.
+  // "Cover 4+0, inside 1 color all through". Parse each clause to its own field so the inside isn't billed at
+  // the cover's colours — the #6 over-quote was 132 inside pages charged 4-colour instead of 1.
+  const NUMW={one:1,two:2,three:3,four:4,five:5,six:6}, asN=v=>NUMW[v]!=null?NUMW[v]:+v;
+  const clauseColours=(cl)=>{ if(!cl) return null;
+    let m=cl.match(/(?<![\d.])(\d)\s*\+\s*(\d)(?![\d.])/) || cl.match(/(\d)\s*(?:plus|by|and)\s*(\d)\s*(?:colou?r|print|side)/);
+    if(m) return [+m[1],+m[2]];
+    const c=cl.match(/(\d|one|two|three|four|five|six)\s*colou?r/); if(!c) return null;
+    const n=asN(c[1]);
+    if(/one\s*side|single\s*side|1\s*side|front\s*only/.test(cl)) return [n,0];
+    return [n,n];   // "all through / throughout / both sides" (or unspecified) → both sides
+  };
+  // A brief mentions 'cover' twice (once for paper, once for colours), so scan ALL cover/inside clauses and
+  // take the first that actually yields colours — skipping the paper clause ("Cover 250gsm art board").
+  let covC=null, insC=null;
+  for(const mm of t.matchAll(/\bcover\b\s*[:\-]?\s*([^|.]*?)(?=\binside\b|\||\.|$)/g)){ const c=clauseColours(mm[1]); if(c){ covC=c; break; } }
+  for(const mm of t.matchAll(/\binside\b\s*[:\-]?\s*([^|.]*?)(?=\bcover\b|\||\.|$)/g)){ const c=clauseColours(mm[1]); if(c){ insC=c; break; } }
+  if(covC && insC){                                   // both stated → separate cover with distinct colours
+    f.coverCf=covC[0]; f.coverCb=covC[1]; f.cf=insC[0]; f.cb=insC[1]; f.separateCover=true;
+    notes.push(`cover ${covC[0]}+${covC[1]} · inside ${insC[0]}+${insC[1]}`);
+  }
   // COLOURS — Explicit "N+M color" wins. Then "N color one side" → N+0. Then "N color both sides" → N+N.
-  // Then fallbacks (4 color / cmyk / single / bw).
+  // Then fallbacks (4 color / cmyk / single / bw). Skipped if cover/inside already set the colours above.
   // Anchor on colour|print|side so the common trade shorthand "1+1 print" / "3+3 print" / "4+0"
   // is caught — not just "N+N colour". Without this every "N+N print" card silently fell back to
   // 4+4 (8 plates), so a 3+3 and a 1+1 priced identically (NKK sir 2026-07-21 rfid-card reconcile).
-  let cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*(?:colou?r|print|side)/);
+  let cm=(f.cf!=null)?null:t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*(?:colou?r|print|side)/);
   // Also accept a bare plus-separated "N+N" (e.g. quick-typed "4+0") — safe because sizes use × / x,
   // never "+". Lookbehind/ahead guard against page counts like "10+2" and decimals (NKK sir 2026-07-21).
-  if(!cm) cm=t.match(/(?<![\d.])(\d)\s*\+\s*(\d)(?![\d.])/);
+  if(!cm && f.cf==null) cm=t.match(/(?<![\d.])(\d)\s*\+\s*(\d)(?![\d.])/);
   // NB: cm[1]/cm[2] are always \d, so DON'T `|| 4` — that turned a legit back "+0" (one-side print,
   // e.g. "3+0 print") into +4, because 0 is falsy (NKK sir 2026-07-21 rfid-tag reconcile).
   if(cm){ f.cf=+cm[1]; f.cb=+cm[2]; notes.push("colours "+f.cf+"+"+f.cb); }
-  else {
+  else if(f.cf==null) {
     // "N color one side" OR "one side N color" — both orders
     const oneSide=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/)
                 ||t.match(/(?:one\s*side|1\s*side|single\s*side|front\s*only)\s*(\d|one|two|three|four|five|six)\s*colou?r/);
@@ -3548,6 +3569,10 @@ function applyVoiceSpec(raw){
   if(f.extent!=null) setV("extentFlat",f.extent);   // calendars: leaves-per-copy
   setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
   setV("cf",f.cf); setV("cb",f.cb);
+  // Separate cover colours (cover 4+0 vs inside 1-col) — parsed distinctly from the text colours above.
+  if(f.coverCf!=null && $("coverCf")) $("coverCf").value=f.coverCf;
+  if(f.coverCb!=null && $("coverCb")) $("coverCb").value=f.coverCb;
+  if(f.separateCover && isSig(f.product) && $("coverType")){ $("coverType").value="separate"; if(typeof onCoverChange==="function") onCoverChange(); }
   if(f.coverType){ setV("coverType",f.coverType); if(typeof onCoverChange==="function") onCoverChange(); }
   if(f.paperType){ const ps=$("paperTypeSel"); if(ps){ ps.value=f.paperType; if(typeof onPaperTypeChange==="function") onPaperTypeChange(); }
     const cs=$("coverTypeSel"); if(cs){ cs.value=f.paperType; if(typeof onCoverTypeChange==="function") onCoverTypeChange(); } }
