@@ -3247,7 +3247,9 @@ function voiceCorrect(s){
 function parseSpec(raw){
   const plain=String(raw||"").toLowerCase().replace(/[,]/g," ").replace(/\s+/g," ").trim();
   const corrected=voiceCorrect(raw);
-  const t=" "+corrected+" ";
+  // Normalise smart/curly quotes to ASCII so a curly-inch mark (8.5” X 11”) reads as the straight " unit —
+  // otherwise the ” sits between the number and the separator and defeats the size regex (row bails on size).
+  const t=(" "+corrected+" ").replace(/[“”″]/g,'"').replace(/[‘’′]/g,"'");
   const f={}, notes=[];
   const digits=s=>parseInt(String(s).replace(/[^0-9]/g,""),10);
   // SIZE — CLOSE size (trimmed) wins over open size. Handles unit-repeated + "(w)" markers.
@@ -3255,7 +3257,10 @@ function parseSpec(raw){
   const SIZES={a2:[16.54,23.39],a3:[11.69,16.54],a4:[8.27,11.69],a5:[5.83,8.27],a6:[4.13,5.83],letter:[8.5,11],legal:[8.5,14]};
   for(const k in SIZES){ if(new RegExp("\\b"+k+"\\b").test(t)){ f.unit="in"; f.W=SIZES[k][0]; f.H=SIZES[k][1]; notes.push("size "+k.toUpperCase()); break; } }
   // find every "N unit? x N unit?" occurrence + optional "(w)"/"(h)" markers between them
-  const sizeRe=/(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?\s*(?:x|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?/g;
+  // NKK sir 2026-07-23: the size text keeps its original case (voiceCorrect doesn't lowercase), so the
+  // separator must accept CAPITAL X and the × glyph, not just lowercase x — briefs like 8.5" X 11", 9" X 9",
+  // 168 mm X 205 mm were silently unparsed → run() bailed "enter width, height". `i` flag + × cover them.
+  const sizeRe=/(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?\s*(?:x|×|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?/gi;
   const sizeMatches=[];
   for(const m of t.matchAll(sizeRe)){
     const unit=m[2]||m[4]||"", start=m.index;
