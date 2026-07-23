@@ -4625,13 +4625,17 @@ function recordLearning(rows){
 // Gated structural corrections. OFF until sir enables. Keyed to the cause they address.
 const LEARN_RULES={
   DIGITAL_AUTO:{ cause:"SHORT_RUN_LOADING", dir:"over",
-    title:"Route flat short-runs to digital (digital-native imposition)",
-    detail:"For FLAT products (cards, leaflets, letterheads, forms, tags), when a digital route is cheaper than the chosen offset press, use it. Digital has no plates and near-zero make-ready — the fix imposes on a 13×19 / 12×18 digital sheet with digital spoilage (≈3 sheets) instead of inheriting the offset ~100-sheet make-ready. Books/catalogues/magazines are excluded (offset work). No margin change.\n\n✔ MEASURED 2026-07-23 on the 50-record set with LIVE NEW SUSHMA rates: 25/39 flat rows route to digital; 12 land closer to recorded, 2 worse. The genuine short-run over-quotes collapse — e.g. a 17-pc ID card +399%→−11%, premium card +575%→+19%, digital letterhead +537%→+5%. A digital minimum-job floor (DIGITAL_MIN_JOB, default ₹300, editable) guards degenerate tiny jobs; on this set it's ~neutral (₹200–500 all hold the aligned count), because the remaining under-quotes are embellishment/premium/mid-run — not minimum-shaped — and NK's tiny-card prices are non-monotonic. Sizeless-insert and per-piece rows are separate issues, untouched here.",
-    proposal:"Enable to route flat short-runs to digital when cheaper. Digital minimum-job floor is in (₹300 default, editable) — set the real shop minimum with sir; residual under-quotes on premium/embellished cards are a separate cost-capture follow-up, not a floor issue." }
+    title:"Route short-runs to digital (flat AND book) — ON by default",
+    detail:"When a digital route is cheaper than the chosen offset press, use it — for flat products (cards, leaflets, letterheads, forms, tags) AND signature books/magazines on short runs. Digital has no plates and near-zero make-ready: the route images on a 13×19 / 12×18 digital sheet (or the base layout, no plates, when a book spread is wider than the digital sheet) with digital spoilage (≈3 sheets) instead of the offset ~100-sheet make-ready. Long runs keep offset (per-sheet click loses on volume). ON by default (sir-confirmed 2026-07-23); untick to price everything offset.\n\n✔ MEASURED on the 50 with LIVE NEW SUSHMA rates: ~28/39 rows route to digital, aligned band 1→5. Flat short-runs collapse (17-pc ID card +399%→−11%, digital letterhead +537%→+5%); book short-runs too (small brochure +110%→−7%, 10-copy magazine +1772%→+383%). A digital minimum-job floor (DIGITAL_MIN_JOB, ₹300, editable) guards degenerate tiny jobs. Residual over-quotes on the tiniest magazine runs are binding/cover minimums + the A4 trim assumption, not this rule; premium/embellished card under-quotes are a separate cost-capture item.",
+    proposal:"ON by default — short runs (flat + book) route to the cheaper digital press. Untick to force offset everywhere. Set the real digital minimum (DIGITAL_MIN_JOB, ₹300) with sir." }
 };
 function loadLearnFlags(){ try{ return JSON.parse(localStorage.getItem("LEARN_FLAGS")||"{}")||{}; }catch(e){ return {}; } }
 function saveLearnFlags(f){ try{ localStorage.setItem("LEARN_FLAGS", JSON.stringify(f)); }catch(e){} }
-function learnFlag(k){ return !!loadLearnFlags()[k]; }
+// Per-rule defaults when the user hasn't explicitly toggled the rule. DIGITAL_AUTO is now ON by default
+// (sir-confirmed 2026-07-23): short runs — flat and book — route to the cheaper digital press. A user can
+// still turn it OFF from the learning panel; an explicit choice (true/false) always wins over the default.
+const LEARN_FLAG_DEFAULTS={DIGITAL_AUTO:true};
+function learnFlag(k){ const f=loadLearnFlags(); return (k in f) ? !!f[k] : !!LEARN_FLAG_DEFAULTS[k]; }
 function setLearnFlag(k,v){ const f=loadLearnFlags(); f[k]=!!v; saveLearnFlags(f);
   auditStatus(v?`✓ Rule "${k}" ENABLED — live estimates now use it. Re-run the sweep to see the effect.`:`Rule "${k}" disabled — live estimates unchanged.`);
   if(typeof RESULT!=="undefined"&&RESULT) run(); renderLearnPanel(); }
