@@ -4342,6 +4342,7 @@ function priceAuditRecord(rec){
   applyGangedDefault(); applyMenuRateHint(); applyMarginDefault();  // re-apply margin AFTER qty (volume-tiered)
   run();
   const x = combinedPrice(); const q=x.q, t=x.text, cq=x.cover;
+  rec.unpriceable = !!x.unpriceable; if(x.unpriceable) rec.unpriceReason = x.reason;
   if(!rec.qty){ const c=$("copies2")||$("copies"); rec.qty = c ? (parseInt(String(c.value).replace(/[^0-9]/g,""),10)||0) : 0; }  // show the qty the estimator used
   rec.est   = Math.round(q.grand||0);
   rec.prod  = Math.round(q.prod||0);
@@ -4363,6 +4364,80 @@ function priceAuditRecord(rec){
   rec.src_print = LIVE_STATUS.printing && LIVE_STATUS.printing.ok ? "live sheet PRINTING_RATES" : "built-in";
   rec.src_coat  = LIVE_STATUS.postpress && LIVE_STATUS.postpress.ok ? "live sheet POST_PRESS" : "built-in";
   rec.src_digital = LIVE_STATUS.digital && LIVE_STATUS.digital.ok ? "live sheet Digital press rate" : "built-in";
+  diagnoseRecord(rec);   // attach dx (reason + confidence) — never fits, only explains
+}
+/* ===================================================================================================
+   DIAGNOSTIC ENGINE (NKK sir 2026-07-23) — explains WHY est ≠ recorded ₹, per row, with a confidence.
+   It NEVER changes a price. It reads the estimator's own component breakdown (plate/paper/emb/…) plus
+   the recorded amount & spec, and attributes the gap to a named cause. Where only a total exists (no
+   size, no qty, per-piece basis, unsupported product) it says so plainly: "line-item breakdown
+   unavailable" — it does not invent a number. Rules are ordered; the first that fires wins.
+   Reason codes:
+     INCOMPLETE_SIZE   spec has no width/height → not priceable
+     NO_PRODUCT        estimator has no product for this item
+     BASIS_PERPIECE    recorded ₹ is per-piece (or qty missing) — can't compare to an order total
+     NO_AMOUNT         no recorded ₹ to compare against
+     ALIGNED           |gap| < 15%  → model matches
+     SHORT_RUN_LOADING over-quote driven by fixed press cost (plates/make-ready) on a short/digital run
+     EMBELLISH_MISSING under-quote: spec names foil/gold/emboss/spot-UV the estimator didn't cost
+     MULTI_ITEM        under-quote: brief bundles 2 deliverables, estimator priced one
+     CONVERTING_UNDER  under-quote: box/carton/converting work not fully modeled
+     UNDER_REVIEW      under-quote with no single clear driver → human review
+     OVER_REVIEW       over-quote not explained by short-run loading → human review
+   =================================================================================================== */
+const DX_LABEL={
+  INCOMPLETE_SIZE:"Incomplete spec — no size recorded",
+  NO_PRODUCT:"No matching estimator product",
+  BASIS_PERPIECE:"Per-lot / per-piece mismatch",
+  NO_AMOUNT:"No recorded amount to compare",
+  ALIGNED:"Aligned with recorded price",
+  SHORT_RUN_LOADING:"Short-run press-cost loading",
+  EMBELLISH_MISSING:"Embellishment in spec not costed",
+  MULTI_ITEM:"Multi-item job — one component priced",
+  CONVERTING_UNDER:"Converting / box work under-costed",
+  UNDER_REVIEW:"Under-quote — needs review",
+  OVER_REVIEW:"Over-quote — needs review"
+};
+const DX_NO_BREAKDOWN=new Set(["INCOMPLETE_SIZE","NO_PRODUCT","BASIS_PERPIECE","NO_AMOUNT"]);
+function diagnoseRecord(rec){
+  const set=(code,conf,dir,signals)=>{ rec.dxCode=code; rec.dxReason=DX_LABEL[code]; rec.dxConfidence=conf;
+    rec.dxDirection=dir; rec.dxSignals=signals; rec.dxNoBreakdown=DX_NO_BREAKDOWN.has(code);
+    rec.dxNote=rec.dxNoBreakdown?"line-item breakdown unavailable":""; return rec; };
+  const brief=String(rec.brief||"").toLowerCase();
+  const nk=Number(rec.nk)||0, est=Number(rec.est)||0, qty=Number(rec.qty)||0;
+  const gap=(rec.gapPct===""||rec.gapPct==null)?null:Number(rec.gapPct);
+  // ---- 1) data / basis problems: only a total exists, no like-for-like comparison possible ----
+  if(rec.unpriceable) return set("INCOMPLETE_SIZE","high","n/a","run() found no sheet — width/height absent");
+  if(!rec.product)     return set("NO_PRODUCT","high","n/a","estimator produced no product for this spec");
+  if(nk>0 && qty>0 && nk<qty) return set("BASIS_PERPIECE","high","n/a",`recorded ₹${nk} < qty ${qty} — total can't be below piece count`);
+  if(qty<=0 && nk>0)   return set("BASIS_PERPIECE","high","n/a","quantity not recorded — order total not computable");
+  if(nk<=0)            return set("NO_AMOUNT","high","n/a","no recorded price on this record");
+  // ---- 2) aligned ----
+  if(gap!=null && Math.abs(gap)<15) return set("ALIGNED","high","aligned",`gap ${gap>=0?"+":""}${gap}% within ±15%`);
+  // ---- component-derived signals ----
+  const plate=Number(rec.plate)||0, emb=Number(rec.emb)||0;
+  const plateShare=est>0?plate/est:0;                       // fixed press cost (plates + make-ready) as a share of total
+  const isConverting=/^(carton_|sleeve$|folder$)/.test(rec.product) || /\b(box|carton|tuck|mono ?carton|die ?cut)\b/.test(brief);
+  const wantsEmb=/\b(gold|foil|silver|emboss|deboss|spot ?uv|spot-uv|metallic|foiling|blocking)\b/.test(brief);
+  const isMultiItem=(/\bcard\b/.test(brief)&&/\benvelope\b/.test(brief)) || /\b(\w+)\s+and\s+(\w+)\b.*\b(printing|color|colour)\b.*,.*\b(printing|color|colour)\b/.test(brief) || /\benvelope\b.*\bcard\b/.test(brief);
+  // ---- 3) under-quote branch (est below recorded) ----
+  if(gap!=null && gap<=-15){
+    if(isConverting)  return set("CONVERTING_UNDER","med","under",`product=${rec.product}; die/assembly not fully modeled (gap ${gap}%)`);
+    if(wantsEmb&&emb===0) return set("EMBELLISH_MISSING","high","under",`spec names foil/gold/emboss but Emb line = ₹0 (gap ${gap}%)`);
+    if(isMultiItem)   return set("MULTI_ITEM","med","under",`brief bundles 2 deliverables; estimator priced one (gap ${gap}%)`);
+    return set("UNDER_REVIEW","low","under",`no single driver isolated (gap ${gap}%)`);
+  }
+  // ---- 4) over-quote branch (est above recorded) ----
+  if(gap!=null && gap>=15){
+    const shortRun = qty>0 && qty<=500;
+    const midRun   = qty>500 && qty<=1500;
+    if(shortRun && plateShare>=0.35) return set("SHORT_RUN_LOADING","high","over",`qty ${qty}, plates=₹${plate} = ${Math.round(plateShare*100)}% of est (gap +${gap}%)`);
+    if(shortRun && plateShare>=0.20) return set("SHORT_RUN_LOADING","med","over",`qty ${qty}, plates ${Math.round(plateShare*100)}% of est (gap +${gap}%)`);
+    if(shortRun)                     return set("SHORT_RUN_LOADING","low","over",`short run qty ${qty} (gap +${gap}%); fixed-cost share modest`);
+    if(midRun && plateShare>=0.25)   return set("SHORT_RUN_LOADING","med","over",`qty ${qty}, plates ${Math.round(plateShare*100)}% of est (gap +${gap}%)`);
+    return set("OVER_REVIEW","low","over",`qty ${qty}, plates ${Math.round(plateShare*100)}% of est (gap +${gap}%)`);
+  }
+  return set("OVER_REVIEW","low","n/a","unclassified");
 }
 // Price a batch of records and render the comparative report. Shared by the CSV sweep and the typed input.
 function runSweepRecords(records){
@@ -4392,25 +4467,46 @@ function runPastedSweep(){
   auditStatus(`⏳ Running ${records.length} job${records.length!==1?"s":""}…`);
   setTimeout(()=>{ try{ runSweepRecords(records); }catch(e){ auditStatus('<span style="color:#c0392b">Error: '+String(e).slice(0,120)+'</span>'); } }, 20);
 }
+// Diagnostic rollup: group priced rows by cause so the dominant problem is visible at a glance.
+function diagnosisRollup(rows){
+  const priced=rows.filter(r=>!r.err && r.dxReason);
+  if(!priced.length) return "";
+  const by={}; for(const r of priced){ (by[r.dxCode]=by[r.dxCode]||{code:r.dxCode,label:r.dxReason,dir:r.dxDirection,n:0,ids:[]}); by[r.dxCode].n++; by[r.dxCode].ids.push(r.jobId); }
+  const order=Object.values(by).sort((a,b)=>b.n-a.n);
+  const comparable=priced.filter(r=>!r.dxNoBreakdown).length;
+  const aligned=(by.ALIGNED?by.ALIGNED.n:0);
+  const chip=g=>{ const col=g.dir==="aligned"?"#1c7a52":g.dir==="over"?"#c0392b":g.dir==="under"?"#2563a8":"#6b7480";
+    return `<span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6def7;border-left:4px solid ${col};border-radius:7px;padding:5px 10px;margin:0 6px 6px 0;font-size:12px">
+      <b style="color:${col}">${g.n}</b><span style="color:#3a1276">${g.label}</span></span>`; };
+  return `<div style="background:#f4eefe;border:1px solid #e6def7;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+    <div style="font-weight:800;color:#3a1276;font-size:13px;margin-bottom:8px">🔎 Diagnosis rollup — ${priced.length} rows · ${comparable} comparable · ${aligned} aligned (±15%)</div>
+    <div style="display:flex;flex-wrap:wrap">${order.map(chip).join("")}</div>
+    <div style="font-size:11px;color:#8a7aa6;margin-top:6px">Each row is explained from the estimator's own component breakdown — never fitted. Grey = only a total exists (no size / qty / per-piece basis / unsupported product): line-item breakdown unavailable.</div>
+  </div>`;
+}
 function renderAuditReport(rows){
   const el=$("auditReport"); if(!el) return;
   const inr=n=>n===""||n==null?"":"₹"+Number(n).toLocaleString("en-IN");
   const gapStyle=g=>{ if(g==="") return ""; const a=Math.abs(g); const c=a<15?"#1c7a52":a<30?"#a9761a":"#c0392b"; return `color:${c};font-weight:700`; };
   const th=(t,w)=>`<th style="padding:6px 8px;background:#e9deff;color:#3a1276;text-align:right;white-space:nowrap${w?';width:'+w:''}">${t}</th>`;
   const td=(v,s)=>`<td style="padding:5px 8px;border-bottom:1px solid #ede7f8;text-align:right;white-space:nowrap${s?';'+s:''}">${v}</td>`;
-  let html=`<table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead><tr>${th("Job","","left")}${th("Client")}${th("Qty")}${th("NK ₹")}${th("Est ₹")}${th("Gap %")}${th("Paper")}${th("Print")}${th("Plate")}${th("Coat")}${th("Emb")}${th("Bind")}${th("PP")}${th("Pack+Frt")}${th("Margin")}${th("Prod")}${th("Ganged")}<th style="padding:6px 8px;background:#e9deff;color:#3a1276">Sources</th></tr></thead><tbody>`;
+  let html=diagnosisRollup(rows)+`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>${th("Job","","left")}${th("Client")}${th("Qty")}${th("NK ₹")}${th("Est ₹")}${th("Gap %")}<th style="padding:6px 8px;background:#e9deff;color:#3a1276;text-align:left">Diagnosis</th>${th("Conf")}${th("Paper")}${th("Print")}${th("Plate")}${th("Coat")}${th("Emb")}${th("Bind")}${th("PP")}${th("Pack+Frt")}${th("Margin")}${th("Prod")}${th("Ganged")}<th style="padding:6px 8px;background:#e9deff;color:#3a1276">Sources</th></tr></thead><tbody>`;
+  const confBadge=c=>{ if(!c) return ""; const col=c==="high"?"#1c7a52":c==="med"?"#a9761a":"#8a6d9e"; return `<span style="display:inline-block;padding:1px 6px;border-radius:9px;background:${col};color:#fff;font-size:10px;font-weight:700">${c}</span>`; };
+  const dirIcon=d=>d==="over"?"▲ ":d==="under"?"▼ ":d==="aligned"?"✓ ":"• ";
   for(const r of rows){
-    if(r.err){ html+=`<tr><td colspan="18" style="padding:6px;background:#fde7e7;color:#c0392b">${r.jobId}: ${r.err}</td></tr>`; continue; }
+    if(r.err){ html+=`<tr><td colspan="20" style="padding:6px;background:#fde7e7;color:#c0392b">${r.jobId}: ${r.err}</td></tr>`; continue; }
     const gapDisp = r.gapPct===""?"—":(r.gapPct>=0?"+":"")+r.gapPct+"%";
-    html+=`<tr><td style="padding:5px 8px;border-bottom:1px solid #ede7f8;text-align:left">${r.jobId}</td>${td(r.client||"")}${td(r.qty||"")}${td(inr(r.nk))}${td(inr(r.est))}${td(gapDisp, gapStyle(r.gapPct))}${td(inr(r.paper))}${td(inr(r.print))}${td(inr(r.plate))}${td(inr(r.coat))}${td(inr(r.emb))}${td(inr(r.bind))}${td(inr(r.pp))}${td(inr(r.pack+r.frt))}${td(inr(r.mgn))}${td(inr(r.prod))}${td(r.ganged)}<td style="padding:5px 8px;border-bottom:1px solid #ede7f8;font-size:10.5px;color:#6b7480">${r.product}·${r.src_paper}·${r.src_print}·${r.src_digital}</td></tr>`;
+    const dxCol = r.dxNoBreakdown?"#6b7480":(r.dxDirection==="aligned"?"#1c7a52":r.dxDirection==="over"?"#c0392b":r.dxDirection==="under"?"#2563a8":"#3a1276");
+    const dxCell = `<td style="padding:5px 8px;border-bottom:1px solid #ede7f8;text-align:left"><span style="color:${dxCol};font-weight:600">${dirIcon(r.dxDirection)}${r.dxReason||"—"}</span>${r.dxNote?`<div style="font-size:10px;color:#8a96a4">${r.dxNote}</div>`:""}${r.dxSignals?`<div style="font-size:10px;color:#a3adba" title="${String(r.dxSignals).replace(/"/g,'&quot;')}">${String(r.dxSignals).length>60?String(r.dxSignals).slice(0,58)+"…":r.dxSignals}</div>`:""}</td>`;
+    html+=`<tr><td style="padding:5px 8px;border-bottom:1px solid #ede7f8;text-align:left">${r.jobId}</td>${td(r.client||"")}${td(r.qty||"")}${td(inr(r.nk))}${td(inr(r.est))}${td(gapDisp, gapStyle(r.gapPct))}${dxCell}${td(confBadge(r.dxConfidence))}${td(inr(r.paper))}${td(inr(r.print))}${td(inr(r.plate))}${td(inr(r.coat))}${td(inr(r.emb))}${td(inr(r.bind))}${td(inr(r.pp))}${td(inr(r.pack+r.frt))}${td(inr(r.mgn))}${td(inr(r.prod))}${td(r.ganged)}<td style="padding:5px 8px;border-bottom:1px solid #ede7f8;font-size:10.5px;color:#6b7480">${r.product}·${r.src_paper}·${r.src_print}·${r.src_digital}</td></tr>`;
   }
-  html+="</tbody></table>";
+  html+="</tbody></table></div>";
   el.innerHTML=html;
 }
 function downloadAuditCSV(e){ if(e) e.preventDefault();
   const rows=window.__AUDIT_ROWS__||[]; if(!rows.length) return;
-  const cols=["jobId","client","qty","nk","est","gapPct","paper","print","plate","coat","emb","bind","pp","pack","frt","mgn","prod","product","margin","ganged","src_paper","src_print","src_coat","src_digital"];
+  const cols=["jobId","client","qty","nk","est","gapPct","dxReason","dxConfidence","dxDirection","dxNote","dxSignals","paper","print","plate","coat","emb","bind","pp","pack","frt","mgn","prod","product","margin","ganged","src_paper","src_print","src_coat","src_digital"];
   const csv=[cols.join(",")].concat(rows.map(r=>cols.map(c=>{const v=r[c]==null?"":r[c]; return String(v).replace(/"/g,'""').replace(/,/g," ");}).join(","))).join("\n");
   const blob=new Blob([csv],{type:"text/csv"}), a=document.createElement("a");
   a.href=URL.createObjectURL(blob); a.download=`audit_${new Date().toISOString().slice(0,10)}.csv`; a.click();
