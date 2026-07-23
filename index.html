@@ -273,6 +273,8 @@
               <option value="leaflet">Leaflet / Flyer</option>
               <option value="poster">Poster</option>
               <option value="card">Visiting / Greeting card</option>
+          <option value="banner">Banner / Flex (large format)</option>
+          <option value="standee">Roll-up standee (large format)</option>
               <option value="calendar_sheet">Single-sheet calendar</option>
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
@@ -296,7 +298,7 @@
       <div class="row3">
         <div class="fld"><label>Width</label><input id="W" type="number" step="0.5" placeholder="e.g. 7" oninput="applyGangedDefault()" /></div>
         <div class="fld"><label>Height</label><input id="H" type="number" step="0.5" placeholder="e.g. 9.5" oninput="applyGangedDefault()" /></div>
-        <div class="fld"><label>Unit</label><select id="unit"><option value="in" selected>inch</option><option value="mm">mm</option><option value="cm">cm</option></select></div>
+        <div class="fld"><label>Unit</label><select id="unit"><option value="in" selected>inch</option><option value="mm">mm</option><option value="cm">cm</option><option value="ft">feet</option></select></div>
       </div>
       <div class="hint" id="closedHint">Booklet: enter the <b>closed</b> page size — open spread is auto-calculated.</div>
 
@@ -442,6 +444,26 @@
             <div class="hint">Multiplies paper (e.g. table calendar = 12 leaves). Default 1.</div></div>
         </div>
       </div>
+      <div id="lfFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c9c3f;background:#f5faec">
+        <div class="ptitle" style="color:#4a6b1f">🖼 Large format — priced per sq.ft (enter size above; unit “feet” or inches)</div>
+        <div class="row3">
+          <div class="fld"><label>Media</label><select id="lfMedia" onchange="lfMediaRate();showPrice()">
+            <option value="flex">Flex (frontlit)</option><option value="starflex">Star flex</option><option value="vinyl" selected>Vinyl / PP</option><option value="backlit">Backlit flex</option><option value="fabric">Fabric / cloth</option><option value="photo">Photo paper</option></select></div>
+          <div class="fld"><label>Media ₹ / sq.ft</label><input id="lfRate" type="number" step="1" value="35" oninput="showPrice()" /><div class="hint">print + media, editable</div></div>
+          <div class="fld"><label>Quantity (pieces)</label><input id="lfQty" type="number" value="1" placeholder="e.g. 5" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Roller stand ₹ / pc</label><input id="lfRoller" type="number" step="10" value="0" oninput="showPrice()" /><div class="hint">roll-up standee mechanism (auto ₹900 for standee)</div></div>
+          <div class="fld"><label>Eyelets / pc</label><input id="lfEyelets" type="number" step="1" value="0" oninput="showPrice()" /><div class="hint">₹8 each</div></div>
+          <div class="fld"><label>Board mount ₹ / sq.ft</label><input id="lfBoard" type="number" step="1" value="0" oninput="showPrice()" /><div class="hint">sunboard/foam, 0 = none</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Hemming / stitching ₹ / pc</label><input id="lfHem" type="number" step="10" value="0" oninput="showPrice()" /></div>
+          <div class="fld"><label>Design / setup ₹ (once)</label><input id="lfDesign" type="number" step="50" value="0" oninput="showPrice()" /></div>
+          <div class="fld"></div>
+        </div>
+        <div class="hint">No plates / sheets / imposition. Cost = area × qty × ₹/sq.ft + roller + eyelets + board + hemming + design, then margin. Rates editable — confirm with sir.</div>
+      </div>
       <div id="dielineFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
         <div class="ptitle" id="dlTitle">📐 Dieline / converting — flat blank → die-cut → fold</div>
         <div class="hint" id="dlDimHint" style="margin:-2px 0 6px">Enter the <b>assembled</b> dimensions above (Width=A, Height=B) in the chosen unit; the flat blank is computed automatically.</div>
@@ -547,7 +569,7 @@
           <div class="fld"></div>
         </div>
       </div>
-      <div class="pbox" style="margin:0 0 10px">
+      <div class="pbox" id="paperBox" style="margin:0 0 10px">
         <div class="ptitle" id="textCompTitle">Text component</div>
         <div class="row3">
           <div class="fld"><label id="paperTypeLabel">Text paper type</label><select id="paperTypeSel" onchange="onPaperTypeChange()"><option value="">All types</option></select></div>
@@ -581,6 +603,7 @@
         <div class="fld"><label>Running waste % (per forme)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
       </div>
 
+      <div id="sheetSizeBox">
       <h2>Sheet sizes (in) — incl. cut-downs</h2>
       <div class="chips" id="ssChips">
         <label class="chip"><input type="checkbox" class="ss" value="18,25" /> 18×25</label>
@@ -596,8 +619,9 @@
         <span style="flex:0 0 auto"><label>&nbsp;</label><button type="button" onclick="addCustomSheetSize()" style="padding:9px 14px;border:1px solid var(--brand2);border-radius:10px;background:#eef4fa;color:var(--brand);font-weight:600;cursor:pointer;white-space:nowrap">➕ Add size</button></span>
       </div>
       <div class="hint" id="ssCustNote" style="margin-top:2px">Any paper size — type inches and add it as a checkbox that flows through the whole engine (imposition, printing, paper cost).</div>
+      </div><!-- /sheetSizeBox -->
 
-      <div class="pbox">
+      <div class="pbox" id="colourBox">
         <div class="ptitle">💰 Colour · plate · impression · price</div>
         <div class="prow">
           <span><label>Colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
@@ -827,6 +851,16 @@ function slipcaseGeom(H,W,D,t,ti){
   const blankH=+(2*H+D+2*ti).toFixed(2);               // front face + closed end + back face + turn-ins
   return {surface:+surface.toFixed(1),blankW,blankH};
 }
+// LARGE FORMAT (NKK sir 2026-07-23): standee / banner / flex — priced per SQ.FT of media, NOT by sheets.
+// No plates, no imposition, no signatures. cost = area(sqft) × qty × media ₹/sqft + finishing (eyelets,
+// hemming, board mount) + roller stand (roll-up standee) + design/setup, then margin. Rates are EDITABLE —
+// grounded on real jobs (3×6 ft standee ≈ ₹1,650 with roller; ~103 sqft flex banner ≈ ₹5,300 all-in) but
+// confirm with sir. This path bypasses the whole sheet engine.
+const LARGE_FORMAT_PRODUCTS=new Set(["banner","standee"]);
+const isLF=p=>LARGE_FORMAT_PRODUCTS.has(p);
+const LF_MEDIA={flex:{r:15,name:"Flex (frontlit)"},starflex:{r:22,name:"Star flex"},vinyl:{r:35,name:"Vinyl / PP"},
+  backlit:{r:50,name:"Backlit flex"},fabric:{r:45,name:"Fabric / cloth"},photo:{r:40,name:"Photo paper"}};
+const toFt=(v,unit)=> unit==="ft"?v : unit==="mm"?v/304.8 : unit==="cm"?v/30.48 : v/12;   // any unit → feet
 // DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
 const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
@@ -890,13 +924,23 @@ function onProductChange(){
   if($("ptagFields")) $("ptagFields").style.display=isPastedTag($("product").value)?"block":"none";
   // Flat embellishment panel: visible for any non-signature, non-dieline, non-slipcase product.
   const _pv=$("product").value;
-  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table";
+  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv);
   if($("flatEmbFields")) $("flatEmbFields").style.display=isFlatEmbProd?"block":"none";
+  // LARGE FORMAT: show the sq.ft panel, hide the whole sheet engine (paper / colours / sheet sizes / flat / booklet).
+  const lf=isLF(_pv);
+  if($("lfFields")) $("lfFields").style.display=lf?"block":"none";
+  ["paperBox","colourBox","sheetSizeBox"].forEach(id=>{ if($(id)) $(id).style.display=lf?"none":""; });   // restore for non-LF
+  if(lf){ ["fppFields","flatEmbFields","bookletFields","flatFields"].forEach(id=>{ if($(id)) $(id).style.display="none"; });
+    if(typeof lfMediaRate==="function") lfMediaRate();
+    if(_pv==="standee" && $("lfRoller") && (!$("lfRoller").value||$("lfRoller").value==="0")) $("lfRoller").value=900;
+    if($("unit") && $("unit").value!=="ft" && $("unit").value!=="in") $("unit").value="ft"; }
   applyMarginDefault();
   applyGangedDefault();
   applyMenuRateHint();
   onCoverChange();
 }
+// Large-format media → default ₹/sq.ft (editable). Vinyl/PP for standee, flex for banner by default.
+function lfMediaRate(){ const m=$("lfMedia")?$("lfMedia").value:"vinyl"; const r=(LF_MEDIA[m]||LF_MEDIA.vinyl).r; if($("lfRate")) $("lfRate").value=r; }
 // default wiro ₹/calendar by type (NKK sir: part wiro = 2 short pieces, saves cost vs full)
 function tcWiroDefault(){ const t=$("tcWiro")?$("tcWiro").value:"none";
   // NKK sir 2026-07-18 reconcile: 13-16 leaf table calendars run ~₹15-25/pc wire-O.
@@ -1146,6 +1190,8 @@ function computePaper(inp){
 /* ---------- read + validate ---------- */
 function run(){
   $("err").textContent=""; document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
+  // LARGE FORMAT: per-sq.ft model — skip the whole sheet engine (imposition/plates/paper) and render directly.
+  if(isLF($("product").value)){ if(!(num("W",0)>0)||!(num("H",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); $("err").textContent="Please enter: width, height (banner/standee size)."; return; } renderLF(); return; }
   const booklet=isSig($("product").value);
   const req=[["W","width"],["H","height"],["gsm","GSM"]];
   req.push(booklet?["pages","total pages"]:[null,null], booklet?["copies","quantity"]:["copies2","quantity"]);
@@ -2390,7 +2436,9 @@ const MARGIN_DEFAULT={
   catalogue:40, brochure_multi:40, annual:40,
   // packaging / dieline — mid
   envelope:20, folder:25, sleeve:25, carton_tuck:25, carton_seal:25,
-  slipcase:40
+  slipcase:40,
+  // large format — standee/banner: per-sqft media + finishing; ~30% is the trade norm
+  banner:30, standee:30
 };
 // ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
 // Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
@@ -3114,7 +3162,50 @@ function finishingMakeReady(textP,cp,p,tq,cq){
   const print=+(printText+printCover).toFixed(2);
   return {perOp,textOps,coverOps,ops:textOps+coverOps,sheets,cost:+cost.toFixed(2),print,total:+(cost+print).toFixed(2),wt:+wt.toFixed(2)};
 }
+// LARGE-FORMAT QUOTE (NKK sir 2026-07-23): area × qty × ₹/sqft + roller + eyelets + board mount + hemming +
+// design, then overhead / margin / GST like every other product. No sheets / plates / imposition. Returns the
+// same {p,q} shape combinedPrice uses, so the diagnostic sweep and the UI read it unchanged.
+function largeFormatQuote(){
+  const unit=$("unit")?$("unit").value:"ft";
+  const areaEach=Math.max(0, toFt(num("W",0),unit)*toFt(num("H",0),unit));   // sq.ft per piece
+  const qty=Math.max(1,Math.round(num("lfQty",1)));
+  const rate=num("lfRate",35), roller=num("lfRoller",0), eyelets=Math.round(num("lfEyelets",0)),
+        boardR=num("lfBoard",0), hem=num("lfHem",0), design=num("lfDesign",0);
+  const totalArea=areaEach*qty, print=totalArea*rate, board=boardR>0?totalArea*boardR:0, eyeCost=eyelets*8*qty;
+  const finishing=roller*qty + eyeCost + hem*qty + board + design;
+  const base=print+finishing;
+  const overhead=base*num("overhead",0)/100, prod=base+overhead;
+  const mPct=Math.min(Math.max(num("margin",30),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round(print),printing:Math.round(print),plates:0,packing:0,freight:0,
+    unit:grand/qty, areaEach:+areaEach.toFixed(2), totalArea:+totalArea.toFixed(1), qty,
+    print:Math.round(print),roller:Math.round(roller*qty),board:Math.round(board),eyelets:Math.round(eyeCost),hem:Math.round(hem*qty),design:Math.round(design)};
+  return {p:{margin:mPct,gst:gstPct,books:qty}, q, text:{}, cover:null, coverPlan:null, largeFormat:true};
+}
+function renderLF(){
+  LASTINP={product:$("product").value, W:num("W",0), H:num("H",0), copies:Math.max(1,Math.round(num("lfQty",1))), unit:$("unit").value, isSig:false};
+  CHOSEN=null; RESULT={largeFormat:true};
+  const x=largeFormatQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const mediaName=($("lfMedia")&&LF_MEDIA[$("lfMedia").value]||{}).name||"media";
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`Large format: <b>${LASTINP.W}×${LASTINP.H} ${LASTINP.unit}</b> = <b>${q.areaEach} sq.ft</b>/pc · ${q.qty} pc · <b>${q.totalArea} sq.ft</b> total · ${mediaName} @ ₹${num("lfRate",35)}/sq.ft`;
+  const rows=[[`Print + media (${q.totalArea} sq.ft × ₹${num("lfRate",35)})`,q.print]];
+  if(q.roller) rows.push([`Roller stand × ${q.qty}`,q.roller]);
+  if(q.eyelets) rows.push(["Eyelets",q.eyelets]);
+  if(q.board) rows.push(["Board mount",q.board]);
+  if(q.hem) rows.push(["Hemming / stitching",q.hem]);
+  if(q.design) rows.push(["Design / setup",q.design]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.qty} pc · ₹${Math.round(q.unit).toLocaleString("en-IN")}/pc</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${mediaName} · ${q.totalArea} sq.ft</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-sq.ft model — no plates/sheets. Rates editable, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
 function combinedPrice(){
+  if(typeof isLF==="function" && isLF($("product")?$("product").value:"")) return largeFormatQuote();
   // Guard: run() bails (with an on-screen "enter width/height" message) before an imposition is chosen when
   // the spec is missing a size, so CHOSEN can be null. Programmatic callers (diagnostic sweep / cost harness)
   // call combinedPrice() directly — return an explicit unpriceable marker instead of dereferencing null.
@@ -3275,7 +3366,7 @@ function parseSpec(raw){
   // NKK sir 2026-07-23: the size text keeps its original case (voiceCorrect doesn't lowercase), so the
   // separator must accept CAPITAL X and the × glyph, not just lowercase x — briefs like 8.5" X 11", 9" X 9",
   // 168 mm X 205 mm were silently unparsed → run() bailed "enter width, height". `i` flag + × cover them.
-  const sizeRe=/(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?\s*(?:x|×|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?/gi;
+  const sizeRe=/(\d+(?:\.\d+)?)\s*(mm|cm|feet|foot|ft|in|inch|inches|"|')?\s*(?:\([wh]\))?\s*(?:x|×|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(mm|cm|feet|foot|ft|in|inch|inches|"|')?\s*(?:\([wh]\))?/gi;
   const sizeMatches=[];
   for(const m of t.matchAll(sizeRe)){
     const unit=m[2]||m[4]||"", start=m.index;
@@ -3291,14 +3382,16 @@ function parseSpec(raw){
   const pickSize=closeSize||nonSheet[0]||sizeMatches[0];
   if(pickSize && f.W==null){
     f.W=pickSize.W; f.H=pickSize.H;
-    f.unit=/mm/.test(pickSize.unit)?"mm":/cm/.test(pickSize.unit)?"cm":"in";
+    f.unit=/mm/.test(pickSize.unit)?"mm":/cm/.test(pickSize.unit)?"cm":/f(?:ee|oo)?t|'/.test(pickSize.unit)?"ft":"in";
     // AI UNIT-PLAUSIBILITY (NKK sir 2026-07-23): a real finished print piece is at most ~48 in on a side
     // (the largest press/poster). If the size resolves bigger than that, an unmarked mm/cm size was almost
     // certainly read as inches — e.g. "210 x 297" → 210 in is impossible. Reinterpret in the unit that gives
     // a physical size, so the RATE (driven by area) can't explode from a unit slip. Only fires on the
     // unambiguous >48 in case; a genuine ≤48 in sheet, or an explicit mm/cm marker, is left untouched.
-    const MAX_IN=48, toIn=(v,u)=>u==="mm"?v/25.4:u==="cm"?v/2.54:v;
-    if(Math.max(toIn(f.W,f.unit),toIn(f.H,f.unit))>MAX_IN){
+    const MAX_IN=48, toIn=(v,u)=>u==="mm"?v/25.4:u==="cm"?v/2.54:u==="ft"?v*12:v;
+    // Only auto-correct when the unit was UNMARKED. An explicit marker (inch / mm / ft) is trusted — a
+    // large-format banner really is 189" / 15 ft, so it must NOT be "corrected" to mm.
+    if(!pickSize.unit && Math.max(toIn(f.W,f.unit),toIn(f.H,f.unit))>MAX_IN){
       const mmMax=Math.max(f.W,f.H)/25.4, cmMax=Math.max(f.W,f.H)/2.54;
       if(mmMax>=0.5 && mmMax<=MAX_IN){ notes.push(`unit → mm (${f.W}×${f.H} in impossible for a print piece)`); f.unit="mm"; }
       else if(cmMax>=0.5 && cmMax<=MAX_IN){ notes.push(`unit → cm (${f.W}×${f.H} in impossible; cm fits)`); f.unit="cm"; }
@@ -3494,7 +3587,8 @@ function parseSpec(raw){
     [/note\s*book|notebook|\bdiary\b/,"booklet"],
     [/wall\s*calendar/,"calendar_sheet"],[/table\s*calendar|desk\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],
     [/\bsticker\b|\blabel\b/,"insert"],
-    [/leaflet|flyer/,"leaflet"],[/poster|standee|\bbanner\b|backdrop/,"poster"],
+    [/leaflet|flyer/,"leaflet"],
+    [/standee|roll\s*[-]?\s*up/,"standee"],[/\bbanner\b|hoarding|backdrop|\bflex\b/,"banner"],[/poster/,"poster"],
     [/dangler|tent/,"dangler"],
     [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve|gift\s*wrap/,"sleeve"],[/carton|\bbox\b/,"carton_tuck"],
     [/slipcase/,"slipcase"],
@@ -3836,6 +3930,7 @@ function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
   try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
   catch(e){ $("m_price").innerHTML=html; } }
 function showPrice(){
+  if(typeof isLF==="function" && isLF($("product")?$("product").value:"")){ renderLF(); return; }   // large format has no CHOSEN
   if(!CHOSEN)return;
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
   const x=combinedPrice(),p=x.p,q=x.q,inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
@@ -4495,6 +4590,10 @@ function resetParserFields(){
   if($("coverGrade")){ if(typeof fillGradeList==="function") fillGradeList("coverGrade",""); $("coverGrade").value="__auto"; }
   if($("colpreset")) $("colpreset").value="";
   if($("coverColPreset")) $("coverColPreset").value="";
+  // Large-format fields (roller/eyelets/board/hem/design) — reset so a prior standee's roller can't leak
+  // into the next banner. lfRate/lfQty are re-set by onProductChange/lfMediaRate per product.
+  ["lfRoller","lfEyelets","lfBoard","lfHem","lfDesign"].forEach(id=>{ if($(id)) $(id).value=0; });
+  if($("lfQty")) $("lfQty").value=1;
   // SHEET-SIZE chips: restore the canonical default set. applyVoiceSpec only re-ticks these when the brief
   // NAMES sheet sizes; otherwise a row inherits the previous row's ticks (and any custom chip a prior row
   // appended lingers in the DOM), so the imposition — and the price — depended on sweep ORDER. Remove custom
