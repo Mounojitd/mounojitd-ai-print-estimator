@@ -3292,6 +3292,17 @@ function parseSpec(raw){
   if(pickSize && f.W==null){
     f.W=pickSize.W; f.H=pickSize.H;
     f.unit=/mm/.test(pickSize.unit)?"mm":/cm/.test(pickSize.unit)?"cm":"in";
+    // AI UNIT-PLAUSIBILITY (NKK sir 2026-07-23): a real finished print piece is at most ~48 in on a side
+    // (the largest press/poster). If the size resolves bigger than that, an unmarked mm/cm size was almost
+    // certainly read as inches — e.g. "210 x 297" → 210 in is impossible. Reinterpret in the unit that gives
+    // a physical size, so the RATE (driven by area) can't explode from a unit slip. Only fires on the
+    // unambiguous >48 in case; a genuine ≤48 in sheet, or an explicit mm/cm marker, is left untouched.
+    const MAX_IN=48, toIn=(v,u)=>u==="mm"?v/25.4:u==="cm"?v/2.54:v;
+    if(Math.max(toIn(f.W,f.unit),toIn(f.H,f.unit))>MAX_IN){
+      const mmMax=Math.max(f.W,f.H)/25.4, cmMax=Math.max(f.W,f.H)/2.54;
+      if(mmMax>=0.5 && mmMax<=MAX_IN){ notes.push(`unit → mm (${f.W}×${f.H} in impossible for a print piece)`); f.unit="mm"; }
+      else if(cmMax>=0.5 && cmMax<=MAX_IN){ notes.push(`unit → cm (${f.W}×${f.H} in impossible; cm fits)`); f.unit="cm"; }
+    }
     notes.push("size "+f.W+"×"+f.H+" "+f.unit+(pickSize.close?" (close)":""));
   }
   // SHEET SIZE presets to tick (e.g. "18×25" for cover, "20×30" for text)
