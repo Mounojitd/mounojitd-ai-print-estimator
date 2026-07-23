@@ -1155,15 +1155,20 @@ function run(){
   if(missing.length){ $("err").textContent="Please enter: "+missing.join(", ")+"."; return; }
   if(!sizes.length){ $("err").textContent="Tick at least one sheet size."; return; }
   const unit=$("unit").value;
-  // Binding-dependent page validation: folded sections = multiple of 4; leaf bindings = 2; mechanical = 1.
+  // Binding-dependent page count: folded sections = multiple of 4; leaf bindings = 2; mechanical = 1.
+  // NKK sir 2026-07-23: an odd count is not an error — printers complete the signature with blank leaves.
+  // Round UP to the next valid multiple, price that, and show a non-fatal note (was a hard bail that made
+  // the whole job unpriceable). The user can still change the page count or binding to override.
+  let pageRoundNote="";
   if(booklet){
     const bind=$("binding")?$("binding").value:"saddle";
     const mult=BIND_MULT[bind]||4;
     const pg=Math.round(num("pages",0));
-    if(mult>1 && pg%mult!==0){ $("pages").classList.add("bad");
-      const up=Math.ceil(pg/mult)*mult, dn=Math.floor(pg/mult)*mult;
-      $("err").textContent=`For ${BINDING_NAME[bind]||bind} binding, pages must be a multiple of ${mult}. Nearest valid: ${dn} or ${up}.`;
-      return; }
+    if(mult>1 && pg>0 && pg%mult!==0){
+      const up=Math.ceil(pg/mult)*mult;
+      $("pages").value=up;   // add blank leaves to complete the folding signature
+      pageRoundNote=`⚠ ${pg}pp isn't a valid ${BINDING_NAME[bind]||bind} count (multiple of ${mult}) — priced as <b>${up}pp</b> (${up-pg} blank${up-pg>1?"s":""} added). Edit pages or binding to change.`;
+    }
   }
   const inp={
     product_name:$("product_name").value.trim(), product:$("product").value, isSig:booklet, orientation:$("orientation").value,
@@ -1210,7 +1215,7 @@ function run(){
   // BINDING (NKK sir): auto-pick by spine unless user overrode; rate auto by pages·qty; check saddle limits.
   if(booklet){ autoBindingBySpine(inp.spineMM); inp.binding=$("binding").value;
     if(!bindingRateEdited) $("bindingRate").value=bindingRateFor(inp.binding,inp.pages,inp.copies);
-    const bc=bindingCheck(inp); if($("bindingWarn")) $("bindingWarn").innerHTML=bc.html; }
+    const bc=bindingCheck(inp); if($("bindingWarn")) $("bindingWarn").innerHTML=(pageRoundNote?`<div style="color:#a9761a;font-size:12px;margin-bottom:5px">${pageRoundNote}</div>`:"")+bc.html; }
   else if($("bindingWarn")) $("bindingWarn").innerHTML="";
   LASTINP=inp;
   const r=computePaper(inp);
