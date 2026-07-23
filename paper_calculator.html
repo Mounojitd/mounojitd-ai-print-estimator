@@ -3062,6 +3062,10 @@ function finishingMakeReady(textP,cp,p,tq,cq){
   return {perOp,textOps,coverOps,ops:textOps+coverOps,sheets,cost:+cost.toFixed(2),print,total:+(cost+print).toFixed(2),wt:+wt.toFixed(2)};
 }
 function combinedPrice(){
+  // Guard: run() bails (with an on-screen "enter width/height" message) before an imposition is chosen when
+  // the spec is missing a size, so CHOSEN can be null. Programmatic callers (diagnostic sweep / cost harness)
+  // call combinedPrice() directly — return an explicit unpriceable marker instead of dereferencing null.
+  if(!CHOSEN){ return {p:currentPriceParams(), q:{grand:0,prod:0,margin:0,paper:0,packing:0,freight:0}, text:{}, cover:null, coverPlan:null, unpriceable:true, reason:"no valid sheet size — width/height not provided"}; }
   const p=currentPriceParams(), textP=Object.assign({},p), cp=coverPlan();
   // Coating is the CLIENT's choice (NKK sir): the cover has its own coating; the inside/text coating is
   // separate — set it to None for a cover-only job, or pick a coating to also coat all the inside sheets.
