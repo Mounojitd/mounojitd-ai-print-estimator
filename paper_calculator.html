@@ -276,6 +276,7 @@
           <option value="banner">Banner / Flex (large format)</option>
           <option value="standee">Roll-up standee (large format)</option>
           <option value="lanyard">Lanyard (printed neck strap)</option>
+          <option value="pouch">Pouch (fabric / printed board)</option>
               <option value="calendar_sheet">Single-sheet calendar</option>
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
@@ -491,6 +492,37 @@
           <div class="fld"><label>Sampling / make ₹ (once)</label><input id="lanMake" type="number" step="50" value="0" oninput="showPrice()" /></div>
         </div>
         <div class="hint">Per-piece cost = (strap × width factor + printing + hardware) × qty + setup, then margin. Rates editable — confirm with sir.</div>
+      </div>
+      <div id="pouFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c9c3f;background:#f5faec">
+        <div class="ptitle" style="color:#4a6b1f">👝 Pouch — priced per piece (fabric drawstring or printed board)</div>
+        <div class="row3">
+          <div class="fld"><label>Material</label><select id="pouMedia" onchange="pouchMediaRate();showPrice()">
+            <option value="velvet" selected>Velvet fabric</option><option value="satin">Satin fabric</option><option value="canvas">Canvas / cotton</option><option value="jute">Jute</option><option value="nonwoven">Non-woven</option><option value="glamkot">Glamkot board (printed)</option><option value="artcard">Art card (printed)</option></select></div>
+          <div class="fld"><label>Material ₹ / pc</label><input id="pouMat" type="number" step="1" value="40" oninput="showPrice()" /><div class="hint">finished blank, editable</div></div>
+          <div class="fld"><label>Quantity (pieces)</label><input id="pouQty" type="number" value="1" placeholder="e.g. 500" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Decoration</label><select id="pouDecor" onchange="showPrice()">
+            <option value="foil" selected>Gold / silver foil</option><option value="screen">Screen print</option><option value="offset">Offset print (4-col)</option><option value="none">None</option></select></div>
+          <div class="fld"><label>Foil ₹ / pc</label><input id="pouFoil" type="number" step="1" value="15" oninput="showPrice()" /></div>
+          <div class="fld"><label>Foil block ₹ (once)</label><input id="pouFoilBlock" type="number" step="50" value="1500" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Screen colours</label><input id="pouColors" type="number" step="1" value="1" oninput="showPrice()" /><div class="hint">screen method only</div></div>
+          <div class="fld"><label>Ink ₹ / colour / pc</label><input id="pouInk" type="number" step="0.5" value="1.5" oninput="showPrice()" /></div>
+          <div class="fld"><label>Screen setup ₹ / colour</label><input id="pouScreen" type="number" step="10" value="150" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Offset print ₹ / pc</label><input id="pouOff" type="number" step="0.5" value="6" oninput="showPrice()" /><div class="hint">board pouch, 4-col</div></div>
+          <div class="fld"><label>Drawstring / handle ₹ / pc</label><input id="pouDraw" type="number" step="1" value="10" oninput="showPrice()" /></div>
+          <div class="fld"><label>Make / convert ₹ / pc</label><input id="pouMake" type="number" step="0.5" value="0" oninput="showPrice()" /><div class="hint">stitch (fabric) / die-cut+glue (board)</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Cutting forme ₹ (once)</label><input id="pouForme" type="number" step="50" value="0" oninput="showPrice()" /><div class="hint">board pouches</div></div>
+          <div class="fld"><label>Sampling / setup ₹ (once)</label><input id="pouSetup" type="number" step="50" value="0" oninput="showPrice()" /></div>
+          <div class="fld"></div>
+        </div>
+        <div class="hint">Per-piece cost = (material + decoration + drawstring + make) × qty + block/forme/setup, then margin. Rates editable — confirm with sir.</div>
       </div>
       <div id="dielineFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
         <div class="ptitle" id="dlTitle">📐 Dieline / converting — flat blank → die-cut → fold</div>
@@ -905,6 +937,15 @@ const LANYARD_PRODUCTS=new Set(["lanyard"]);
 const isLanyard=p=>LANYARD_PRODUCTS.has(p);
 const LANYARD_MEDIA={polyester:{r:9,name:"Polyester (screen-print)"},satin:{r:11,name:"Satin polyester"},
   tubular:{r:7,name:"Tubular"},sublimation:{r:13,name:"Sublimation (full-colour)"},eco:{r:15,name:"Eco RPET"}};
+// POUCH — per-piece converted pouch (fabric drawstring OR printed board). NOT a sheet job: priced per piece
+// (blank/material + decoration + drawstring/handle + make/convert) × qty + one-time setup, then margin.
+// Bypasses the sheet engine like lanyard/large-format. Material rate = finished blank ₹/pc (editable);
+// `fabric:true` seeds a drawstring, `fabric:false` (board) seeds die-cut converting. Trade rates, not fitted.
+const POUCH_PRODUCTS=new Set(["pouch"]);
+const isPouch=p=>POUCH_PRODUCTS.has(p);
+const POUCH_MEDIA={velvet:{r:40,name:"Velvet fabric",fabric:true},satin:{r:28,name:"Satin fabric",fabric:true},
+  canvas:{r:22,name:"Canvas / cotton",fabric:true},jute:{r:20,name:"Jute",fabric:true},nonwoven:{r:12,name:"Non-woven",fabric:true},
+  glamkot:{r:14,name:"Glamkot board (printed)",fabric:false},artcard:{r:10,name:"Art card (printed)",fabric:false}};
 // DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
 const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope","bag"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
@@ -976,21 +1017,23 @@ function onProductChange(){
   if($("ptagFields")) $("ptagFields").style.display=isPastedTag($("product").value)?"block":"none";
   // Flat embellishment panel: visible for any non-signature, non-dieline, non-slipcase product.
   const _pv=$("product").value;
-  const lan=isLanyard(_pv);
-  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan;
+  const lan=isLanyard(_pv), pou=isPouch(_pv);
+  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan && !pou;
   if($("flatEmbFields")) $("flatEmbFields").style.display=isFlatEmbProd?"block":"none";
   // LARGE FORMAT: show the sq.ft panel, hide the whole sheet engine (paper / colours / sheet sizes / flat / booklet).
   const lf=isLF(_pv);
   if($("lfFields")) $("lfFields").style.display=lf?"block":"none";
-  // LANYARD: show the per-piece panel, hide the whole sheet engine like large format.
+  // LANYARD / POUCH: show the per-piece panel, hide the whole sheet engine like large format.
   if($("lanFields")) $("lanFields").style.display=lan?"block":"none";
-  const hideSheet=lf||lan;
+  if($("pouFields")) $("pouFields").style.display=pou?"block":"none";
+  const hideSheet=lf||lan||pou;
   ["paperBox","colourBox","sheetSizeBox"].forEach(id=>{ if($(id)) $(id).style.display=hideSheet?"none":""; });   // restore for sheet products
   if(hideSheet){ ["fppFields","flatEmbFields","bookletFields","flatFields"].forEach(id=>{ if($(id)) $(id).style.display="none"; }); }
   if(lf){ if(typeof lfMediaRate==="function") lfMediaRate();
     if(_pv==="standee" && $("lfRoller") && (!$("lfRoller").value||$("lfRoller").value==="0")) $("lfRoller").value=900;
     if($("unit") && $("unit").value!=="ft" && $("unit").value!=="in") $("unit").value="ft"; }
   if(lan && typeof lanyardMediaRate==="function") lanyardMediaRate();
+  if(pou && typeof pouchMediaRate==="function") pouchMediaRate();
   applyMarginDefault();
   applyGangedDefault();
   applyMenuRateHint();
@@ -1249,6 +1292,8 @@ function run(){
   $("err").textContent=""; document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
   // LANYARD: per-piece textile model — no size/sheet needed, just quantity. Render directly.
   if(isLanyard($("product").value)){ renderLanyard(); return; }
+  // POUCH: per-piece converted model — no size/sheet needed, just quantity. Render directly.
+  if(isPouch($("product").value)){ renderPouch(); return; }
   // LARGE FORMAT: per-sq.ft model — skip the whole sheet engine (imposition/plates/paper) and render directly.
   if(isLF($("product").value)){ if(!(num("W",0)>0)||!(num("H",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); $("err").textContent="Please enter: width, height (banner/standee size)."; return; } renderLF(); return; }
   const booklet=isSig($("product").value);
@@ -3335,7 +3380,64 @@ function renderLanyard(){
     `<div class="hint" style="margin-top:8px">Per-piece textile model — no plates/sheets. Rates editable, confirm with sir.</div>`;
   ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
 }
+// POUCH quote — per-piece material + decoration + drawstring + make/convert, one-time setup, then margin.
+function pouchMediaRate(){ const m=$("pouMedia")?$("pouMedia").value:"velvet"; const spec=POUCH_MEDIA[m]||POUCH_MEDIA.velvet;
+  if($("pouMat")) $("pouMat").value=spec.r;
+  // fabric → drawstring + stitch make; board → no drawstring, die-cut + glue converting (seed a cutting forme).
+  if($("pouDraw")) $("pouDraw").value=spec.fabric?10:0;
+  if($("pouMake")) $("pouMake").value=spec.fabric?0:1.5;
+  if($("pouForme")) $("pouForme").value=spec.fabric?0:3500;
+  if($("pouDecor") && !spec.fabric && $("pouDecor").value==="foil") $("pouDecor").value="offset"; }
+function pouchQuote(){
+  const qty=Math.max(1,Math.round(num("pouQty",1)));
+  const mat=Math.max(0,num("pouMat",40));
+  const draw=Math.max(0,num("pouDraw",0));          // drawstring / handle ₹/pc
+  const make=Math.max(0,num("pouMake",0));          // stitching (fabric) or die-cut+glue (board) ₹/pc
+  const decor=$("pouDecor")?$("pouDecor").value:"foil";
+  const colors=Math.max(0,Math.round(num("pouColors",1)));
+  let decPc=0, decSetup=0, decLbl="";
+  if(decor==="foil"){ decPc=num("pouFoil",15); decSetup=num("pouFoilBlock",1500); decLbl="Gold/silver foil"; }
+  else if(decor==="screen"){ decPc=num("pouInk",1.5)*colors; decSetup=num("pouScreen",150)*colors; decLbl=`Screen print (${colors}-col)`; }
+  else if(decor==="offset"){ decPc=num("pouOff",6); decSetup=num("pouOffSetup",0); decLbl="Offset print (4-col)"; }
+  else { decLbl="No decoration"; }
+  const forme=Math.max(0,num("pouForme",0));         // cutting forme (board pouches)
+  const makeOnce=Math.max(0,num("pouSetup",0));
+  const perPc=mat+draw+make+decPc;
+  const run=perPc*qty, base=run+decSetup+forme+makeOnce;
+  const overhead=base*num("overhead",0)/100, prod=base+overhead;
+  const mPct=Math.min(Math.max(num("margin",30),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round(mat*qty),printing:Math.round(decPc*qty),plates:0,packing:0,freight:0,
+    unit:grand/qty, qty, decor, decLbl, colors,
+    material:Math.round(mat*qty), draw:Math.round(draw*qty), make:Math.round(make*qty), decoration:Math.round(decPc*qty),
+    decSetup:Math.round(decSetup), forme:Math.round(forme), setup:Math.round(makeOnce), perPc:+perPc.toFixed(2)};
+  return {p:{margin:mPct,gst:gstPct,books:qty}, q, text:{}, cover:null, coverPlan:null, pouch:true};
+}
+function renderPouch(){
+  LASTINP={product:$("product").value, copies:Math.max(1,Math.round(num("pouQty",1))), isSig:false, pouch:true};
+  CHOSEN=null; RESULT={pouch:true};
+  const x=pouchQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const mediaName=($("pouMedia")&&POUCH_MEDIA[$("pouMedia").value]||{}).name||"pouch";
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`Pouch: <b>${mediaName}</b> · ${q.decLbl} · <b>${q.qty} pc</b> · ₹${q.perPc.toFixed(2)}/pc unit cost`;
+  const rows=[[`Material (${mediaName} × ${q.qty})`,q.material]];
+  if(q.decoration) rows.push([`${q.decLbl}`,q.decoration]);
+  if(q.draw) rows.push([`Drawstring / handle × ${q.qty}`,q.draw]);
+  if(q.make) rows.push([`Make / convert × ${q.qty}`,q.make]);
+  if(q.decSetup) rows.push([q.decor==="foil"?"Foil block (one-time)":"Screen setup (one-time)",q.decSetup]);
+  if(q.forme) rows.push(["Cutting forme (one-time)",q.forme]);
+  if(q.setup) rows.push(["Sampling / setup (once)",q.setup]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.qty} pc · ₹${Math.round(q.unit).toLocaleString("en-IN")}/pc</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${mediaName} · ${q.decLbl}</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-piece pouch model — no plates/sheets. Rates editable, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
 function combinedPrice(){
+  if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")) return pouchQuote();
   if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")) return lanyardQuote();
   if(typeof isLF==="function" && isLF($("product")?$("product").value:"")) return largeFormatQuote();
   // Guard: run() bails (with an on-screen "enter width/height" message) before an imposition is chosen when
@@ -3721,6 +3823,7 @@ function parseSpec(raw){
     [/\bsticker\b|\blabel\b/,"insert"],
     [/leaflet|flyer/,"leaflet"],
     [/lanyard|neck\s*strap|badge\s*(?:strap|ribbon)/,"lanyard"],
+    [/pouch|drawstring\s*bag|potli/,"pouch"],
     [/standee|roll\s*[-]?\s*up/,"standee"],[/\bbanner\b|hoarding|backdrop|\bflex\b/,"banner"],[/poster/,"poster"],
     [/dangler|tent/,"dangler"],
     [/paper\s*bag|carry\s*bag|shopping\s*bag|\bbag\b/,"bag"],
@@ -3807,7 +3910,19 @@ function applyVoiceSpec(raw){
     notes.push("size 8.27×11.69 in (A4 portrait assumed — no trim size in brief)");
   }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
-  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); }   // per-piece products read their own qty field
+  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); }   // per-piece products read their own qty field
+  // POUCH: read material + decoration straight off the brief (per-piece model, not the sheet parser).
+  if(isPouch(f.product)){
+    const rl=String(raw||"").toLowerCase();
+    const matMap=[[/velvet/,"velvet"],[/satin/,"satin"],[/canvas|cotton/,"canvas"],[/jute/,"jute"],[/non\s*[- ]?woven/,"nonwoven"],[/glamkot|glam\s*kot/,"glamkot"],[/art\s*card|art\s*board/,"artcard"]];
+    for(const [re,v] of matMap){ if(re.test(rl) && $("pouMedia")){ $("pouMedia").value=v; if(typeof pouchMediaRate==="function") pouchMediaRate(); break; } }
+    if($("pouDecor")){
+      if(/foil|gold\s*foil|silver\s*foil|foil\s*stamp/.test(rl)) $("pouDecor").value="foil";
+      else if(/screen\s*print|screen\s*printing/.test(rl)) $("pouDecor").value="screen";
+      else if(/offset|4\s*colou?r|four\s*colou?r|cmyk|full\s*colou?r/.test(rl)) $("pouDecor").value="offset";
+    }
+    if($("pouColors") && f.cf!=null) $("pouColors").value=Math.max(1,f.cf);
+  }
   // LANYARD colour parse: "3 color printing" → screen colours. The shared colour parser only registers a
   // bare count for 4-col / 1-col, so read the count straight off the brief for any 1–6 colour lanyard.
   if(isLanyard(f.product) && $("lanColors")){
@@ -4077,6 +4192,7 @@ function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
   try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
   catch(e){ $("m_price").innerHTML=html; } }
 function showPrice(){
+  if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")){ renderPouch(); return; }   // pouch has no CHOSEN
   if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")){ renderLanyard(); return; }   // lanyard has no CHOSEN
   if(typeof isLF==="function" && isLF($("product")?$("product").value:"")){ renderLF(); return; }   // large format has no CHOSEN
   if(!CHOSEN)return;
@@ -4750,6 +4866,12 @@ function resetParserFields(){
   if($("lanMake")) $("lanMake").value=0;
   if($("lanMethod")) $("lanMethod").value="screen";
   if($("lanMedia")){ $("lanMedia").value="polyester"; if(typeof lanyardMediaRate==="function") lanyardMediaRate(); }
+  // Pouch fields — reset to defaults so a prior pouch row can't leak into the next.
+  if($("pouQty")) $("pouQty").value=1;
+  if($("pouColors")) $("pouColors").value=1;
+  if($("pouDecor")) $("pouDecor").value="foil";
+  if($("pouSetup")) $("pouSetup").value=0;
+  if($("pouMedia")){ $("pouMedia").value="velvet"; if(typeof pouchMediaRate==="function") pouchMediaRate(); }
   // SHEET-SIZE chips: restore the canonical default set. applyVoiceSpec only re-ticks these when the brief
   // NAMES sheet sizes; otherwise a row inherits the previous row's ticks (and any custom chip a prior row
   // appended lingers in the DOM), so the imposition — and the price — depended on sweep ORDER. Remove custom
