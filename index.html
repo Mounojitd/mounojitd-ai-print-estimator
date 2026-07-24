@@ -277,6 +277,7 @@
           <option value="standee">Roll-up standee (large format)</option>
           <option value="lanyard">Lanyard (printed neck strap)</option>
           <option value="pouch">Pouch (fabric / printed board)</option>
+          <option value="rigidbox">Rigid set-up box (hand-assembled)</option>
               <option value="calendar_sheet">Single-sheet calendar</option>
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
@@ -523,6 +524,36 @@
           <div class="fld"></div>
         </div>
         <div class="hint">Per-piece cost = (material + decoration + drawstring + make) × qty + block/forme/setup, then margin. Rates editable — confirm with sir.</div>
+      </div>
+      <div id="rbFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
+        <div class="ptitle" style="color:#8a6a1f">🎁 Rigid set-up box — per-piece, hand-assembled (enter L×W×H above: Width=L, Height=W)</div>
+        <div class="row3">
+          <div class="fld"><label>Box style</label><select id="rbStyle" onchange="showPrice()">
+            <option value="topbottom" selected>Top-bottom (2-piece lid+base)</option><option value="traylid">Tray + lid</option><option value="shoulder">Shoulder / neck box</option><option value="slider">Slider / drawer</option><option value="magnetic">Magnetic flap</option></select></div>
+          <div class="fld"><label>Box depth H (above unit)</label><input id="rbH" type="number" step="0.5" value="0" oninput="rigidBoxApplySeeds();showPrice()" /><div class="hint">L=Width field, W=Height field, H here</div></div>
+          <div class="fld"><label>Quantity (pieces)</label><input id="rbQty" type="number" value="1" placeholder="e.g. 150" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Greyboard ₹ / sq.in</label><input id="rbBoard" type="number" step="0.01" value="0.174" oninput="showPrice()" /><div class="hint">~₹25/sqft, editable</div></div>
+          <div class="fld"><label>Outer wrap+print ₹ / sq.in</label><input id="rbWrap" type="number" step="0.01" value="0.14" oninput="showPrice()" /></div>
+          <div class="fld"><label>Inner lining</label><select id="rbLined" onchange="showPrice()"><option value="yes" selected>Lined</option><option value="no">No lining</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Lining ₹ / sq.in</label><input id="rbLining" type="number" step="0.01" value="0.06" oninput="showPrice()" /></div>
+          <div class="fld"><label>Lid depth (in, lidded styles)</label><input id="rbLidH" type="number" step="0.25" value="0" oninput="showPrice()" /><div class="hint">auto ~40% of H</div></div>
+          <div class="fld"><label>Box-making labour ₹ / pc</label><input id="rbLabour" type="number" step="5" value="0" oninput="showPrice()" /><div class="hint">auto by size, editable</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Foiling</label><select id="rbFoil" onchange="showPrice()"><option value="no" selected>None</option><option value="yes">Foil (gold/silver)</option></select></div>
+          <div class="fld"><label>Foil ₹ / pc</label><input id="rbFoilRate" type="number" step="1" value="12" oninput="showPrice()" /></div>
+          <div class="fld"><label>Foil block ₹ (once)</label><input id="rbFoilBlock" type="number" step="50" value="1200" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Partition / insert ₹ / pc</label><input id="rbPartition" type="number" step="5" value="0" oninput="showPrice()" /></div>
+          <div class="fld"><label>Cutting forme ₹ (once)</label><input id="rbForme" type="number" step="50" value="0" oninput="showPrice()" /></div>
+          <div class="fld"><label>Sampling ₹ (once)</label><input id="rbSample" type="number" step="50" value="0" oninput="showPrice()" /></div>
+        </div>
+        <div class="hint">Per-piece = (board + wrap+print + lining + labour + partition + foil) × qty + block/forme/sample, then margin. Board area seeded from L×W×H; all rates editable — confirm with sir.</div>
       </div>
       <div id="dielineFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
         <div class="ptitle" id="dlTitle">📐 Dieline / converting — flat blank → die-cut → fold</div>
@@ -946,6 +977,15 @@ const isPouch=p=>POUCH_PRODUCTS.has(p);
 const POUCH_MEDIA={velvet:{r:40,name:"Velvet fabric",fabric:true},satin:{r:28,name:"Satin fabric",fabric:true},
   canvas:{r:22,name:"Canvas / cotton",fabric:true},jute:{r:20,name:"Jute",fabric:true},nonwoven:{r:12,name:"Non-woven",fabric:true},
   glamkot:{r:14,name:"Glamkot board (printed)",fabric:false},artcard:{r:10,name:"Art card (printed)",fabric:false}};
+// RIGID SET-UP BOX — hand-assembled greyboard box wrapped in printed/special paper. NOT a folding carton and
+// NOT a sheet job: priced per piece as a component build-up (board carcass + outer wrap+print + inner lining +
+// foiling + box-making labour), seeded from L×W×H geometry, then margin. Bypasses the sheet engine like pouch.
+// Unit rates are defensible economy-rigid-box trade values (greyboard ~Rs.25/sqft, art-paper wrap), NOT fitted.
+const RIGIDBOX_PRODUCTS=new Set(["rigidbox"]);
+const isRigidBox=p=>RIGIDBOX_PRODUCTS.has(p);
+const RIGIDBOX_STYLES={topbottom:{name:"Top-bottom (2-piece lid+base)",lid:true,mult:1},
+  traylid:{name:"Tray + lid",lid:true,mult:1},slider:{name:"Slider / drawer",lid:false,mult:1.9},
+  magnetic:{name:"Magnetic flap",lid:false,mult:1.5},shoulder:{name:"Shoulder / neck box",lid:true,mult:1}};
 // DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
 const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope","bag"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
@@ -1017,16 +1057,17 @@ function onProductChange(){
   if($("ptagFields")) $("ptagFields").style.display=isPastedTag($("product").value)?"block":"none";
   // Flat embellishment panel: visible for any non-signature, non-dieline, non-slipcase product.
   const _pv=$("product").value;
-  const lan=isLanyard(_pv), pou=isPouch(_pv);
-  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan && !pou;
+  const lan=isLanyard(_pv), pou=isPouch(_pv), rb=isRigidBox(_pv);
+  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan && !pou && !rb;
   if($("flatEmbFields")) $("flatEmbFields").style.display=isFlatEmbProd?"block":"none";
   // LARGE FORMAT: show the sq.ft panel, hide the whole sheet engine (paper / colours / sheet sizes / flat / booklet).
   const lf=isLF(_pv);
   if($("lfFields")) $("lfFields").style.display=lf?"block":"none";
-  // LANYARD / POUCH: show the per-piece panel, hide the whole sheet engine like large format.
+  // LANYARD / POUCH / RIGID BOX: show the per-piece panel, hide the whole sheet engine like large format.
   if($("lanFields")) $("lanFields").style.display=lan?"block":"none";
   if($("pouFields")) $("pouFields").style.display=pou?"block":"none";
-  const hideSheet=lf||lan||pou;
+  if($("rbFields")) $("rbFields").style.display=rb?"block":"none";
+  const hideSheet=lf||lan||pou||rb;
   ["paperBox","colourBox","sheetSizeBox"].forEach(id=>{ if($(id)) $(id).style.display=hideSheet?"none":""; });   // restore for sheet products
   if(hideSheet){ ["fppFields","flatEmbFields","bookletFields","flatFields"].forEach(id=>{ if($(id)) $(id).style.display="none"; }); }
   if(lf){ if(typeof lfMediaRate==="function") lfMediaRate();
@@ -1034,6 +1075,7 @@ function onProductChange(){
     if($("unit") && $("unit").value!=="ft" && $("unit").value!=="in") $("unit").value="ft"; }
   if(lan && typeof lanyardMediaRate==="function") lanyardMediaRate();
   if(pou && typeof pouchMediaRate==="function") pouchMediaRate();
+  if(rb && typeof rigidBoxApplySeeds==="function") rigidBoxApplySeeds();
   applyMarginDefault();
   applyGangedDefault();
   applyMenuRateHint();
@@ -1294,6 +1336,11 @@ function run(){
   if(isLanyard($("product").value)){ renderLanyard(); return; }
   // POUCH: per-piece converted model — no size/sheet needed, just quantity. Render directly.
   if(isPouch($("product").value)){ renderPouch(); return; }
+  // RIGID BOX: per-piece hand-assembled model — needs L×W×H (width, height, box depth). Render directly.
+  if(isRigidBox($("product").value)){
+    if(!(num("W",0)>0)||!(num("H",0)>0)||!(num("rbH",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); if($("rbH"))$("rbH").classList.add("bad"); $("err").textContent="Please enter box length, width and depth (L=width, W=height, H=box depth)."; return; }
+    rigidBoxApplySeeds(); renderRigidBox(); return;
+  }
   // LARGE FORMAT: per-sq.ft model — skip the whole sheet engine (imposition/plates/paper) and render directly.
   if(isLF($("product").value)){ if(!(num("W",0)>0)||!(num("H",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); $("err").textContent="Please enter: width, height (banner/standee size)."; return; } renderLF(); return; }
   const booklet=isSig($("product").value);
@@ -2558,7 +2605,11 @@ const MARGIN_DEFAULT={
   // paper bag — converting; mid margin
   bag:30,
   // lanyard — traded/converting textile item, per-piece; trade norm ~30%
-  lanyard:30
+  lanyard:30,
+  // pouch — per-piece converted item; mid margin
+  pouch:30,
+  // rigid set-up box — premium hand-assembled packaging; higher margin like slipcase
+  rigidbox:40
 };
 // ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
 // Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
@@ -3436,7 +3487,75 @@ function renderPouch(){
     `<div class="hint" style="margin-top:8px">Per-piece pouch model — no plates/sheets. Rates editable, confirm with sir.</div>`;
   ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
 }
+// RIGID BOX quote — per-piece component build-up seeded from L×W×H geometry, then margin. No sheets/plates.
+function rigidLabourSeed(maxDim){ return maxDim<=6?15 : maxDim<=10?30 : maxDim<=16?50 : 80; }   // hand-assembly ₹/pc by size
+function rigidBoxApplySeeds(){   // seed labour + lid depth from the entered dimensions (all editable after)
+  const u=$("unit")?$("unit").value:"in", toI=v=>u==="mm"?v/25.4:u==="cm"?v/2.54:u==="ft"?v*12:v;
+  const L=toI(num("W",0)), W=toI(num("H",0)), H=toI(num("rbH",0));
+  const maxDim=Math.max(L,W,H);
+  if($("rbLabour") && (!$("rbLabour").value||+$("rbLabour").value===0)) $("rbLabour").value=rigidLabourSeed(maxDim||10);
+  if($("rbLidH") && (!$("rbLidH").value||+$("rbLidH").value===0) && H>0) $("rbLidH").value=+Math.max(1.25,H*0.4).toFixed(2);
+}
+function rigidBoxQuote(){
+  const u=$("unit")?$("unit").value:"in", toI=v=>u==="mm"?v/25.4:u==="cm"?v/2.54:u==="ft"?v*12:v;
+  const L=Math.max(0,toI(num("W",0))), W=Math.max(0,toI(num("H",0))), H=Math.max(0,toI(num("rbH",0)));
+  const qty=Math.max(1,Math.round(num("rbQty",1)));
+  const style=$("rbStyle")?$("rbStyle").value:"topbottom"; const sp=RIGIDBOX_STYLES[style]||RIGIDBOX_STYLES.topbottom;
+  const lidH=Math.max(0,num("rbLidH",Math.max(1.25,H*0.4)));
+  // board area (sq.in) — base tray always; lid adds for lidded styles; open styles use a multiplier.
+  const base = L*W + 2*H*(L+W);
+  let boardArea;
+  if(sp.lid){ const lid = L*W + 2*lidH*(L+W); boardArea = base + lid; }
+  else { boardArea = base * sp.mult; }
+  boardArea = Math.max(0, boardArea);
+  const boardR=num("rbBoard",0.174), wrapR=num("rbWrap",0.14), linR=num("rbLining",0.06);
+  const lined = $("rbLined") ? $("rbLined").value!=="no" : true;
+  const boardCost = boardArea*boardR;
+  const wrapCost = boardArea*1.10*wrapR;                    // +10% turn-in/overlap
+  const liningCost = lined ? boardArea*1.05*linR : 0;
+  const labour = Math.max(0,num("rbLabour",rigidLabourSeed(Math.max(L,W,H)||10)));
+  const partition = Math.max(0,num("rbPartition",0));
+  const foil = $("rbFoil") && $("rbFoil").value!=="no" ? num("rbFoilRate",12) : 0;
+  const foilBlock = foil>0 ? num("rbFoilBlock",1200) : 0;
+  const forme = Math.max(0,num("rbForme",0));
+  const sampleOnce = Math.max(0,num("rbSample",0));
+  const perPc = boardCost+wrapCost+liningCost+labour+partition+foil;
+  const run = perPc*qty, base$ = run + foilBlock + forme + sampleOnce;
+  const overhead=base$*num("overhead",0)/100, prod=base$+overhead;
+  const mPct=Math.min(Math.max(num("margin",40),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round((boardCost+wrapCost+liningCost)*qty),printing:Math.round(wrapCost*qty),plates:0,packing:0,freight:0,
+    unit:grand/qty, qty, style:sp.name, boardArea:+boardArea.toFixed(0), L:+L.toFixed(1),W:+W.toFixed(1),H:+H.toFixed(1),
+    board:Math.round(boardCost*qty), wrap:Math.round(wrapCost*qty), lining:Math.round(liningCost*qty),
+    labour:Math.round(labour*qty), partition:Math.round(partition*qty), foil:Math.round(foil*qty),
+    foilBlock:Math.round(foilBlock), forme:Math.round(forme), sample:Math.round(sampleOnce), perPc:+perPc.toFixed(2)};
+  return {p:{margin:mPct,gst:gstPct,books:qty}, q, text:{}, cover:null, coverPlan:null, rigidbox:true};
+}
+function renderRigidBox(){
+  LASTINP={product:$("product").value, copies:Math.max(1,Math.round(num("rbQty",1))), isSig:false, rigidbox:true};
+  CHOSEN=null; RESULT={rigidbox:true};
+  const x=rigidBoxQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`Rigid box: <b>${q.style}</b> · ${q.L}×${q.W}×${q.H} in · board ${q.boardArea} sq.in/pc · <b>${q.qty} pc</b> · ₹${q.perPc.toFixed(2)}/pc unit cost`;
+  const rows=[[`Greyboard carcass (${q.boardArea} sq.in × ${q.qty})`,q.board],[`Outer wrap + print`,q.wrap]];
+  if(q.lining) rows.push([`Inner lining`,q.lining]);
+  rows.push([`Box-making labour × ${q.qty}`,q.labour]);
+  if(q.partition) rows.push([`Partition / insert × ${q.qty}`,q.partition]);
+  if(q.foil) rows.push([`Foiling × ${q.qty}`,q.foil]);
+  if(q.foilBlock) rows.push(["Foil block (one-time)",q.foilBlock]);
+  if(q.forme) rows.push(["Cutting forme (one-time)",q.forme]);
+  if(q.sample) rows.push(["Sampling (one-time)",q.sample]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.qty} pc · ₹${Math.round(q.unit).toLocaleString("en-IN")}/pc</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${q.style} · ${q.L}×${q.W}×${q.H} in</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-piece rigid-box build-up — hand-assembled, no plates/sheets. Rates editable, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
 function combinedPrice(){
+  if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")) return rigidBoxQuote();
   if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")) return pouchQuote();
   if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")) return lanyardQuote();
   if(typeof isLF==="function" && isLF($("product")?$("product").value:"")) return largeFormatQuote();
@@ -3827,6 +3946,7 @@ function parseSpec(raw){
     [/standee|roll\s*[-]?\s*up/,"standee"],[/\bbanner\b|hoarding|backdrop|\bflex\b/,"banner"],[/poster/,"poster"],
     [/dangler|tent/,"dangler"],
     [/paper\s*bag|carry\s*bag|shopping\s*bag|\bbag\b/,"bag"],
+    [/rigid\s*box|set[- ]?up\s*box|hard\s*case\s*box|hardcase\s*(?:slider|box)|gift\s*box|magnetic\s*(?:flap\s*)?box|slider\s*box|drawer\s*box|shoulder\s*box|neck\s*box|telescop\w*\s*box|top\s*(?:and\s*)?bottom\s*box|two\s*[- ]?piece\s*box/,"rigidbox"],
     [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve|gift\s*wrap/,"sleeve"],[/carton|\bbox\b/,"carton_tuck"],
     [/slipcase/,"slipcase"],
     [/menu(?:\s*card)?|\bticket\b/,"card"],
@@ -3910,7 +4030,27 @@ function applyVoiceSpec(raw){
     notes.push("size 8.27×11.69 in (A4 portrait assumed — no trim size in brief)");
   }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
-  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); }   // per-piece products read their own qty field
+  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); if(isRigidBox(f.product)) setV("rbQty",f.copies); }   // per-piece products read their own qty field
+  // RIGID BOX: pull box depth (3rd dimension) + style + foil straight off the brief; L,W already in W/H fields.
+  if(isRigidBox(f.product)){
+    const rl=String(raw||"").toLowerCase();
+    // "12 x 8 x 4" — a 3-number size means the 3rd is the box depth (H).
+    const m3=rl.match(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/);
+    if(m3 && $("rbH")) $("rbH").value=+m3[3];
+    if($("rbStyle")){
+      if(/slider|drawer|hardcase\s*slider/.test(rl)) $("rbStyle").value="slider";
+      else if(/magnetic/.test(rl)) $("rbStyle").value="magnetic";
+      else if(/shoulder|neck\s*box/.test(rl)) $("rbStyle").value="shoulder";
+      else if(/tray/.test(rl)) $("rbStyle").value="traylid";
+      else if(/top\s*(?:and\s*)?bottom|two\s*[- ]?piece/.test(rl)) $("rbStyle").value="topbottom";
+    }
+    if($("rbFoil") && /foil/.test(rl)) $("rbFoil").value="yes";
+    if($("rbPartition") && /partition|insert|divider/.test(rl) && (!$("rbPartition").value||+$("rbPartition").value===0)) $("rbPartition").value=15;
+    // onProductChange already fired the seed while dims were still 0 (fallback labour). Clear the auto-seeded
+    // labour/lid so the seed re-derives from the NOW-known L×W×H instead of the 0-dimension fallback.
+    if($("rbLabour")) $("rbLabour").value=0; if($("rbLidH")) $("rbLidH").value=0;
+    if(typeof rigidBoxApplySeeds==="function") rigidBoxApplySeeds();
+  }
   // POUCH: read material + decoration straight off the brief (per-piece model, not the sheet parser).
   if(isPouch(f.product)){
     const rl=String(raw||"").toLowerCase();
@@ -4192,6 +4332,7 @@ function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
   try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
   catch(e){ $("m_price").innerHTML=html; } }
 function showPrice(){
+  if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")){ if(num("W",0)>0&&num("H",0)>0&&num("rbH",0)>0) renderRigidBox(); return; }   // rigid box has no CHOSEN
   if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")){ renderPouch(); return; }   // pouch has no CHOSEN
   if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")){ renderLanyard(); return; }   // lanyard has no CHOSEN
   if(typeof isLF==="function" && isLF($("product")?$("product").value:"")){ renderLF(); return; }   // large format has no CHOSEN
@@ -4872,6 +5013,17 @@ function resetParserFields(){
   if($("pouDecor")) $("pouDecor").value="foil";
   if($("pouSetup")) $("pouSetup").value=0;
   if($("pouMedia")){ $("pouMedia").value="velvet"; if(typeof pouchMediaRate==="function") pouchMediaRate(); }
+  // Rigid-box fields — reset so a prior box (depth/labour/lid/foil/partition) can't leak into the next.
+  if($("rbQty")) $("rbQty").value=1;
+  if($("rbH")) $("rbH").value=0;
+  if($("rbLidH")) $("rbLidH").value=0;
+  if($("rbLabour")) $("rbLabour").value=0;
+  if($("rbPartition")) $("rbPartition").value=0;
+  if($("rbFoil")) $("rbFoil").value="no";
+  if($("rbStyle")) $("rbStyle").value="topbottom";
+  if($("rbLined")) $("rbLined").value="yes";
+  if($("rbForme")) $("rbForme").value=0;
+  if($("rbSample")) $("rbSample").value=0;
   // SHEET-SIZE chips: restore the canonical default set. applyVoiceSpec only re-ticks these when the brief
   // NAMES sheet sizes; otherwise a row inherits the previous row's ticks (and any custom chip a prior row
   // appended lingers in the DOM), so the imposition — and the price — depended on sweep ORDER. Remove custom
