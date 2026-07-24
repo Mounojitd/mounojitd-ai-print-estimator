@@ -5141,6 +5141,11 @@ function priceAuditRecord(rec){
   rec.frt   = Math.round(q.freight||0);
   rec.mgn   = Math.round(q.margin||0);
   rec.gapPct = rec.nk>0 ? Math.round((rec.est-rec.nk)/rec.nk*100) : "";
+  // MENU-RATE quote (sir's per-piece rate card + job minimum) — the APPLICABLE sell price for commodity
+  // short runs (cards/letterheads/tags), which sir prices off the rate card, not the plate-loaded cost quote.
+  const _mr=parseFloat(($("flatRatePc")||{}).value)||0, _mn=parseFloat(($("flatRateMin")||{}).value)||0;
+  rec.menu = (_mr>0 && rec.qty>0) ? Math.round(Math.max(_mr*rec.qty, _mn)) : 0;
+  rec.menuGapPct = (rec.menu>0 && rec.nk>0) ? Math.round((rec.menu-rec.nk)/rec.nk*100) : null;
   rec.product = $("product")?$("product").value:"";
   rec.margin  = $("margin")?$("margin").value:"";
   rec.ganged  = $("ganged")&&$("ganged").checked?"Y":"";
@@ -5175,6 +5180,7 @@ const DX_LABEL={
   BASIS_PERPIECE:"Per-lot / per-piece mismatch",
   NO_AMOUNT:"No recorded amount to compare",
   ALIGNED:"Aligned with recorded price",
+  MENU_ALIGNED:"Aligned with sir's menu rate",
   SHORT_RUN_LOADING:"Short-run press-cost loading",
   EMBELLISH_MISSING:"Embellishment in spec not costed",
   MULTI_ITEM:"Multi-item job — one component priced",
@@ -5203,12 +5209,22 @@ function diagnoseRecord(rec){
   if(nk<=0)            return set("NO_AMOUNT","high","n/a","no recorded price on this record");
   // ---- 2) aligned ----
   if(gap!=null && Math.abs(gap)<15) return set("ALIGNED","high","aligned",`gap ${gap>=0?"+":""}${gap}% within ±15%`);
+  // ---- 2b) aligned to sir's MENU RATE (commodity short runs) ----
+  // For cards/letterheads/tags sir quotes off his per-piece rate card, not the plate-loaded cost quote. When the
+  // menu-rate quote reconciles to the recorded ₹ (and the cost quote didn't), the row is NOT a mispricing — the
+  // model just used the wrong basis. Classify as menu-aligned so it stops showing as a false under/over-quote.
+  const menuGap=(rec.menuGapPct==null)?null:Number(rec.menuGapPct);
+  if(menuGap!=null && Math.abs(menuGap)<15){
+    const dir = gap==null?"n/a":(gap<0?"under":"over");
+    return set("MENU_ALIGNED","high",dir,`menu rate ₹${rec.menu} vs recorded ₹${nk} = ${menuGap>=0?"+":""}${menuGap}% (cost quote ${gap>=0?"+":""}${gap}% used wrong basis)`);
+  }
   // ---- component-derived signals ----
   const plate=Number(rec.plate)||0, emb=Number(rec.emb)||0;
   const plateShare=est>0?plate/est:0;                       // fixed press cost (plates + make-ready) as a share of total
-  const isConverting=/^(carton_|sleeve$|folder$)/.test(rec.product) || /\b(box|carton|tuck|mono ?carton|die ?cut)\b/.test(brief);
+  const isConverting=/^(carton_|sleeve$|folder$|envelope$|bag$)/.test(rec.product) || /\b(box|carton|tuck|mono ?carton|die ?cut|envelope|paper ?bag|carry ?bag)\b/.test(brief);
   const wantsEmb=/\b(gold|foil|silver|emboss|deboss|spot ?uv|spot-uv|metallic|foiling|blocking)\b/.test(brief);
-  const isMultiItem=(/\bcard\b/.test(brief)&&/\benvelope\b/.test(brief)) || /\b(\w+)\s+and\s+(\w+)\b.*\b(printing|color|colour)\b.*,.*\b(printing|color|colour)\b/.test(brief) || /\benvelope\b.*\bcard\b/.test(brief);
+  // multi-item = a bundled card+envelope OR an explicit "N types / N designs / N variants" (e.g. "leaflet 2 types")
+  const isMultiItem=(/\bcard\b/.test(brief)&&/\benvelope\b/.test(brief)) || /\b(\w+)\s+and\s+(\w+)\b.*\b(printing|color|colour)\b.*,.*\b(printing|color|colour)\b/.test(brief) || /\benvelope\b.*\bcard\b/.test(brief) || /\b([2-9])\s*(?:types?|designs?|variants?|kinds?|sets?|versions?)\b/.test(brief) || /\b(?:two|three|four|five)\s*(?:types?|designs?|variants?)\b/.test(brief);
   // ---- 3) under-quote branch (est below recorded) ----
   if(gap!=null && gap<=-15){
     if(isConverting)  return set("CONVERTING_UNDER","med","under",`product=${rec.product}; die/assembly not fully modeled (gap ${gap}%)`);
