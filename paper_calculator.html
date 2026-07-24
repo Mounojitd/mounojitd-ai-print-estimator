@@ -275,6 +275,7 @@
               <option value="card">Visiting / Greeting card</option>
           <option value="banner">Banner / Flex (large format)</option>
           <option value="standee">Roll-up standee (large format)</option>
+          <option value="lanyard">Lanyard (printed neck strap)</option>
               <option value="calendar_sheet">Single-sheet calendar</option>
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
@@ -464,6 +465,32 @@
           <div class="fld"></div>
         </div>
         <div class="hint">No plates / sheets / imposition. Cost = area × qty × ₹/sq.ft + roller + eyelets + board + hemming + design, then margin. Rates editable — confirm with sir.</div>
+      </div>
+      <div id="lanFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c9c3f;background:#f5faec">
+        <div class="ptitle" style="color:#4a6b1f">🎗 Lanyard — priced per piece (no sheet / size needed)</div>
+        <div class="row3">
+          <div class="fld"><label>Material</label><select id="lanMedia" onchange="lanyardMediaRate();showPrice()">
+            <option value="polyester" selected>Polyester (screen-print)</option><option value="satin">Satin polyester</option><option value="tubular">Tubular</option><option value="sublimation">Sublimation (full-colour)</option><option value="eco">Eco RPET</option></select></div>
+          <div class="fld"><label>Strap ₹ / pc</label><input id="lanStrap" type="number" step="0.5" value="9" oninput="showPrice()" /><div class="hint">blank webbing, editable</div></div>
+          <div class="fld"><label>Quantity (pieces)</label><input id="lanQty" type="number" value="1" placeholder="e.g. 500" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Width (mm)</label><input id="lanWidth" type="number" step="1" value="20" oninput="showPrice()" /><div class="hint">10 / 15 / 20 / 25 mm</div></div>
+          <div class="fld"><label>Print method</label><select id="lanMethod" onchange="showPrice()">
+            <option value="screen" selected>Screen print</option><option value="sublim">Dye-sublimation</option></select></div>
+          <div class="fld"><label>Print sides</label><select id="lanSides" onchange="showPrice()"><option value="1" selected>Single side</option><option value="2">Double side</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Colours (screen)</label><input id="lanColors" type="number" step="1" value="1" oninput="showPrice()" /><div class="hint">ignored for sublimation</div></div>
+          <div class="fld"><label>Ink ₹ / colour / pc</label><input id="lanInk" type="number" step="0.5" value="1.5" oninput="showPrice()" /></div>
+          <div class="fld"><label>Screen setup ₹ / colour</label><input id="lanScreen" type="number" step="10" value="150" oninput="showPrice()" /><div class="hint">one-time per screen</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Hardware ₹ / pc</label><input id="lanHw" type="number" step="0.5" value="2.5" oninput="showPrice()" /><div class="hint">J-hook / clip / breakaway / holder</div></div>
+          <div class="fld"><label>Sublim. transfer setup ₹</label><input id="lanPlate" type="number" step="50" value="300" oninput="showPrice()" /><div class="hint">one-time (sublimation only)</div></div>
+          <div class="fld"><label>Sampling / make ₹ (once)</label><input id="lanMake" type="number" step="50" value="0" oninput="showPrice()" /></div>
+        </div>
+        <div class="hint">Per-piece cost = (strap × width factor + printing + hardware) × qty + setup, then margin. Rates editable — confirm with sir.</div>
       </div>
       <div id="dielineFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
         <div class="ptitle" id="dlTitle">📐 Dieline / converting — flat blank → die-cut → fold</div>
@@ -871,6 +898,13 @@ const isLF=p=>LARGE_FORMAT_PRODUCTS.has(p);
 const LF_MEDIA={flex:{r:15,name:"Flex (frontlit)"},starflex:{r:22,name:"Star flex"},vinyl:{r:35,name:"Vinyl / PP"},
   backlit:{r:50,name:"Backlit flex"},fabric:{r:45,name:"Fabric / cloth"},photo:{r:40,name:"Photo paper"}};
 const toFt=(v,unit)=> unit==="ft"?v : unit==="mm"?v/304.8 : unit==="cm"?v/30.48 : v/12;   // any unit → feet
+// LANYARD — per-piece printed textile strap. NOT a sheet job: priced per piece (blank strap × width factor
+// + printing + hardware) with a one-time screen/transfer setup, then margin. Bypasses the whole sheet engine
+// like large format does. Blank strap ₹/pc by material (editable); calibrated to trade rates, not fitted.
+const LANYARD_PRODUCTS=new Set(["lanyard"]);
+const isLanyard=p=>LANYARD_PRODUCTS.has(p);
+const LANYARD_MEDIA={polyester:{r:9,name:"Polyester (screen-print)"},satin:{r:11,name:"Satin polyester"},
+  tubular:{r:7,name:"Tubular"},sublimation:{r:13,name:"Sublimation (full-colour)"},eco:{r:15,name:"Eco RPET"}};
 // DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
 const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope","bag"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
@@ -942,16 +976,21 @@ function onProductChange(){
   if($("ptagFields")) $("ptagFields").style.display=isPastedTag($("product").value)?"block":"none";
   // Flat embellishment panel: visible for any non-signature, non-dieline, non-slipcase product.
   const _pv=$("product").value;
-  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv);
+  const lan=isLanyard(_pv);
+  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan;
   if($("flatEmbFields")) $("flatEmbFields").style.display=isFlatEmbProd?"block":"none";
   // LARGE FORMAT: show the sq.ft panel, hide the whole sheet engine (paper / colours / sheet sizes / flat / booklet).
   const lf=isLF(_pv);
   if($("lfFields")) $("lfFields").style.display=lf?"block":"none";
-  ["paperBox","colourBox","sheetSizeBox"].forEach(id=>{ if($(id)) $(id).style.display=lf?"none":""; });   // restore for non-LF
-  if(lf){ ["fppFields","flatEmbFields","bookletFields","flatFields"].forEach(id=>{ if($(id)) $(id).style.display="none"; });
-    if(typeof lfMediaRate==="function") lfMediaRate();
+  // LANYARD: show the per-piece panel, hide the whole sheet engine like large format.
+  if($("lanFields")) $("lanFields").style.display=lan?"block":"none";
+  const hideSheet=lf||lan;
+  ["paperBox","colourBox","sheetSizeBox"].forEach(id=>{ if($(id)) $(id).style.display=hideSheet?"none":""; });   // restore for sheet products
+  if(hideSheet){ ["fppFields","flatEmbFields","bookletFields","flatFields"].forEach(id=>{ if($(id)) $(id).style.display="none"; }); }
+  if(lf){ if(typeof lfMediaRate==="function") lfMediaRate();
     if(_pv==="standee" && $("lfRoller") && (!$("lfRoller").value||$("lfRoller").value==="0")) $("lfRoller").value=900;
     if($("unit") && $("unit").value!=="ft" && $("unit").value!=="in") $("unit").value="ft"; }
+  if(lan && typeof lanyardMediaRate==="function") lanyardMediaRate();
   applyMarginDefault();
   applyGangedDefault();
   applyMenuRateHint();
@@ -1208,6 +1247,8 @@ function computePaper(inp){
 /* ---------- read + validate ---------- */
 function run(){
   $("err").textContent=""; document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
+  // LANYARD: per-piece textile model — no size/sheet needed, just quantity. Render directly.
+  if(isLanyard($("product").value)){ renderLanyard(); return; }
   // LARGE FORMAT: per-sq.ft model — skip the whole sheet engine (imposition/plates/paper) and render directly.
   if(isLF($("product").value)){ if(!(num("W",0)>0)||!(num("H",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); $("err").textContent="Please enter: width, height (banner/standee size)."; return; } renderLF(); return; }
   const booklet=isSig($("product").value);
@@ -2470,7 +2511,9 @@ const MARGIN_DEFAULT={
   // large format — standee/banner: per-sqft media + finishing; ~30% is the trade norm
   banner:30, standee:30,
   // paper bag — converting; mid margin
-  bag:30
+  bag:30,
+  // lanyard — traded/converting textile item, per-piece; trade norm ~30%
+  lanyard:30
 };
 // ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
 // Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
@@ -3245,7 +3288,55 @@ function renderLF(){
     `<div class="hint" style="margin-top:8px">Per-sq.ft model — no plates/sheets. Rates editable, confirm with sir.</div>`;
   ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
 }
+// LANYARD quote — per-piece strap + printing + hardware, one-time setup, then margin. No sheets/plates.
+function lanyardMediaRate(){ const m=$("lanMedia")?$("lanMedia").value:"polyester"; const r=(LANYARD_MEDIA[m]||LANYARD_MEDIA.polyester).r; if($("lanStrap")) $("lanStrap").value=r; }
+function lanyardQuote(){
+  const qty=Math.max(1,Math.round(num("lanQty",1)));
+  const widthMM=Math.max(5,num("lanWidth",20));
+  const strapR=Math.max(0,num("lanStrap",9))*(widthMM/20);        // wider webbing costs proportionally more
+  const sides=Math.max(1,Math.round(num("lanSides",1)));
+  const method=$("lanMethod")?$("lanMethod").value:"screen";
+  const colors=Math.max(0,Math.round(num("lanColors",1)));
+  const hw=Math.max(0,num("lanHw",2.5));                          // hook / clip / breakaway / holder, ₹/pc
+  let inkPc=0, setup=0;
+  if(method==="screen"){ inkPc=num("lanInk",1.5)*colors*sides; setup=num("lanScreen",150)*colors*sides; }
+  else { inkPc=0; setup=num("lanPlate",300); }                    // sublimation: full colour in strap rate, one transfer setup
+  const makeOnce=Math.max(0,num("lanMake",0));
+  const perPc=strapR+inkPc+hw;
+  const run=perPc*qty, base=run+setup+makeOnce;
+  const overhead=base*num("overhead",0)/100, prod=base+overhead;
+  const mPct=Math.min(Math.max(num("margin",30),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round(strapR*qty),printing:Math.round(inkPc*qty),plates:0,packing:0,freight:0,
+    unit:grand/qty, qty, widthMM, sides, method, colors,
+    strap:Math.round(strapR*qty), print:Math.round(inkPc*qty), hardware:Math.round(hw*qty),
+    setup:Math.round(setup), make:Math.round(makeOnce), perPc:+perPc.toFixed(2)};
+  return {p:{margin:mPct,gst:gstPct,books:qty}, q, text:{}, cover:null, coverPlan:null, lanyard:true};
+}
+function renderLanyard(){
+  LASTINP={product:$("product").value, copies:Math.max(1,Math.round(num("lanQty",1))), isSig:false, lanyard:true};
+  CHOSEN=null; RESULT={lanyard:true};
+  const x=lanyardQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const mediaName=($("lanMedia")&&LANYARD_MEDIA[$("lanMedia").value]||{}).name||"lanyard";
+  const methodTxt=q.method==="screen"?`screen ${q.colors}-col${q.sides>1?" ×2 sides":""}`:"dye-sublimation";
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`Lanyard: <b>${q.widthMM}mm</b> ${mediaName} · ${methodTxt} · <b>${q.qty} pc</b> · ₹${q.perPc.toFixed(2)}/pc unit cost`;
+  const rows=[[`Strap (${mediaName}, ${q.widthMM}mm × ${q.qty})`,q.strap]];
+  if(q.print) rows.push([`Printing (${q.colors}-col${q.sides>1?" ×2":""})`,q.print]);
+  if(q.hardware) rows.push([`Hardware (hook/clip) × ${q.qty}`,q.hardware]);
+  if(q.setup) rows.push([q.method==="screen"?"Screen setup (one-time)":"Transfer / plate setup",q.setup]);
+  if(q.make) rows.push(["Sampling / make (once)",q.make]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.qty} pc · ₹${Math.round(q.unit).toLocaleString("en-IN")}/pc</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${mediaName} · ${methodTxt}</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-piece textile model — no plates/sheets. Rates editable, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
 function combinedPrice(){
+  if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")) return lanyardQuote();
   if(typeof isLF==="function" && isLF($("product")?$("product").value:"")) return largeFormatQuote();
   // Guard: run() bails (with an on-screen "enter width/height" message) before an imposition is chosen when
   // the spec is missing a size, so CHOSEN can be null. Programmatic callers (diagnostic sweep / cost harness)
@@ -3629,6 +3720,7 @@ function parseSpec(raw){
     [/wall\s*calendar/,"calendar_sheet"],[/table\s*calendar|desk\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],
     [/\bsticker\b|\blabel\b/,"insert"],
     [/leaflet|flyer/,"leaflet"],
+    [/lanyard|neck\s*strap|badge\s*(?:strap|ribbon)/,"lanyard"],
     [/standee|roll\s*[-]?\s*up/,"standee"],[/\bbanner\b|hoarding|backdrop|\bflex\b/,"banner"],[/poster/,"poster"],
     [/dangler|tent/,"dangler"],
     [/paper\s*bag|carry\s*bag|shopping\s*bag|\bbag\b/,"bag"],
@@ -3715,6 +3807,17 @@ function applyVoiceSpec(raw){
     notes.push("size 8.27×11.69 in (A4 portrait assumed — no trim size in brief)");
   }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
+  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); }   // per-piece products read their own qty field
+  // LANYARD colour parse: "3 color printing" → screen colours. The shared colour parser only registers a
+  // bare count for 4-col / 1-col, so read the count straight off the brief for any 1–6 colour lanyard.
+  if(isLanyard(f.product) && $("lanColors")){
+    const W2N={one:1,two:2,three:3,four:4,five:5,six:6};
+    let n = (f.cf!=null) ? f.cf : null;
+    if(n==null){ const m=String(raw||"").toLowerCase().match(/(\d|one|two|three|four|five|six)\s*colou?r/); if(m) n=W2N[m[1]]||+m[1]; }
+    if(n!=null) $("lanColors").value=Math.max(1,n);
+    // "sublimation" / "dye sub" in the brief → full-colour method (no per-screen colours).
+    if(/sublim|dye\s*sub/i.test(String(raw||"")) && $("lanMethod")){ $("lanMethod").value="sublim"; }
+  }
   if(f.extent!=null) setV("extentFlat",f.extent);   // calendars: leaves-per-copy
   setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
   setV("cf",f.cf); setV("cb",f.cb);
@@ -3974,6 +4077,7 @@ function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
   try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
   catch(e){ $("m_price").innerHTML=html; } }
 function showPrice(){
+  if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")){ renderLanyard(); return; }   // lanyard has no CHOSEN
   if(typeof isLF==="function" && isLF($("product")?$("product").value:"")){ renderLF(); return; }   // large format has no CHOSEN
   if(!CHOSEN)return;
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
@@ -4638,6 +4742,14 @@ function resetParserFields(){
   // into the next banner. lfRate/lfQty are re-set by onProductChange/lfMediaRate per product.
   ["lfRoller","lfEyelets","lfBoard","lfHem","lfDesign"].forEach(id=>{ if($(id)) $(id).value=0; });
   if($("lfQty")) $("lfQty").value=1;
+  // Lanyard fields — reset to defaults so a prior lanyard row can't leak into the next (qty/colours/make).
+  if($("lanQty")) $("lanQty").value=1;
+  if($("lanColors")) $("lanColors").value=1;
+  if($("lanSides")) $("lanSides").value="1";
+  if($("lanWidth")) $("lanWidth").value=20;
+  if($("lanMake")) $("lanMake").value=0;
+  if($("lanMethod")) $("lanMethod").value="screen";
+  if($("lanMedia")){ $("lanMedia").value="polyester"; if(typeof lanyardMediaRate==="function") lanyardMediaRate(); }
   // SHEET-SIZE chips: restore the canonical default set. applyVoiceSpec only re-ticks these when the brief
   // NAMES sheet sizes; otherwise a row inherits the previous row's ticks (and any custom chip a prior row
   // appended lingers in the DOM), so the imposition — and the price — depended on sweep ORDER. Remove custom
