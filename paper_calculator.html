@@ -279,6 +279,7 @@
           <option value="pouch">Pouch (fabric / printed board)</option>
           <option value="rigidbox">Rigid set-up box (hand-assembled)</option>
           <option value="jacket">Book jacket (dust jacket)</option>
+          <option value="ncr">NCR / carbonless form (per set)</option>
               <option value="calendar_sheet">Single-sheet calendar</option>
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
@@ -555,6 +556,40 @@
           <div class="fld"><label>Sampling ₹ (once)</label><input id="rbSample" type="number" step="50" value="0" oninput="showPrice()" /></div>
         </div>
         <div class="hint">Per-piece = (board + wrap+print + lining + labour + partition + foil) × qty + block/forme/sample, then margin. Board area seeded from L×W×H; all rates editable — confirm with sir.</div>
+      </div>
+      <div id="ncrFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c9c3f;background:#f5faec">
+        <div class="ptitle" style="color:#4a6b1f">🧾 NCR / carbonless form — priced per set (no NK anchor — trade rates)</div>
+        <div class="row3">
+          <div class="fld"><label>Parts (plies/set)</label><select id="ncrParts" onchange="showPrice()"><option value="2" selected>2-part (duplicate)</option><option value="3">3-part (triplicate)</option><option value="4">4-part</option></select></div>
+          <div class="fld"><label>Size</label><select id="ncrSize" onchange="ncrPlySeed();showPrice()"><option value="a6">A6</option><option value="a5" selected>A5</option><option value="half">Half A4 (5.5×8.5)</option><option value="a4">A4</option></select></div>
+          <div class="fld"><label>Quantity (sets)</label><input id="ncrQty" type="number" value="1" placeholder="e.g. 1000" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Carbonless ₹ / ply sheet</label><input id="ncrPlyRate" type="number" step="0.1" value="1.2" oninput="showPrice()" /><div class="hint">CB/CFB/CF avg, editable</div></div>
+          <div class="fld"><label>Colours</label><input id="ncrColors" type="number" step="1" value="1" oninput="showPrice()" /></div>
+          <div class="fld"><label>Print ₹ / ply / colour</label><input id="ncrPrintPly" type="number" step="0.05" value="0.30" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Numbering</label><select id="ncrNumber" onchange="showPrice()"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
+          <div class="fld"><label>Numbering ₹ / set</label><input id="ncrNumberRate" type="number" step="0.05" value="0.30" oninput="showPrice()" /></div>
+          <div class="fld"><label>Perforation</label><select id="ncrPerf" onchange="showPrice()"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Perf ₹ / set</label><input id="ncrPerfRate" type="number" step="0.05" value="0.15" oninput="showPrice()" /></div>
+          <div class="fld"><label>Collate / pad-gum ₹ / set</label><input id="ncrCollate" type="number" step="0.05" value="0.10" oninput="showPrice()" /></div>
+          <div class="fld"><label>Finishing</label><select id="ncrFinish" onchange="showPrice()"><option value="pad" selected>Padded (gummed pads)</option><option value="book">Booked (bound books)</option><option value="loose">Loose sets</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Sets per pad / book</label><input id="ncrUnitSize" type="number" step="10" value="50" oninput="showPrice()" /></div>
+          <div class="fld"><label>Pad ₹ each</label><input id="ncrPadRate" type="number" step="0.5" value="4" oninput="showPrice()" /></div>
+          <div class="fld"><label>Book ₹ each</label><input id="ncrBookRate" type="number" step="0.5" value="9" oninput="showPrice()" /><div class="hint">cover + tape + perf</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Plates ₹ / colour (once)</label><input id="ncrPlate" type="number" step="10" value="150" oninput="showPrice()" /></div>
+          <div class="fld"><label>Design / setup ₹ (once)</label><input id="ncrDesign" type="number" step="50" value="0" oninput="showPrice()" /></div>
+          <div class="fld"></div>
+        </div>
+        <div class="hint">Per-set = parts × (paper + print) + numbering + perf + collate, then padded/booked + plates, then margin. No recorded NK job to validate — all rates editable, confirm with sir.</div>
       </div>
       <div id="dielineFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
         <div class="ptitle" id="dlTitle">📐 Dieline / converting — flat blank → die-cut → fold</div>
@@ -1020,7 +1055,14 @@ const isRigidBox=p=>RIGIDBOX_PRODUCTS.has(p);
 const RIGIDBOX_STYLES={topbottom:{name:"Top-bottom (2-piece lid+base)",lid:true,mult:1},
   traylid:{name:"Tray + lid",lid:true,mult:1},slider:{name:"Slider / drawer",lid:false,mult:1.9},
   magnetic:{name:"Magnetic flap",lid:false,mult:1.5},shoulder:{name:"Shoulder / neck box",lid:true,mult:1}};
-// DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
+// NCR / CARBONLESS FORM — an N-part carbonless set (CB top + CFB middles + CF bottom), printed, usually
+// numbered + perforated, then padded (gummed pads) or booked (bound books of 50/100). Priced per SET, bypassing
+// the sheet engine. NOTE: NK's 341-job DB has NO recorded NCR job, so rates are defensible Indian trade values
+// (carbonless ply ~Rs.1.2 A5 / Rs.2.4 A4, numbering Rs.0.30/set), NOT reconciled to a recorded amount.
+const NCR_PRODUCTS=new Set(["ncr"]);
+const isNCR=p=>NCR_PRODUCTS.has(p);
+// per-ply carbonless paper rate seed by size band (₹/sheet); editable in the panel.
+const NCR_PLY_RATE={a6:0.7,a5:1.2,half:1.6,a4:2.4};
 const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope","bag"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
 // blank size (inches) from the assembled dims A,B,C + glue flap g + tuck/flap/pocket f (all inches)
@@ -1092,8 +1134,8 @@ function onProductChange(){
   if($("jkFields")) $("jkFields").style.display=isJacket($("product").value)?"block":"none";
   // Flat embellishment panel: visible for any non-signature, non-dieline, non-slipcase product.
   const _pv=$("product").value;
-  const lan=isLanyard(_pv), pou=isPouch(_pv), rb=isRigidBox(_pv);
-  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan && !pou && !rb;
+  const lan=isLanyard(_pv), pou=isPouch(_pv), rb=isRigidBox(_pv), ncr=isNCR(_pv);
+  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan && !pou && !rb && !ncr;
   if($("flatEmbFields")) $("flatEmbFields").style.display=isFlatEmbProd?"block":"none";
   // LARGE FORMAT: show the sq.ft panel, hide the whole sheet engine (paper / colours / sheet sizes / flat / booklet).
   const lf=isLF(_pv);
@@ -1102,7 +1144,8 @@ function onProductChange(){
   if($("lanFields")) $("lanFields").style.display=lan?"block":"none";
   if($("pouFields")) $("pouFields").style.display=pou?"block":"none";
   if($("rbFields")) $("rbFields").style.display=rb?"block":"none";
-  const hideSheet=lf||lan||pou||rb;
+  if($("ncrFields")) $("ncrFields").style.display=ncr?"block":"none";
+  const hideSheet=lf||lan||pou||rb||ncr;
   ["paperBox","colourBox","sheetSizeBox"].forEach(id=>{ if($(id)) $(id).style.display=hideSheet?"none":""; });   // restore for sheet products
   if(hideSheet){ ["fppFields","flatEmbFields","bookletFields","flatFields"].forEach(id=>{ if($(id)) $(id).style.display="none"; }); }
   if(lf){ if(typeof lfMediaRate==="function") lfMediaRate();
@@ -1111,6 +1154,7 @@ function onProductChange(){
   if(lan && typeof lanyardMediaRate==="function") lanyardMediaRate();
   if(pou && typeof pouchMediaRate==="function") pouchMediaRate();
   if(rb && typeof rigidBoxApplySeeds==="function") rigidBoxApplySeeds();
+  if(ncr && typeof ncrPlySeed==="function") ncrPlySeed();
   applyMarginDefault();
   applyGangedDefault();
   applyMenuRateHint();
@@ -1371,6 +1415,8 @@ function run(){
   if(isLanyard($("product").value)){ renderLanyard(); return; }
   // POUCH: per-piece converted model — no size/sheet needed, just quantity. Render directly.
   if(isPouch($("product").value)){ renderPouch(); return; }
+  // NCR / CARBONLESS: per-set model — just quantity (sets) + parts. Render directly.
+  if(isNCR($("product").value)){ renderNCR(); return; }
   // RIGID BOX: per-piece hand-assembled model — needs L×W×H (width, height, box depth). Render directly.
   if(isRigidBox($("product").value)){
     if(!(num("W",0)>0)||!(num("H",0)>0)||!(num("rbH",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); if($("rbH"))$("rbH").classList.add("bad"); $("err").textContent="Please enter box length, width and depth (L=width, W=height, H=box depth)."; return; }
@@ -2654,7 +2700,9 @@ const MARGIN_DEFAULT={
   // rigid set-up box — premium hand-assembled packaging; higher margin like slipcase
   rigidbox:40,
   // book jacket — flat printed sheet (cover-like); standard flat margin
-  jacket:30
+  jacket:30,
+  // NCR / carbonless form — commodity converting; standard margin
+  ncr:30
 };
 // ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
 // Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
@@ -3613,7 +3661,61 @@ function renderRigidBox(){
     `<div class="hint" style="margin-top:8px">Per-piece rigid-box build-up — hand-assembled, no plates/sheets. Rates editable, confirm with sir.</div>`;
   ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
 }
+// NCR / CARBONLESS quote — per-SET (N plies) + numbering + perforation, then padded/booked, then margin.
+function ncrPlySeed(){ const s=$("ncrSize")?$("ncrSize").value:"a5"; const r=(NCR_PLY_RATE[s]!=null?NCR_PLY_RATE[s]:1.2); if($("ncrPlyRate")) $("ncrPlyRate").value=r; }
+function ncrQuote(){
+  const sets=Math.max(1,Math.round(num("ncrQty",1)));           // quantity is number of SETS
+  const parts=Math.max(2,Math.round(num("ncrParts",2)));        // plies per set (2/3/4)
+  const colors=Math.max(1,Math.round(num("ncrColors",1)));
+  const plyR=Math.max(0,num("ncrPlyRate",1.2));                 // carbonless paper ₹/ply sheet
+  const printPly=Math.max(0,num("ncrPrintPly",0.30))*colors;   // print ₹/ply per colour
+  const numbering = ($("ncrNumber")&&$("ncrNumber").value!=="no") ? num("ncrNumberRate",0.30) : 0;
+  const perf = ($("ncrPerf")&&$("ncrPerf").value!=="no") ? num("ncrPerfRate",0.15) : 0;
+  const collate = (parts>1) ? num("ncrCollate",0.10) : 0;       // gather + glue the padding edge per set
+  const perSet = parts*(plyR+printPly) + numbering + perf + collate;
+  // finishing: padded (gummed pads of N) or booked (bound books of N with a board cover + tape + perf)
+  const fin=$("ncrFinish")?$("ncrFinish").value:"pad";
+  const unitPer=Math.max(1,Math.round(num("ncrUnitSize",50)));  // sets per pad/book
+  const units=Math.ceil(sets/unitPer);
+  const finRate = fin==="book" ? num("ncrBookRate",9) : fin==="pad" ? num("ncrPadRate",4) : 0;
+  const finTotal = finRate*units;
+  const plates = colors*num("ncrPlate",150);                    // one-time plates (per colour; plies share the plate)
+  const design = num("ncrDesign",0);
+  const run = perSet*sets, base = run + finTotal + plates + design;
+  const overhead=base*num("overhead",0)/100, prod=base+overhead;
+  const mPct=Math.min(Math.max(num("margin",30),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round(parts*plyR*sets),printing:Math.round(parts*printPly*sets),plates:Math.round(plates),packing:0,freight:0,
+    unit:grand/sets, sets, parts, colors, fin, units, unitPer,
+    plyCost:Math.round(parts*plyR*sets), numbering:Math.round(numbering*sets), perf:Math.round(perf*sets),
+    collate:Math.round(collate*sets), finTotal:Math.round(finTotal), design:Math.round(design), perSet:+perSet.toFixed(2)};
+  return {p:{margin:mPct,gst:gstPct,books:sets}, q, text:{}, cover:null, coverPlan:null, ncr:true};
+}
+function renderNCR(){
+  LASTINP={product:$("product").value, copies:Math.max(1,Math.round(num("ncrQty",1))), isSig:false, ncr:true};
+  CHOSEN=null; RESULT={ncr:true};
+  const x=ncrQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const finTxt = q.fin==="book"?`booked (${q.units} books of ${q.unitPer})`:q.fin==="pad"?`padded (${q.units} pads of ${q.unitPer})`:"loose sets";
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`NCR carbonless: <b>${q.parts}-part</b> · ${q.colors}-col · <b>${q.sets.toLocaleString("en-IN")} sets</b> · ${finTxt} · ₹${q.perSet.toFixed(2)}/set`;
+  const rows=[[`Carbonless paper (${q.parts} plies × ${q.sets.toLocaleString("en-IN")})`,q.plyCost],[`Printing (${q.colors}-col × ${q.parts} plies)`,q.printing]];
+  if(q.numbering) rows.push([`Numbering × ${q.sets.toLocaleString("en-IN")}`,q.numbering]);
+  if(q.perf) rows.push([`Perforation × ${q.sets.toLocaleString("en-IN")}`,q.perf]);
+  if(q.collate) rows.push([`Collate / pad-gum × ${q.sets.toLocaleString("en-IN")}`,q.collate]);
+  if(q.finTotal) rows.push([q.fin==="book"?`Booking (${q.units} books)`:`Padding (${q.units} pads)`,q.finTotal]);
+  if(q.plates) rows.push([`Plates (${q.colors}-col, one-time)`,q.plates]);
+  if(q.design) rows.push(["Design / setup (once)",q.design]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.sets.toLocaleString("en-IN")} sets · ₹${(q.unit).toFixed(2)}/set</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${q.parts}-part carbonless · ${finTxt}</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-set carbonless model — no recorded NK anchor; rates are trade defaults, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
 function combinedPrice(){
+  if(typeof isNCR==="function" && isNCR($("product")?$("product").value:"")) return ncrQuote();
   if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")) return rigidBoxQuote();
   if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")) return pouchQuote();
   if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")) return lanyardQuote();
@@ -3998,6 +4100,7 @@ function parseSpec(raw){
     [/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/\bmanual\b/,"manual"],[/annual/,"annual"],
     [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag|\btag\b(?!\s*line)/,"pasted_tag"],
     [/floor\s*plan|site\s*plan/,"poster"],
+    [/\bncr\b|carbon\s*less|carbonless|multi\s*[- ]?part|multipart|\b\d\s*[- ]?part\b|duplicate\s*(?:book|form|slip)|triplicate|bill\s*book|invoice\s*book|receipt\s*book|money\s*receipt|cash\s*memo|\bchallan\b|voucher\s*book/,"ncr"],
     [/letter\s*head|note\s*pad|note\s*head|writing\s*pad|\bform\b/,"insert"],
     [/certificate|marks\s*sheet|diploma/,"card"],
     [/note\s*book|notebook|\bdiary\b/,"booklet"],
@@ -4099,7 +4202,20 @@ function applyVoiceSpec(raw){
     notes.push("size 8.27×11.69 in (A4 portrait assumed — no trim size in brief)");
   }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
-  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); if(isRigidBox(f.product)) setV("rbQty",f.copies); }   // per-piece products read their own qty field
+  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); if(isRigidBox(f.product)) setV("rbQty",f.copies); if(isNCR(f.product)) setV("ncrQty",f.copies); }   // per-piece products read their own qty field
+  // NCR: pull parts (2/3/4-part, duplicate/triplicate), size, and book-vs-pad off the brief.
+  if(isNCR(f.product)){
+    const rl=String(raw||"").toLowerCase();
+    let parts=null;
+    if(/triplicate|3\s*[- ]?part|three\s*part/.test(rl)) parts=3;
+    else if(/4\s*[- ]?part|four\s*part|quadruplicate/.test(rl)) parts=4;
+    else if(/duplicate|2\s*[- ]?part|two\s*part/.test(rl)) parts=2;
+    else { const m=rl.match(/(\d)\s*[- ]?part/); if(m) parts=Math.min(4,Math.max(2,+m[1])); }
+    if(parts && $("ncrParts")) $("ncrParts").value=String(parts);
+    if($("ncrSize")){ if(/\ba4\b/.test(rl)) $("ncrSize").value="a4"; else if(/\ba6\b/.test(rl)) $("ncrSize").value="a6"; else if(/\ba5\b/.test(rl)) $("ncrSize").value="a5"; if(typeof ncrPlySeed==="function") ncrPlySeed(); }
+    if($("ncrFinish")){ if(/\b(book|bound|booked)\b/.test(rl)) $("ncrFinish").value="book"; else if(/\b(pad|padded|gummed)\b/.test(rl)) $("ncrFinish").value="pad"; }
+    if($("ncrColors") && f.cf!=null) $("ncrColors").value=Math.max(1,f.cf);
+  }
   // BOOK JACKET: a parsed size is the BOOK cover, not the flat blank. Route it into the jacket geometry panel
   // (cover W×H + a spine seeded from page count + default 3" flaps); jacketApplyGeometry() then fills the real
   // flat blank into W/H. Single-side print (cf,0) and foil are handled by the shared parser + emb panel.
@@ -4415,6 +4531,7 @@ function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
   try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
   catch(e){ $("m_price").innerHTML=html; } }
 function showPrice(){
+  if(typeof isNCR==="function" && isNCR($("product")?$("product").value:"")){ renderNCR(); return; }   // NCR has no CHOSEN
   if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")){ if(num("W",0)>0&&num("H",0)>0&&num("rbH",0)>0) renderRigidBox(); return; }   // rigid box has no CHOSEN
   if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")){ renderPouch(); return; }   // pouch has no CHOSEN
   if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")){ renderLanyard(); return; }   // lanyard has no CHOSEN
@@ -5098,6 +5215,14 @@ function resetParserFields(){
   if($("pouDecor")) $("pouDecor").value="foil";
   if($("pouSetup")) $("pouSetup").value=0;
   if($("pouMedia")){ $("pouMedia").value="velvet"; if(typeof pouchMediaRate==="function") pouchMediaRate(); }
+  // NCR fields — reset so a prior form's parts/qty/finish can't leak into the next.
+  if($("ncrQty")) $("ncrQty").value=1;
+  if($("ncrParts")) $("ncrParts").value="2";
+  if($("ncrColors")) $("ncrColors").value=1;
+  if($("ncrNumber")) $("ncrNumber").value="yes";
+  if($("ncrPerf")) $("ncrPerf").value="yes";
+  if($("ncrFinish")) $("ncrFinish").value="pad";
+  if($("ncrSize")){ $("ncrSize").value="a5"; if(typeof ncrPlySeed==="function") ncrPlySeed(); }
   // Book-jacket geometry — reset so a prior jacket's cover/spine/flap can't leak into the next.
   if($("jkCoverW")) $("jkCoverW").value=0;
   if($("jkCoverH")) $("jkCoverH").value=0;
