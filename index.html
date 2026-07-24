@@ -772,7 +772,8 @@
           <span><label>Reprint (plates exist)</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="reprint" onchange="showPrice()" /> Yes — plates reused</label><div class="hint">NKK sir: reprint jobs reuse existing plates → cost drops to a handling fee (~10%). Fresh printing still charged.</div></span>
           <span><label>Ganged with other jobs</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="ganged" onchange="gangedEdited=true;showPrice()" /> Yes — shared sheet</label><input id="gangedShare" type="number" step="1" min="1" max="100" value="25" style="margin-top:6px" placeholder="% share" oninput="gangedEdited=true;showPrice()" /><div class="hint">NKK sir: small VCards / tags run ganged with other jobs on one plate + sheet. This job pays only its share (default 25%) of plates + printing + paper. Auto-ticked for cards ≤500 pcs.</div></span>
           <span><label>Target sale ₹ (optional)</label><input id="targetSale" type="number" step="1000" placeholder="e.g. 180000" oninput="applyTargetMargin()" /><div class="hint" id="targetSaleNote">Type a target price → auto-sets margin so grand ≈ target.</div></span>
-          <span><label>Menu rate ₹/pc (optional)</label><input id="flatRatePc" type="number" step="0.10" placeholder="e.g. 3.50" oninput="flatRateEdited=true;showPrice()" /><div class="hint">Auto-populates for cards/letterheads/tags based on sir's rate card. Overwrite anytime.</div></span>
+          <span><label>Menu rate ₹/pc (optional)</label><input id="flatRatePc" type="number" step="0.10" placeholder="e.g. 5.00" oninput="flatRateEdited=true;showPrice()" /><div class="hint">Auto-populates for cards/letterheads/tags based on sir's rate card. Overwrite anytime.</div></span>
+          <span><label>Job minimum ₹ (optional)</label><input id="flatRateMin" type="number" step="10" placeholder="e.g. 500" oninput="flatMinEdited=true;showPrice()" /><div class="hint">Floor for short runs (menu quote = max of rate×qty and this). Cards auto-set ₹500.</div></span>
           <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
           <span><label>Paper discount %</label><input id="paperDiscount" type="number" value="0" step="0.5" oninput="showPrice()" /><div class="hint">NKK sir: vendor discount off paper cost (e.g. 13%)</div></span>
@@ -2717,22 +2718,21 @@ function applyGangedDefault(){
 // MENU-RATE HINT (NKK sir 2026-07-18 batch reconcile): sir has a per-piece rate card for standard
 // commodity jobs (vcards, letterheads, tags). Auto-populate the #flatRatePc field so the user sees
 // the menu-rate quote alongside the cost quote. User typing into the field overrides via a flag.
-let flatRateEdited=false;
+let flatRateEdited=false, flatMinEdited=false;
 function applyMenuRateHint(){
   if(flatRateEdited || !$("flatRatePc")) return;
   const p=$("product")&&$("product").value;
   const qty=Math.round(num("copies2",0)||num("copies",0));
   if(!qty) return;
-  let rate=0;
+  let rate=0, minCharge=0;
   if(p==="card"){
-    // VCard rate card (Sunili/Beekay/Keventer/Pinacle averaged, 90×55mm at 270-350gsm):
-    //   ≤100  → ₹4.00   (vendor menu min)
-    //   ≤200  → ₹3.50
-    //   ≤500  → ₹3.00
-    //   ≤1000 → ₹2.50
-    //   >1000 → ₹2.20
-    if(qty<=100) rate=4.00; else if(qty<=200) rate=3.50;
-    else if(qty<=500) rate=3.00; else if(qty<=1000) rate=2.50; else rate=2.20;
+    // VCard rate card — RE-DERIVED 2026-07-24 from 7 recorded jobs (minchem/keventer/beekay/pinax/vesta):
+    // sir holds a flat ₹5/pc up to ~500, then steps down, with a ₹500 JOB MINIMUM that dominates tiny runs.
+    // Old declining ₹4→₹2.20 curve under-quoted every short run; the ₹5 flat + ₹500 floor reconciles
+    // #21/#31/#33/#35/#36 to ~0% and #18/#30 (17-75 pc) to the floor within ±16%.
+    //   ≤500  → ₹5.00     ≤1000 → ₹3.50     >1000 → ₹2.50      · minimum charge ₹500
+    if(qty<=500) rate=5.00; else if(qty<=1000) rate=3.50; else rate=2.50;
+    minCharge=500;
   }
   else if(p==="insert"){
     // Letterhead rate (100gsm maplitho/excel bond, single-side 4c, A4):
@@ -2748,6 +2748,7 @@ function applyMenuRateHint(){
     rate=2.10;
   }
   if(rate>0){ $("flatRatePc").value=rate.toFixed(2); }
+  if($("flatRateMin") && !flatMinEdited) $("flatRateMin").value = minCharge>0 ? String(minCharge) : "";
 }
 function setBinding(v){ const x=BINDING[v]||BINDING.none;
   const pp=LASTINP?LASTINP.pages:Math.round(num("pages",0)), qty=LASTINP?LASTINP.copies:Math.round(num("copies",1));
@@ -4180,6 +4181,9 @@ function applyVoiceSpec(raw){
     }
   }
   if(f.binding){ setV("binding",f.binding); bindingEdited=true; if(typeof setBinding==="function") setBinding(f.binding); }
+  // Populate the menu-rate hint AFTER quantity is set (onProductChange ran it earlier with qty=0 and bailed),
+  // so a voice/typed brief shows sir's per-piece rate + job minimum alongside the cost quote.
+  if(typeof applyMenuRateHint==="function") applyMenuRateHint();
   if(typeof run==="function") run();
   const box=$("voiceParsed");
   if(box){ box.innerHTML = notes.length
@@ -4377,11 +4381,13 @@ function packFreightWhy(q,fallbackWt){
 function menuRateHTML(costGrand, qty){
   const r=parseFloat(($("flatRatePc")||{}).value);
   if(!(r>0)||!(qty>0)) return "";
-  const menu=r*qty, delta=menu-costGrand, dpct=costGrand>0?((menu-costGrand)/costGrand*100):0;
+  const minCharge=parseFloat(($("flatRateMin")||{}).value)||0;   // job-minimum floor (sir's short-run min charge)
+  const raw=r*qty, floored=minCharge>0 && minCharge>raw;
+  const menu=Math.max(raw, minCharge), delta=menu-costGrand, dpct=costGrand>0?((menu-costGrand)/costGrand*100):0;
   const color=Math.abs(dpct)<5?"#1c7a52":(dpct>0?"#a9761a":"#c0392b");
   const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   return `<div style="margin-top:14px;padding:12px 14px;border:1.5px dashed #7c3aed;border-radius:10px;background:#f7f2ff">
-    <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#5b21b6;font-weight:700">Menu rate quote (₹${r.toFixed(2)}/pc × ${qty.toLocaleString("en-IN")} pcs)</div>
+    <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#5b21b6;font-weight:700">Menu rate quote (₹${r.toFixed(2)}/pc × ${qty.toLocaleString("en-IN")} pcs${floored?` → job min ₹${minCharge.toLocaleString("en-IN")}`:""})</div>
     <div style="font-size:22px;font-weight:800;color:#3a1276;margin:2px 0">${inr(menu)}</div>
     <div style="font-size:12.5px;color:${color}">vs cost quote ${inr(costGrand)} → <b>${dpct>=0?"+":""}${dpct.toFixed(1)}%</b> (${delta>=0?"+":""}${inr(Math.abs(delta))})</div>
   </div>`;
@@ -5032,6 +5038,8 @@ function resetParserFields(){
   if($("fppScore")) $("fppScore").value=0;
   if($("ptagPaste")) $("ptagPaste").value=0;
   if($("flatRatePc")) $("flatRatePc").value="";
+  if($("flatRateMin")) $("flatRateMin").value="";
+  flatRateEdited=false; flatMinEdited=false;
   if($("extentFlat")) $("extentFlat").value=1;
   // NKK sir 2026-07-23: reset every SPEC field a brief might leave unset back to its fresh-page default,
   // so a row that omits (say) colours or paper type can't silently inherit the PREVIOUS row's value.
