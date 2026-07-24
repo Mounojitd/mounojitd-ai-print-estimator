@@ -273,6 +273,12 @@
               <option value="leaflet">Leaflet / Flyer</option>
               <option value="poster">Poster</option>
               <option value="card">Visiting / Greeting card</option>
+          <option value="banner">Banner / Flex (large format)</option>
+          <option value="standee">Roll-up standee (large format)</option>
+          <option value="lanyard">Lanyard (printed neck strap)</option>
+          <option value="pouch">Pouch (fabric / printed board)</option>
+          <option value="rigidbox">Rigid set-up box (hand-assembled)</option>
+          <option value="jacket">Book jacket (dust jacket)</option>
               <option value="calendar_sheet">Single-sheet calendar</option>
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
@@ -285,6 +291,7 @@
               <option value="sleeve">Sleeve / wrap</option>
               <option value="folder">Presentation folder</option>
               <option value="envelope">Envelope</option>
+              <option value="bag">Paper bag (printed carry bag)</option>
             </optgroup>
             <optgroup label="Case / packaging (board + PLC)">
               <option value="slipcase">Slipcase / book sleeve</option>
@@ -296,7 +303,7 @@
       <div class="row3">
         <div class="fld"><label>Width</label><input id="W" type="number" step="0.5" placeholder="e.g. 7" oninput="applyGangedDefault()" /></div>
         <div class="fld"><label>Height</label><input id="H" type="number" step="0.5" placeholder="e.g. 9.5" oninput="applyGangedDefault()" /></div>
-        <div class="fld"><label>Unit</label><select id="unit"><option value="in" selected>inch</option><option value="mm">mm</option><option value="cm">cm</option></select></div>
+        <div class="fld"><label>Unit</label><select id="unit"><option value="in" selected>inch</option><option value="mm">mm</option><option value="cm">cm</option><option value="ft">feet</option></select></div>
       </div>
       <div class="hint" id="closedHint">Booklet: enter the <b>closed</b> page size — open spread is auto-calculated.</div>
 
@@ -347,7 +354,7 @@
             <div class="fld" style="grid-column:span 2"></div>
           </div>
           <div class="row3">
-            <div class="fld"><label>Cover coating</label><select id="coverLam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></div>
+            <div class="fld"><label>Cover coating</label><select id="coverLam" onchange="showPrice()"><option value="none">None</option><option value="matt" selected>Matt lam</option><option value="gloss">Gloss lam</option><option value="velvet">Velvet / soft-touch lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></div>
             <div class="fld"><label>Embellishment 1</label><select id="coverEmb1" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
             <div class="fld"><label>Embellishment 2</label><select id="coverEmb2" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
           </div>
@@ -442,6 +449,113 @@
             <div class="hint">Multiplies paper (e.g. table calendar = 12 leaves). Default 1.</div></div>
         </div>
       </div>
+      <div id="lfFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c9c3f;background:#f5faec">
+        <div class="ptitle" style="color:#4a6b1f">🖼 Large format — priced per sq.ft (enter size above; unit “feet” or inches)</div>
+        <div class="row3">
+          <div class="fld"><label>Media</label><select id="lfMedia" onchange="lfMediaRate();showPrice()">
+            <option value="flex">Flex (frontlit)</option><option value="starflex">Star flex</option><option value="vinyl" selected>Vinyl / PP</option><option value="backlit">Backlit flex</option><option value="fabric">Fabric / cloth</option><option value="photo">Photo paper</option></select></div>
+          <div class="fld"><label>Media ₹ / sq.ft</label><input id="lfRate" type="number" step="1" value="35" oninput="showPrice()" /><div class="hint">print + media, editable</div></div>
+          <div class="fld"><label>Quantity (pieces)</label><input id="lfQty" type="number" value="1" placeholder="e.g. 5" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Roller stand ₹ / pc</label><input id="lfRoller" type="number" step="10" value="0" oninput="showPrice()" /><div class="hint">roll-up standee mechanism (auto ₹900 for standee)</div></div>
+          <div class="fld"><label>Eyelets / pc</label><input id="lfEyelets" type="number" step="1" value="0" oninput="showPrice()" /><div class="hint">₹8 each</div></div>
+          <div class="fld"><label>Board mount ₹ / sq.ft</label><input id="lfBoard" type="number" step="1" value="0" oninput="showPrice()" /><div class="hint">sunboard/foam, 0 = none</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Hemming / stitching ₹ / pc</label><input id="lfHem" type="number" step="10" value="0" oninput="showPrice()" /></div>
+          <div class="fld"><label>Design / setup ₹ (once)</label><input id="lfDesign" type="number" step="50" value="0" oninput="showPrice()" /></div>
+          <div class="fld"></div>
+        </div>
+        <div class="hint">No plates / sheets / imposition. Cost = area × qty × ₹/sq.ft + roller + eyelets + board + hemming + design, then margin. Rates editable — confirm with sir.</div>
+      </div>
+      <div id="lanFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c9c3f;background:#f5faec">
+        <div class="ptitle" style="color:#4a6b1f">🎗 Lanyard — priced per piece (no sheet / size needed)</div>
+        <div class="row3">
+          <div class="fld"><label>Material</label><select id="lanMedia" onchange="lanyardMediaRate();showPrice()">
+            <option value="polyester" selected>Polyester (screen-print)</option><option value="satin">Satin polyester</option><option value="tubular">Tubular</option><option value="sublimation">Sublimation (full-colour)</option><option value="eco">Eco RPET</option></select></div>
+          <div class="fld"><label>Strap ₹ / pc</label><input id="lanStrap" type="number" step="0.5" value="9" oninput="showPrice()" /><div class="hint">blank webbing, editable</div></div>
+          <div class="fld"><label>Quantity (pieces)</label><input id="lanQty" type="number" value="1" placeholder="e.g. 500" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Width (mm)</label><input id="lanWidth" type="number" step="1" value="20" oninput="showPrice()" /><div class="hint">10 / 15 / 20 / 25 mm</div></div>
+          <div class="fld"><label>Print method</label><select id="lanMethod" onchange="showPrice()">
+            <option value="screen" selected>Screen print</option><option value="sublim">Dye-sublimation</option></select></div>
+          <div class="fld"><label>Print sides</label><select id="lanSides" onchange="showPrice()"><option value="1" selected>Single side</option><option value="2">Double side</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Colours (screen)</label><input id="lanColors" type="number" step="1" value="1" oninput="showPrice()" /><div class="hint">ignored for sublimation</div></div>
+          <div class="fld"><label>Ink ₹ / colour / pc</label><input id="lanInk" type="number" step="0.5" value="1.5" oninput="showPrice()" /></div>
+          <div class="fld"><label>Screen setup ₹ / colour</label><input id="lanScreen" type="number" step="10" value="150" oninput="showPrice()" /><div class="hint">one-time per screen</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Hardware ₹ / pc</label><input id="lanHw" type="number" step="0.5" value="2.5" oninput="showPrice()" /><div class="hint">J-hook / clip / breakaway / holder</div></div>
+          <div class="fld"><label>Sublim. transfer setup ₹</label><input id="lanPlate" type="number" step="50" value="300" oninput="showPrice()" /><div class="hint">one-time (sublimation only)</div></div>
+          <div class="fld"><label>Sampling / make ₹ (once)</label><input id="lanMake" type="number" step="50" value="0" oninput="showPrice()" /></div>
+        </div>
+        <div class="hint">Per-piece cost = (strap × width factor + printing + hardware) × qty + setup, then margin. Rates editable — confirm with sir.</div>
+      </div>
+      <div id="pouFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c9c3f;background:#f5faec">
+        <div class="ptitle" style="color:#4a6b1f">👝 Pouch — priced per piece (fabric drawstring or printed board)</div>
+        <div class="row3">
+          <div class="fld"><label>Material</label><select id="pouMedia" onchange="pouchMediaRate();showPrice()">
+            <option value="velvet" selected>Velvet fabric</option><option value="satin">Satin fabric</option><option value="canvas">Canvas / cotton</option><option value="jute">Jute</option><option value="nonwoven">Non-woven</option><option value="glamkot">Glamkot board (printed)</option><option value="artcard">Art card (printed)</option></select></div>
+          <div class="fld"><label>Material ₹ / pc</label><input id="pouMat" type="number" step="1" value="40" oninput="showPrice()" /><div class="hint">finished blank, editable</div></div>
+          <div class="fld"><label>Quantity (pieces)</label><input id="pouQty" type="number" value="1" placeholder="e.g. 500" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Decoration</label><select id="pouDecor" onchange="showPrice()">
+            <option value="foil" selected>Gold / silver foil</option><option value="screen">Screen print</option><option value="offset">Offset print (4-col)</option><option value="none">None</option></select></div>
+          <div class="fld"><label>Foil ₹ / pc</label><input id="pouFoil" type="number" step="1" value="15" oninput="showPrice()" /></div>
+          <div class="fld"><label>Foil block ₹ (once)</label><input id="pouFoilBlock" type="number" step="50" value="1500" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Screen colours</label><input id="pouColors" type="number" step="1" value="1" oninput="showPrice()" /><div class="hint">screen method only</div></div>
+          <div class="fld"><label>Ink ₹ / colour / pc</label><input id="pouInk" type="number" step="0.5" value="1.5" oninput="showPrice()" /></div>
+          <div class="fld"><label>Screen setup ₹ / colour</label><input id="pouScreen" type="number" step="10" value="150" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Offset print ₹ / pc</label><input id="pouOff" type="number" step="0.5" value="6" oninput="showPrice()" /><div class="hint">board pouch, 4-col</div></div>
+          <div class="fld"><label>Drawstring / handle ₹ / pc</label><input id="pouDraw" type="number" step="1" value="10" oninput="showPrice()" /></div>
+          <div class="fld"><label>Make / convert ₹ / pc</label><input id="pouMake" type="number" step="0.5" value="0" oninput="showPrice()" /><div class="hint">stitch (fabric) / die-cut+glue (board)</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Cutting forme ₹ (once)</label><input id="pouForme" type="number" step="50" value="0" oninput="showPrice()" /><div class="hint">board pouches</div></div>
+          <div class="fld"><label>Sampling / setup ₹ (once)</label><input id="pouSetup" type="number" step="50" value="0" oninput="showPrice()" /></div>
+          <div class="fld"></div>
+        </div>
+        <div class="hint">Per-piece cost = (material + decoration + drawstring + make) × qty + block/forme/setup, then margin. Rates editable — confirm with sir.</div>
+      </div>
+      <div id="rbFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
+        <div class="ptitle" style="color:#8a6a1f">🎁 Rigid set-up box — per-piece, hand-assembled (enter L×W×H above: Width=L, Height=W)</div>
+        <div class="row3">
+          <div class="fld"><label>Box style</label><select id="rbStyle" onchange="showPrice()">
+            <option value="topbottom" selected>Top-bottom (2-piece lid+base)</option><option value="traylid">Tray + lid</option><option value="shoulder">Shoulder / neck box</option><option value="slider">Slider / drawer</option><option value="magnetic">Magnetic flap</option></select></div>
+          <div class="fld"><label>Box depth H (above unit)</label><input id="rbH" type="number" step="0.5" value="0" oninput="rigidBoxApplySeeds();showPrice()" /><div class="hint">L=Width field, W=Height field, H here</div></div>
+          <div class="fld"><label>Quantity (pieces)</label><input id="rbQty" type="number" value="1" placeholder="e.g. 150" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Greyboard ₹ / sq.in</label><input id="rbBoard" type="number" step="0.01" value="0.174" oninput="showPrice()" /><div class="hint">~₹25/sqft, editable</div></div>
+          <div class="fld"><label>Outer wrap+print ₹ / sq.in</label><input id="rbWrap" type="number" step="0.01" value="0.14" oninput="showPrice()" /></div>
+          <div class="fld"><label>Inner lining</label><select id="rbLined" onchange="showPrice()"><option value="yes" selected>Lined</option><option value="no">No lining</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Lining ₹ / sq.in</label><input id="rbLining" type="number" step="0.01" value="0.06" oninput="showPrice()" /></div>
+          <div class="fld"><label>Lid depth (in, lidded styles)</label><input id="rbLidH" type="number" step="0.25" value="0" oninput="showPrice()" /><div class="hint">auto ~40% of H</div></div>
+          <div class="fld"><label>Box-making labour ₹ / pc</label><input id="rbLabour" type="number" step="5" value="0" oninput="showPrice()" /><div class="hint">auto by size, editable</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Foiling</label><select id="rbFoil" onchange="showPrice()"><option value="no" selected>None</option><option value="yes">Foil (gold/silver)</option></select></div>
+          <div class="fld"><label>Foil ₹ / pc</label><input id="rbFoilRate" type="number" step="1" value="12" oninput="showPrice()" /></div>
+          <div class="fld"><label>Foil block ₹ (once)</label><input id="rbFoilBlock" type="number" step="50" value="1200" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Partition / insert ₹ / pc</label><input id="rbPartition" type="number" step="5" value="0" oninput="showPrice()" /></div>
+          <div class="fld"><label>Cutting forme ₹ (once)</label><input id="rbForme" type="number" step="50" value="0" oninput="showPrice()" /></div>
+          <div class="fld"><label>Sampling ₹ (once)</label><input id="rbSample" type="number" step="50" value="0" oninput="showPrice()" /></div>
+        </div>
+        <div class="hint">Per-piece = (board + wrap+print + lining + labour + partition + foil) × qty + block/forme/sample, then margin. Board area seeded from L×W×H; all rates editable — confirm with sir.</div>
+      </div>
       <div id="dielineFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
         <div class="ptitle" id="dlTitle">📐 Dieline / converting — flat blank → die-cut → fold</div>
         <div class="hint" id="dlDimHint" style="margin:-2px 0 6px">Enter the <b>assembled</b> dimensions above (Width=A, Height=B) in the chosen unit; the flat blank is computed automatically.</div>
@@ -459,6 +573,15 @@
           <div class="fld"><label>Bottom sealing ₹ / piece</label><input id="dlSeal" type="number" step="0.1" value="0" oninput="showPrice()" /><div class="hint">mono carton bottom (0 = none)</div></div>
           <div class="fld"></div>
           <div class="fld"></div>
+        </div>
+        <div class="row3" id="dlBagRow" style="display:none">
+          <div class="fld"><label>Panels per bag</label><input id="dlBagPanels" type="number" step="1" value="1" oninput="if(RESULT)run()" /><div class="hint">1 = wrap-around blank · 2 = front+back pasted</div></div>
+          <div class="fld"><label>Eyelets / bag</label><input id="dlBagEyelets" type="number" step="1" value="4" oninput="showPrice()" /><div class="hint">₹8 each</div></div>
+          <div class="fld"><label>Rope / handle ₹ / bag</label><input id="dlBagRope" type="number" step="1" value="12" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3" id="dlBagRow2" style="display:none">
+          <div class="fld"><label>Bag making / pasting ₹ / bag</label><input id="dlBagMake" type="number" step="1" value="25" oninput="showPrice()" /><div class="hint">die-cut fold + paste into bag shape</div></div>
+          <div class="fld"></div><div class="fld"></div>
         </div>
         <div class="hint" id="dlBlankHint" style="margin-top:2px">Blank size shown after calculation. Printing/coating use the Paper fields. Rates editable — confirm with sir.</div>
       </div>
@@ -525,6 +648,21 @@
           <div class="fld"><label>Embellishment 3</label><select id="flatEmb3" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
         </div>
       </div>
+      <div id="jkFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#3f7c9c;background:#eef6fa">
+        <div class="ptitle" style="color:#1f5b78">📖 Book jacket — flat blank from book geometry (prices as a flat sheet)</div>
+        <div class="hint" style="margin:-2px 0 6px">Enter the <b>book cover</b> dimensions; the flat jacket blank (width = 2×cover + spine + 2×flap) is computed and filled into the size fields above, then priced through the normal sheet engine. Add gloss/lam + foil + creasing in the panels below.</div>
+        <div class="row3">
+          <div class="fld"><label>Cover width (in)</label><input id="jkCoverW" type="number" step="0.25" value="0" oninput="jacketApplyGeometry();showPrice()" /><div class="hint">one board, e.g. 9</div></div>
+          <div class="fld"><label>Cover height (in)</label><input id="jkCoverH" type="number" step="0.25" value="0" oninput="jacketApplyGeometry();showPrice()" /></div>
+          <div class="fld"><label>Spine (in)</label><input id="jkSpine" type="number" step="0.125" value="0" oninput="jacketApplyGeometry();showPrice()" /><div class="hint">book thickness</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Flap width (in)</label><input id="jkFlap" type="number" step="0.5" value="3" oninput="jacketApplyGeometry();showPrice()" /><div class="hint">each turn-in flap</div></div>
+          <div class="fld"><label>Bleed (in)</label><input id="jkBleed" type="number" step="0.0625" value="0.125" oninput="jacketApplyGeometry();showPrice()" /></div>
+          <div class="fld"></div>
+        </div>
+        <div class="hint" id="jkBlank" style="margin-top:4px;font-weight:600;color:#1f5b78">Flat jacket blank: — </div>
+      </div>
       <div id="ptagFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c3aed;background:#f7f2ff">
         <div class="ptitle" style="color:#5b21b6">🏷 Pasted tag — 2 sheets back-to-back</div>
         <div class="hint" style="margin:-2px 0 6px">Each finished tag = <b>2 press sheets pasted together</b>. Paper × 2 automatically. Add die-cut + hole-punch in the panel below.</div>
@@ -547,7 +685,7 @@
           <div class="fld"></div>
         </div>
       </div>
-      <div class="pbox" style="margin:0 0 10px">
+      <div class="pbox" id="paperBox" style="margin:0 0 10px">
         <div class="ptitle" id="textCompTitle">Text component</div>
         <div class="row3">
           <div class="fld"><label id="paperTypeLabel">Text paper type</label><select id="paperTypeSel" onchange="onPaperTypeChange()"><option value="">All types</option></select></div>
@@ -581,6 +719,7 @@
         <div class="fld"><label>Running waste % (per forme)</label><input id="running" type="number" step="0.5" placeholder="5" /></div>
       </div>
 
+      <div id="sheetSizeBox">
       <h2>Sheet sizes (in) — incl. cut-downs</h2>
       <div class="chips" id="ssChips">
         <label class="chip"><input type="checkbox" class="ss" value="18,25" /> 18×25</label>
@@ -596,8 +735,9 @@
         <span style="flex:0 0 auto"><label>&nbsp;</label><button type="button" onclick="addCustomSheetSize()" style="padding:9px 14px;border:1px solid var(--brand2);border-radius:10px;background:#eef4fa;color:var(--brand);font-weight:600;cursor:pointer;white-space:nowrap">➕ Add size</button></span>
       </div>
       <div class="hint" id="ssCustNote" style="margin-top:2px">Any paper size — type inches and add it as a checkbox that flows through the whole engine (imposition, printing, paper cost).</div>
+      </div><!-- /sheetSizeBox -->
 
-      <div class="pbox">
+      <div class="pbox" id="colourBox">
         <div class="ptitle">💰 Colour · plate · impression · price</div>
         <div class="prow">
           <span><label>Colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
@@ -605,7 +745,7 @@
           <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
         </div>
         <div class="prow">
-          <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></span>
+          <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="velvet">Velvet / soft-touch lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select></span>
           <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
           <span></span>
         </div>
@@ -711,6 +851,7 @@
           </div>
           <div id="auditStatus" style="font-size:12px;color:#6b7480;margin-top:6px"></div>
           <div id="auditReport" style="margin-top:10px;overflow-x:auto"></div>
+          <div id="learnPanel" style="margin-top:14px"></div>
         </details>
         <div id="priceChangeBanner"></div>
         <div id="m_price" style="margin-top:10px"></div>
@@ -809,8 +950,25 @@ const SIGNATURE_PRODUCTS=new Set(["booklet","catalogue","magazine","manual","ann
 const isSig=p=>SIGNATURE_PRODUCTS.has(p);
 // FLAT POST-PRESS / B3 (NKK sir GNM review): flat non-dieline products that can still need shaping/folding.
 // (calendar_table has its own wiro+stand panel, so it is excluded here.)
-const FLAT_PP_PRODUCTS=new Set(["leaflet","poster","card","calendar_sheet","dangler","insert","pasted_tag"]);
+const FLAT_PP_PRODUCTS=new Set(["leaflet","poster","card","calendar_sheet","dangler","insert","pasted_tag","jacket"]);
 const isFlatPP=p=>FLAT_PP_PRODUCTS.has(p);
+// BOOK / DUST JACKET — a flat printed sheet that wraps a book cover: blank width = 2×coverW + spine + 2×flap.
+// Prices through the normal FLAT sheet engine (plates/imposition/lamination); the only jacket-specific step is
+// computing the flat blank from the book's cover geometry. Single-side print + gloss + foil + creasing typical.
+const JACKET_PRODUCTS=new Set(["jacket"]);
+const isJacket=p=>JACKET_PRODUCTS.has(p);
+// Compute the flat jacket blank from book cover geometry and write it into the W/H size fields (in the current
+// unit). flatW = 2×coverW + spine + 2×flap ; flatH = coverH + 2×bleed. All jacket inputs are in inches.
+function jacketApplyGeometry(){
+  const cw=num("jkCoverW",0), ch=num("jkCoverH",0), sp=num("jkSpine",0), fl=num("jkFlap",0), bl=num("jkBleed",0.125);
+  if(!(cw>0)||!(ch>0)) return;   // no book geometry yet — leave any manually-entered W/H alone
+  const flatW = 2*cw + sp + 2*fl, flatH = ch + 2*bl;
+  const u=$("unit")?$("unit").value:"in";
+  const fromIn = v => u==="mm"?v*25.4 : u==="cm"?v*2.54 : u==="ft"?v/12 : v;   // inches → current unit
+  if($("W")) $("W").value=+fromIn(flatW).toFixed(2);
+  if($("H")) $("H").value=+fromIn(flatH).toFixed(2);
+  if($("jkBlank")) $("jkBlank").textContent=`Flat jacket blank: ${flatW.toFixed(2)} × ${flatH.toFixed(2)} in  (2×${cw} + spine ${sp} + 2×flap ${fl})`;
+}
 // PASTED TAG (NKK sir 2026-07-17 Sunili ILI job): flat hang-tag, 2 sheets pasted back-to-back to make
 // one thick tag. Paper AND its weight double per finished piece; adds a pasting labour line. Die-cut +
 // hole-punch use the existing B3 fppFields (already flat post-press).
@@ -826,8 +984,43 @@ function slipcaseGeom(H,W,D,t,ti){
   const blankH=+(2*H+D+2*ti).toFixed(2);               // front face + closed end + back face + turn-ins
   return {surface:+surface.toFixed(1),blankW,blankH};
 }
+// LARGE FORMAT (NKK sir 2026-07-23): standee / banner / flex — priced per SQ.FT of media, NOT by sheets.
+// No plates, no imposition, no signatures. cost = area(sqft) × qty × media ₹/sqft + finishing (eyelets,
+// hemming, board mount) + roller stand (roll-up standee) + design/setup, then margin. Rates are EDITABLE —
+// grounded on real jobs (3×6 ft standee ≈ ₹1,650 with roller; ~103 sqft flex banner ≈ ₹5,300 all-in) but
+// confirm with sir. This path bypasses the whole sheet engine.
+const LARGE_FORMAT_PRODUCTS=new Set(["banner","standee"]);
+const isLF=p=>LARGE_FORMAT_PRODUCTS.has(p);
+const LF_MEDIA={flex:{r:15,name:"Flex (frontlit)"},starflex:{r:22,name:"Star flex"},vinyl:{r:35,name:"Vinyl / PP"},
+  backlit:{r:50,name:"Backlit flex"},fabric:{r:45,name:"Fabric / cloth"},photo:{r:40,name:"Photo paper"}};
+const toFt=(v,unit)=> unit==="ft"?v : unit==="mm"?v/304.8 : unit==="cm"?v/30.48 : v/12;   // any unit → feet
+// LANYARD — per-piece printed textile strap. NOT a sheet job: priced per piece (blank strap × width factor
+// + printing + hardware) with a one-time screen/transfer setup, then margin. Bypasses the whole sheet engine
+// like large format does. Blank strap ₹/pc by material (editable); calibrated to trade rates, not fitted.
+const LANYARD_PRODUCTS=new Set(["lanyard"]);
+const isLanyard=p=>LANYARD_PRODUCTS.has(p);
+const LANYARD_MEDIA={polyester:{r:9,name:"Polyester (screen-print)"},satin:{r:11,name:"Satin polyester"},
+  tubular:{r:7,name:"Tubular"},sublimation:{r:13,name:"Sublimation (full-colour)"},eco:{r:15,name:"Eco RPET"}};
+// POUCH — per-piece converted pouch (fabric drawstring OR printed board). NOT a sheet job: priced per piece
+// (blank/material + decoration + drawstring/handle + make/convert) × qty + one-time setup, then margin.
+// Bypasses the sheet engine like lanyard/large-format. Material rate = finished blank ₹/pc (editable);
+// `fabric:true` seeds a drawstring, `fabric:false` (board) seeds die-cut converting. Trade rates, not fitted.
+const POUCH_PRODUCTS=new Set(["pouch"]);
+const isPouch=p=>POUCH_PRODUCTS.has(p);
+const POUCH_MEDIA={velvet:{r:40,name:"Velvet fabric",fabric:true},satin:{r:28,name:"Satin fabric",fabric:true},
+  canvas:{r:22,name:"Canvas / cotton",fabric:true},jute:{r:20,name:"Jute",fabric:true},nonwoven:{r:12,name:"Non-woven",fabric:true},
+  glamkot:{r:14,name:"Glamkot board (printed)",fabric:false},artcard:{r:10,name:"Art card (printed)",fabric:false}};
+// RIGID SET-UP BOX — hand-assembled greyboard box wrapped in printed/special paper. NOT a folding carton and
+// NOT a sheet job: priced per piece as a component build-up (board carcass + outer wrap+print + inner lining +
+// foiling + box-making labour), seeded from L×W×H geometry, then margin. Bypasses the sheet engine like pouch.
+// Unit rates are defensible economy-rigid-box trade values (greyboard ~Rs.25/sqft, art-paper wrap), NOT fitted.
+const RIGIDBOX_PRODUCTS=new Set(["rigidbox"]);
+const isRigidBox=p=>RIGIDBOX_PRODUCTS.has(p);
+const RIGIDBOX_STYLES={topbottom:{name:"Top-bottom (2-piece lid+base)",lid:true,mult:1},
+  traylid:{name:"Tray + lid",lid:true,mult:1},slider:{name:"Slider / drawer",lid:false,mult:1.9},
+  magnetic:{name:"Magnetic flap",lid:false,mult:1.5},shoulder:{name:"Shoulder / neck box",lid:true,mult:1}};
 // DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
-const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope"]);
+const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope","bag"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
 // blank size (inches) from the assembled dims A,B,C + glue flap g + tuck/flap/pocket f (all inches)
 function dielineBlank(type,A,B,C,g,f){
@@ -836,6 +1029,10 @@ function dielineBlank(type,A,B,C,g,f){
   else if(type==="carton_seal"){ bw=2*A+2*B+g; bh=C+2.5*B; desc=`Seal-end mono carton ${A}×${B}×${C} (glued bottom)`; }
   else if(type==="sleeve"){ bw=2*A+2*B+g; bh=C;     desc=`Sleeve ${A}×${B}×${C}`; }
   else if(type==="folder"){ bw=2*A+C+2*g; bh=B+f;   desc=`Folder ${A}×${B}, spine ${C}, pocket ${f}`; }
+  // PAPER BAG (NKK sir 2026-07-23): flat-bottom carry bag, A wide × B tall × C gusset. One wrap-around blank
+  // = front + back + 2 gussets + side glue seam; height = bag + bottom fold (C) + top hem/turn (f). For a
+  // 2-panel bag (front+back pasted) set "panels per bag"=2 in the panel; area then counts both blanks.
+  else if(type==="bag"){ bw=2*A+2*C+g; bh=B+C+f;    desc=`Paper bag ${A}×${B}${C>0?`×${C} gusset`:""}`; }
   // ENVELOPE (NKK sir 2026-06-30): gusseted vs non-gusseted. C = gusset depth (0 = flat). A gusset adds
   // depth on both sides + the bottom, so the blank grows by 2×gusset in width and 1×gusset in height.
   else                    { bw=A+2*g+2*C; bh=B+2*f+C; desc=`Envelope ${A}×${B}${C>0?`, gusset ${C}`:""}, flap ${f}`; }
@@ -847,7 +1044,8 @@ const DIELINE_DIMS={
   carton_seal:{A:"Length",B:"Width / depth",C:"Height",cLbl:"Height (C)",fLbl:"(n/a)",useF:false},
   sleeve:{A:"Length",B:"Width / depth",C:"Height",cLbl:"Height (C)",fLbl:"(n/a)",useF:false},
   folder:{A:"Closed width",B:"Closed height",C:"Spine capacity",cLbl:"Spine capacity",fLbl:"Pocket depth",useF:true},
-  envelope:{A:"Closed width",B:"Closed height",C:"Gusset depth",cLbl:"Gusset depth (0 = flat)",fLbl:"Flap depth",useF:true}
+  envelope:{A:"Closed width",B:"Closed height",C:"Gusset depth",cLbl:"Gusset depth (0 = flat)",fLbl:"Flap depth",useF:true},
+  bag:{A:"Bag width",B:"Bag height",C:"Gusset depth",cLbl:"Gusset depth",fLbl:"Top hem / turn",useF:true}
 };
 const PAPER_DB=[{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":125,"w":25,"h":36,"r":17.4},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":125,"w":28,"h":40,"r":22.3},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":150,"w":25,"h":36,"r":19.45},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":150,"w":28,"h":40,"r":26.75},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":150,"w":23,"h":33,"r":17.9},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":150,"w":25,"h":35.98,"r":17.9},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":170,"w":25,"h":36,"r":23.9},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":170,"w":28,"h":40,"r":30.2},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":180,"w":25,"h":36,"r":25.05},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":180,"w":28,"h":40,"r":31.75},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":210,"w":25,"h":36,"r":30.0},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":210,"w":28,"h":40,"r":37.95},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":230,"w":25,"h":36,"r":32.0},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":230,"w":25,"h":33.27,"r":29.85},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":230,"w":28,"h":40,"r":41.9},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":250,"w":25,"h":36,"r":36.0},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":250,"w":28,"h":40,"r":45.55},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":280,"w":25,"h":36,"r":40.3},{"t":"Special Paper","g":"RENOIR EXTRA WHITE","b":"MOORIM","gsm":280,"w":28,"h":40,"r":41.0},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":135,"w":25,"h":36,"r":18.96},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":135,"w":28,"h":40,"r":24.0},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":160,"w":25,"h":36,"r":22.45},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":160,"w":28,"h":40,"r":28.45},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":190,"w":25,"h":36,"r":26.0},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":190,"w":28,"h":40,"r":32.95},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":210,"w":25,"h":36,"r":28.75},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":210,"w":28,"h":40,"r":31.5},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":230,"w":25,"h":36,"r":39.85},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":230,"w":28,"h":40,"r":34.55},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":250,"w":25,"h":36,"r":34.56},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":250,"w":28,"h":40,"r":43.7},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":310,"w":25,"h":36,"r":42.8},{"t":"Special Paper","g":"ARTIZEN EXTRA SHITE","b":"MOORIM","gsm":310,"w":28,"h":40,"r":54.2},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":125,"w":25,"h":36,"r":17.4},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":125,"w":28,"h":40,"r":22.05},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":160,"w":25,"h":36,"r":22.1},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":160,"w":28,"h":40,"r":27.95},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":220,"w":25,"h":36,"r":30.4},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":220,"w":28,"h":40,"r":38.45},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":200,"w":25,"h":36,"r":28.3},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":200,"w":28,"h":40,"r":35.85},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":245,"w":25,"h":36,"r":34.4},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":245,"w":28,"h":40,"r":43.55},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":285,"w":25,"h":36,"r":40.05},{"t":"Special Paper","g":"VINCENT","b":"MOORIM","gsm":285,"w":28,"h":40,"r":50.65},{"t":"Special Paper","g":"S-PLUS","b":"MOORIM","gsm":100,"w":25,"h":36,"r":12.3},{"t":"Special Paper","g":"S-PLUS","b":"MOORIM","gsm":100,"w":28,"h":40,"r":15.6},{"t":"Special Paper","g":"S-PLUS","b":"MOORIM","gsm":120,"w":25,"h":36,"r":14.65},{"t":"Special Paper","g":"S-PLUS","b":"MOORIM","gsm":120,"w":28,"h":40,"r":17.8},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":120,"w":25.2,"h":35.4,"r":25.25},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":32.25},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":145,"w":25.2,"h":35.4,"r":30.5},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":145,"w":28.3,"h":40.1,"r":39.0},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":170,"w":25.2,"h":35.4,"r":35.75},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":170,"w":28.3,"h":40.1,"r":45.75},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":200,"w":25.2,"h":35.4,"r":41.75},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":200,"w":28.3,"h":40.1,"r":53.25},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":240,"w":25.2,"h":35.4,"r":50.0},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":240,"w":28.3,"h":40.1,"r":63.75},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":280,"w":25.2,"h":35.4,"r":58.25},{"t":"Special Paper","g":"N.E. WHITE","b":"CARDINAL","gsm":280,"w":28.3,"h":40.1,"r":74.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":120,"w":25.2,"h":35.4,"r":25.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":32.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":145,"w":25.2,"h":35.4,"r":30.5},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":145,"w":28.3,"h":40.1,"r":39.0},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":200,"w":25.2,"h":35.4,"r":41.75},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":200,"w":28.3,"h":40.1,"r":53.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":280,"w":25.2,"h":35.4,"r":58.25},{"t":"Special Paper","g":"N.E. IVORY","b":"CARDINAL","gsm":280,"w":28.3,"h":40.1,"r":74.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":100,"w":25,"h":36,"r":18.5},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":100,"w":27.6,"h":39.4,"r":22.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":100,"w":28.3,"h":40.1,"r":23.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":130,"w":25,"h":36,"r":22.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":130,"w":27.6,"h":39.4,"r":27.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":130,"w":28.3,"h":40.1,"r":28.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":160,"w":25,"h":36,"r":28.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":160,"w":27.6,"h":39.4,"r":33.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":160,"w":28.3,"h":40.1,"r":35.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":190,"w":25,"h":36,"r":33.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":190,"w":27.6,"h":39.4,"r":40.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":190,"w":28.3,"h":40.1,"r":42.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":240,"w":25,"h":36,"r":42.0},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":240,"w":27.6,"h":39.4,"r":50.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":240,"w":28.3,"h":40.1,"r":52.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":270,"w":25,"h":36,"r":47.25},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":270,"w":27.6,"h":39.4,"r":56.75},{"t":"Special Paper","g":"MONTBLANC INSPER EXTRA WHITE","b":"HANSOL","gsm":270,"w":28.3,"h":40.1,"r":59.5},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":120,"w":28.3,"h":39.8,"r":38.0},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":160,"w":25.2,"h":35.4,"r":40.0},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":160,"w":28.3,"h":39.8,"r":50.5},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":200,"w":28.3,"h":39.8,"r":61.5},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":240,"w":25.2,"h":35.4,"r":58.25},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":240,"w":28.3,"h":39.8,"r":73.5},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":300,"w":25.2,"h":39.4,"r":72.75},{"t":"Special Paper","g":"MYINSIZE DALI CANDIDO","b":"CARDINAL","gsm":300,"w":28.3,"h":39.8,"r":92.0},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":120,"w":28.3,"h":39.8,"r":38.0},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":160,"w":25.2,"h":35.4,"r":40.0},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":160,"w":28.3,"h":39.8,"r":50.5},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":200,"w":28.3,"h":39.8,"r":61.5},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":260,"w":25.2,"h":35.4,"r":63.25},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":260,"w":28.3,"h":39.8,"r":79.75},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":300,"w":25.2,"h":35.4,"r":72.75},{"t":"Special Paper","g":"MYINSIZE MODIGLIANI CANDIDO","b":"CARDINAL","gsm":300,"w":28.3,"h":39.8,"r":92.0},{"t":"Special Paper","g":"MYARTELIBRIS BLU","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"MYARTELIBRIS FUMO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"MYARTELIBRIS  BLU NAVY","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":54.0},{"t":"Special Paper","g":"MY ARTELIBRIS ROSSO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"MY ARTELIBRIS CAFFE","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":54.0},{"t":"Special Paper","g":"MY ARTELIBRIS GRIGIO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"MY ARTELIBRIS BIANCO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":43.0},{"t":"Special Paper","g":"MY ARTELIBRIS AVORIO","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":43.0},{"t":"Special Paper","g":"MY ARTELIBRIS KAKI","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":51.0},{"t":"Special Paper","g":"BUSAN BLUE","b":"CARDINAL","gsm":250,"w":25,"h":35.8,"r":41.0},{"t":"Special Paper","g":"BOMBAY BLUE","b":"CARDINAL","gsm":120,"w":25,"h":35.8,"r":21.0},{"t":"Special Paper","g":"BOMBAY BLUE","b":"CARDINAL","gsm":250,"w":25,"h":35.8,"r":43.5},{"t":"Special Paper","g":"BOCHAM BLUE","b":"CARDINAL","gsm":120,"w":25,"h":35.8,"r":21.0},{"t":"Special Paper","g":"BOCHAM BLUE","b":"CARDINAL","gsm":120,"w":31,"h":43,"r":31.0},{"t":"Special Paper","g":"BOCHAM BLUE","b":"CARDINAL","gsm":250,"w":25,"h":35.8,"r":43.5},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":105,"w":25,"h":36,"r":12.75},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":105,"w":28.3,"h":40.1,"r":16.0},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":128,"w":25,"h":36,"r":14.5},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":128,"w":28.3,"h":40.1,"r":18.25},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":157,"w":25,"h":36,"r":17.75},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":157,"w":28.3,"h":40.1,"r":22.5},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":186,"w":25,"h":36,"r":21.0},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":186,"w":28.3,"h":40.1,"r":26.5},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":256,"w":25,"h":36,"r":28.75},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":256,"w":28.3,"h":40.1,"r":36.25},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":300,"w":25,"h":36,"r":33.75},{"t":"Special Paper","g":"XTELLA BRILLIANT WHITE","b":"CARDINAL","gsm":300,"w":28.3,"h":40.1,"r":42.5},{"t":"Special Paper","g":"MYLEATHERLIKE CLASSIC BLACK","b":"CARDINAL","gsm":120,"w":28.3,"h":40.1,"r":142.0},{"t":"Special Paper","g":"MYLEATHERLIKE CLASSIC BLACK","b":"CARDINAL","gsm":230,"w":28.3,"h":40.1,"r":243.5},{"t":"Special Paper","g":"MYLEATHERLIKE CLASSIC BLACK","b":"CARDINAL","gsm":360,"w":28.3,"h":40.1,"r":380.0},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":90,"w":25,"h":35.8,"r":15.0},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":90,"w":31,"h":43,"r":22.5},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":120,"w":25,"h":35.8,"r":19.5},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":180,"w":25,"h":35.8,"r":28.75},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":250,"w":25,"h":35.8,"r":40.5},{"t":"Special Paper","g":"BEIRUT BLACK","b":"CARDINAL","gsm":300,"w":25,"h":35.8,"r":48.5},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":250,"w":27.6,"h":39.4,"r":88.0},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":300,"w":27.6,"h":39.4,"r":104.0},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":390,"w":27.6,"h":39.4,"r":138.0},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":450,"w":27.6,"h":39.4,"r":157.0},{"t":"Special Paper","g":"MY NOTTURNO BLACK","b":"CARDINAL","gsm":700,"w":27.6,"h":39.4,"r":327.0},{"t":"Special Paper","g":"PLIKE BLACK","b":"CARDINAL","gsm":140,"w":28.3,"h":40.1,"r":95.0},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":20,"h":30,"r":2.6},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":23,"h":36,"r":3.59},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":25,"h":36,"r":3.9},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":20,"h":30,"r":2.86},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":23,"h":36,"r":3.94},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":25,"h":36,"r":4.29},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"NAINI","gsm":90,"w":25,"h":36,"r":4.18},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":20,"h":30,"r":3.17},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":23,"h":36,"r":4.38},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":22,"h":32,"r":3.72},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":25,"h":36,"r":5.71},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":23,"h":36,"r":5.26},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":20,"h":30,"r":3.81},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":20,"h":30,"r":4.13},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":23,"h":36,"r":5.69},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":25,"h":36,"r":6.19},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":22,"h":32,"r":4.84},{"t":"Coated Paper (C2S)","g":"ART PAPER(MATT)","b":"HI KOTE","gsm":130,"w":25,"h":36,"r":6.19},{"t":"Coated Paper (C2S)","g":"ART PAPER(MATT)","b":"HI KOTE","gsm":130,"w":23,"h":36,"r":5.69},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":20,"h":30,"r":4.98},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":23,"h":36,"r":6.88},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":25,"h":36,"r":7.48},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":25,"h":36,"r":7.8},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":23,"h":36,"r":7.17},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":20,"h":30,"r":5.2},{"t":"Coated Paper (C2S)","g":"ART PAPER(MATT)","b":"HI KOTE","gsm":170,"w":20,"h":30,"r":5.2},{"t":"Coated Paper (C2S)","g":"ART PAPER(MATT)","b":"HI KOTE","gsm":170,"w":25,"h":36,"r":7.8},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":20,"h":30,"r":6.12},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":23,"h":36,"r":8.44},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":25,"h":36,"r":9.17},{"t":"Coated Paper (C2S)","g":"ART BOARD(MATT)","b":"HI KOTE","gsm":210,"w":22,"h":28,"r":6.59},{"t":"Coated Paper (C2S)","g":"ART BOARD(MATT)","b":"HI KOTE","gsm":210,"w":25,"h":36,"r":9.63},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":20,"h":30,"r":6.42},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":22,"h":28,"r":6.59},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":23,"h":36,"r":8.86},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":25,"h":36,"r":9.63},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":25,"h":36,"r":11.47},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":23,"h":36,"r":10.55},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":20,"h":30,"r":7.65},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":22,"h":28,"r":7.85},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":25,"h":36,"r":13.76},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":23,"h":36,"r":12.66},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":20,"h":30,"r":9.17},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":25,"h":36,"r":12.05},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":23,"h":36,"r":11.08},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":22,"h":28,"r":8.25},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":300,"w":25,"h":36,"r":14.46},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":300,"w":23,"h":36,"r":13.3},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":300,"w":22,"h":28,"r":9.9},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":350,"w":25,"h":36,"r":16.87},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":350,"w":23,"h":36,"r":15.52},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":350,"w":22,"h":28,"r":11.55},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":22,"h":28,"r":7.65},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":23,"h":36,"r":10.28},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":25,"h":38,"r":11.8},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":31.5,"h":41.5,"r":16.24},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":22,"h":28,"r":8.57},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":23,"h":36,"r":11.52},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":25,"h":38,"r":13.21},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":31.5,"h":41.5,"r":18.18},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":22,"h":28,"r":9.18},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":23,"h":36,"r":12.34},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":25,"h":38,"r":14.16},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":31.5,"h":41.5,"r":19.48},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":20,"h":30,"r":2.06},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":25,"h":36,"r":3.09},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":23,"h":36,"r":2.84},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":20,"h":30,"r":2.42},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":25,"h":36,"r":3.62},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":23,"h":36,"r":3.33},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":20,"h":30,"r":2.72},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":25,"h":36,"r":4.08},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":23,"h":36,"r":3.75},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":20,"h":30,"r":3.02},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":20,"h":30,"r":3.62},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":23,"h":36,"r":5.0},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":25,"h":36,"r":5.43},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":60,"w":20,"h":30,"r":1.74},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":60,"w":23,"h":36,"r":2.4},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":60,"w":25,"h":36,"r":2.61},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":70,"w":20,"h":30,"r":2.03},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":70,"w":23,"h":36,"r":2.8},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":70,"w":25,"h":36,"r":3.05},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":80,"w":20,"h":30,"r":2.32},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":80,"w":23,"h":36,"r":3.21},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":80,"w":25,"h":36,"r":3.48},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":90,"w":20,"h":30,"r":2.61},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":90,"w":23,"h":36,"r":3.61},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":90,"w":25,"h":36,"r":3.92},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":120,"w":20,"h":30,"r":3.48},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":120,"w":23,"h":36,"r":4.81},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"ITC","gsm":120,"w":25,"h":36,"r":5.23},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":280,"w":22,"h":28,"r":8.68},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":280,"w":23,"h":36,"r":11.67},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":280,"w":25,"h":38,"r":13.39},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":280,"w":31.5,"h":41.5,"r":18.42},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":300,"w":22,"h":28,"r":9.3},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":300,"w":23,"h":36,"r":12.5},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":300,"w":25,"h":38,"r":14.34},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":300,"w":31.5,"h":41.5,"r":19.74},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":350,"w":23,"h":36,"r":14.58},{"t":"SBS(CS1)","g":"CARTE LUMINA","b":"ITC","gsm":350,"w":31.5,"h":41.5,"r":23.02},{"t":"SBS(CS1)","g":"ITC HIZINE","b":"ITC","gsm":120,"w":25,"h":36,"r":5.57},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":80,"w":20,"h":30,"r":2.6},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":80,"w":23,"h":36,"r":3.63},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":80,"w":25,"h":36,"r":3.95},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":90,"w":20,"h":30,"r":2.86},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":90,"w":23,"h":36,"r":3.94},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":90,"w":25,"h":36,"r":4.29},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":100,"w":20,"h":30,"r":3.1},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":100,"w":23,"h":36,"r":4.27},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":100,"w":22,"h":32,"r":3.63},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":120,"w":25,"h":36,"r":5.57},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":120,"w":23,"h":36,"r":5.13},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":120,"w":20,"h":30,"r":3.72},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":130,"w":20,"h":30,"r":4.03},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":130,"w":23,"h":36,"r":5.56},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":130,"w":25,"h":36,"r":6.04},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":130,"w":22,"h":32,"r":4.72},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":157,"w":20,"h":30,"r":4.86},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":157,"w":23,"h":36,"r":6.71},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":157,"w":25,"h":36,"r":7.29},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":170,"w":25,"h":36,"r":7.9},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":170,"w":23,"h":36,"r":7.27},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HANSOLE","gsm":170,"w":20,"h":30,"r":5.26},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":200,"w":20,"h":30,"r":5.88},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":200,"w":23,"h":36,"r":8.12},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":200,"w":25,"h":36,"r":8.83},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":210,"w":20,"h":30,"r":6.5},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":210,"w":22,"h":28,"r":6.68},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":210,"w":23,"h":36,"r":8.97},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":210,"w":25,"h":36,"r":9.75},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":25,"h":36,"r":11.61},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":23,"h":36,"r":10.68},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":20,"h":30,"r":7.74},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":22,"h":28,"r":7.95},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":25,"h":36,"r":12.05},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":23,"h":36,"r":11.08},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":20,"h":30,"r":8.13},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"LUXE","gsm":250,"w":22,"h":28,"r":8.25},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":25,"h":36,"r":13.94},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":23,"h":36,"r":12.82},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":20,"h":30,"r":9.29},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":25,"h":36,"r":11.61},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":23,"h":36,"r":10.68},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":250,"w":22,"h":28,"r":7.95},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":25,"h":36,"r":13.94},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":23,"h":36,"r":12.82},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":300,"w":22,"h":28,"r":9.54},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":350,"w":25,"h":36,"r":16.26},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":350,"w":23,"h":36,"r":14.96},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HANSOLE","gsm":350,"w":22,"h":28,"r":11.13},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":54,"w":20,"h":30,"r":1.65},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":54,"w":23,"h":36,"r":2.28},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":54,"w":25,"h":36,"r":2.48},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":20,"h":30,"r":2.06},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":25,"h":36,"r":3.09},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":23,"h":36,"r":2.84},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":20,"h":30,"r":2.42},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":25,"h":36,"r":3.62},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":23,"h":36,"r":3.33},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":20,"h":30,"r":2.72},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":25,"h":36,"r":4.08},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":23,"h":36,"r":3.75},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":20,"h":30,"r":3.02},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":23,"h":36,"r":4.22},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":25,"h":36,"r":4.59},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":20,"h":30,"r":3.62},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":23,"h":36,"r":5.0},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":25,"h":36,"r":5.43},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":140,"w":20,"h":30,"r":4.28},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":140,"w":23,"h":36,"r":5.91},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":140,"w":25,"h":36,"r":6.42},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":60,"w":20,"h":30,"r":1.88},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":60,"w":23,"h":36,"r":2.6},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":60,"w":25,"h":36,"r":2.82},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":70,"w":20,"h":30,"r":2.19},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":70,"w":23,"h":36,"r":3.03},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":70,"w":25,"h":36,"r":3.29},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":80,"w":20,"h":30,"r":2.51},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":80,"w":23,"h":36,"r":3.46},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":80,"w":25,"h":36,"r":3.76},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":90,"w":20,"h":30,"r":2.82},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":90,"w":23,"h":36,"r":3.89},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":90,"w":25,"h":36,"r":4.23},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":120,"w":20,"h":30,"r":3.76},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":120,"w":23,"h":36,"r":5.19},{"t":"Uncoated","g":"N.S. MAPLITHO","b":"SICAA","gsm":120,"w":25,"h":36,"r":5.64},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":20,"h":30,"r":2.6},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":23,"h":36,"r":3.59},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":80,"w":25,"h":36,"r":3.9},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":20,"h":30,"r":2.86},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":23,"h":36,"r":3.94},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":90,"w":25,"h":36,"r":4.29},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":20,"h":30,"r":3.17},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":23,"h":36,"r":4.38},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":100,"w":22,"h":32,"r":3.72},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":25,"h":36,"r":5.71},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":23,"h":36,"r":5.26},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":120,"w":20,"h":30,"r":3.81},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":20,"h":30,"r":4.13},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":23,"h":36,"r":5.69},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":25,"h":36,"r":6.19},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":130,"w":22,"h":32,"r":4.84},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":20,"h":30,"r":4.98},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":23,"h":36,"r":6.88},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":157,"w":25,"h":36,"r":7.48},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":25,"h":36,"r":7.8},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":23,"h":36,"r":7.17},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":"HI KOTE","gsm":170,"w":20,"h":30,"r":5.2},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":20,"h":30,"r":6.12},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":23,"h":36,"r":8.44},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":200,"w":25,"h":36,"r":9.17},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":20,"h":30,"r":6.42},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":22,"h":28,"r":6.59},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":23,"h":36,"r":8.86},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":210,"w":25,"h":36,"r":9.63},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":25,"h":36,"r":11.47},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":23,"h":36,"r":10.55},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":20,"h":30,"r":7.65},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":22,"h":28,"r":7.85},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":25,"h":36,"r":13.76},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":23,"h":36,"r":12.66},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":20,"h":30,"r":9.17},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":25,"h":36,"r":11.47},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":23,"h":36,"r":10.55},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":22,"h":28,"r":7.85},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":25,"h":36,"r":13.76},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":23,"h":36,"r":12.66},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":22,"h":28,"r":9.18},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":350,"w":25,"h":36,"r":15.65},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":350,"w":23,"h":36,"r":14.4},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":350,"w":22,"h":28,"r":10.71},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":22,"h":28,"r":9.18},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":23,"h":36,"r":12.66},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":25,"h":36,"r":13.76},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":300,"w":31.5,"h":41.5,"r":19.48},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":22,"h":28,"r":7.85},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":23,"h":36,"r":10.55},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":25,"h":36,"r":11.47},{"t":"Coated Paper (C2S)","g":"ART BOARD","b":"HI KOTE","gsm":250,"w":31.5,"h":41.5,"r":16.24},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":22,"h":28,"r":7.65},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":23,"h":36,"r":10.28},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":25,"h":38,"r":11.8},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":250,"w":31.5,"h":41.5,"r":16.24},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":22,"h":28,"r":8.57},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":23,"h":36,"r":11.52},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":25,"h":38,"r":13.21},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":280,"w":31.5,"h":41.5,"r":18.18},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":22,"h":28,"r":9.18},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":23,"h":36,"r":12.34},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":25,"h":38,"r":14.16},{"t":"FBB \u2014(CS1)","g":"CYBER XL","b":"ITC","gsm":300,"w":31.5,"h":41.5,"r":19.48},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":20,"h":30,"r":2.06},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":25,"h":36,"r":3.09},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":70,"w":23,"h":36,"r":2.84},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":20,"h":30,"r":2.42},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":25,"h":36,"r":3.62},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":80,"w":23,"h":36,"r":3.33},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":20,"h":30,"r":2.72},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":25,"h":36,"r":4.08},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":90,"w":23,"h":36,"r":3.75},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":100,"w":20,"h":30,"r":3.02},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":20,"h":30,"r":3.62},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":23,"h":36,"r":5.0},{"t":"Uncoated","g":"Maplitho","b":"IKWOODFREE","gsm":120,"w":25,"h":36,"r":5.43},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":60,"w":20,"h":30,"r":1.74},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":60,"w":23,"h":36,"r":2.44},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":60,"w":25,"h":36,"r":2.61},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":70,"w":20,"h":30,"r":2.03},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":70,"w":23,"h":36,"r":2.84},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":70,"w":25,"h":36,"r":3.09},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":80,"w":20,"h":30,"r":2.32},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":80,"w":23,"h":36,"r":3.25},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":80,"w":25,"h":36,"r":3.53},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":90,"w":20,"h":30,"r":2.61},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":90,"w":23,"h":36,"r":3.65},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":90,"w":25,"h":36,"r":3.97},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":120,"w":20,"h":30,"r":3.53},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":120,"w":23,"h":36,"r":4.87},{"t":"Uncoated(Natural)","g":"N.S. MAPLITHO","b":"CENTURY","gsm":120,"w":23,"h":36,"r":4.87},{"t":"Coated Paper (C2S)","g":"SSP","b":"BALLARPUR","gsm":90,"w":25,"h":36,"r":4.6},{"t":"Coated Paper (C2S)","g":"SSP","b":"BALLARPUR","gsm":90,"w":23,"h":36,"r":4.23},{"t":"Coated Paper (C2S)","g":"SSP","b":"BALLARPUR","gsm":90,"w":31,"h":40,"r":6.34},{"t":"Coated Paper (C2S)","g":"ART PAPER","b":null,"gsm":128,"w":23,"h":36,"r":5.54},{"t":"Coated Paper (C2S)","g":"PINDO HI BULK GOLD","b":"PINDO","gsm":210,"w":28,"h":40,"r":13.2},{"t":"Coated Paper (C2S)","g":"PINDO HI BULK GOLD","b":"PINDO","gsm":210,"w":25,"h":36,"r":10.61},{"t":"Coated Paper (C2S)","g":"PINDO HI BULK GOLD","b":"PINDO","gsm":210,"w":23,"h":36,"r":9.76},{"t":"Coated Paper (C2S)","g":"PINDO HI BULK GOLD","b":"PINDO","gsm":210,"w":22,"h":28,"r":7.26},{"t":"BOND PAPER","g":"JK EXCEL BOND","b":"JK","gsm":120,"w":25,"h":36,"r":7.39},{"t":"BOND PAPER","g":"JK EXCEL BOND","b":"JK","gsm":100,"w":18,"h":23,"r":2.83},{"t":"BOND PAPER","g":"JK EXCEL BOND","b":"JK","gsm":80,"w":17,"h":24,"r":2.23},{"t":"BOND PAPER","g":"JK EXCEL BOND","b":"JK","gsm":80,"w":18,"h":23,"r":2.26},{"t":"Coated Paper (C2S)","g":"GLOSS ART PAPER","b":"HI COAT","gsm":170,"w":25,"h":36,"r":10.46},{"t":"MATT","g":"GLOSS ART PAPER","b":"HI COAT","gsm":170,"w":25,"h":36,"r":10.46},{"t":"Coated Paper (C2S)","g":"HIZINE","b":"BALLARPUR","gsm":120,"w":25,"h":36,"r":0.0},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":300,"w":25,"h":36,"r":13.76},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":300,"w":23,"h":36,"r":12.66},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":350,"w":25,"h":36,"r":16.05},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":350,"w":23,"h":36,"r":14.77},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":320,"w":25,"h":36,"r":14.68},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":260,"w":24.25,"h":17.76,"r":5.71},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":250,"w":23,"h":36,"r":10.55},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":250,"w":25,"h":36,"r":11.47},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":250,"w":31,"h":42,"r":16.59},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":220,"w":28,"h":33,"r":10.36},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":220,"w":31.5,"h":41,"r":14.48},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":220,"w":32,"h":42,"r":15.07},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":200,"w":22,"h":28,"r":6.28},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":200,"w":25,"h":36,"r":9.17},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":200,"w":25,"h":38,"r":9.68},{"t":"Coated Paper (C2S)","g":"GLAMKOT","b":"EMAMI","gsm":200,"w":32,"h":42,"r":13.7}];
 function num(id,def){ const e=$(id); if(!e) return def; const v=e.value.trim(); if(v==="")return def; const n=parseFloat(v); return isFinite(n)?n:def; }
@@ -873,7 +1071,10 @@ function onProductChange(){
     const Wlab=$("W").parentElement.querySelector("label"), Hlab=$("H").parentElement.querySelector("label");
     if(Wlab) Wlab.textContent=D.A+" (A)"; if(Hlab) Hlab.textContent=D.B+" (B)";
     if($("dlCLbl")) $("dlCLbl").textContent=D.cLbl; if($("dlFLbl")) $("dlFLbl").textContent=D.fLbl;
-    if($("dlTitle")) $("dlTitle").textContent="📐 "+({carton_tuck:"Carton / box (tuck-end)",carton_seal:"Mono carton (seal-end)",sleeve:"Sleeve / wrap",folder:"Presentation folder",envelope:"Envelope"}[$("product").value]||"Dieline")+" — flat blank → die-cut → fold";
+    if($("dlTitle")) $("dlTitle").textContent="📐 "+({carton_tuck:"Carton / box (tuck-end)",carton_seal:"Mono carton (seal-end)",sleeve:"Sleeve / wrap",folder:"Presentation folder",envelope:"Envelope",bag:"Paper bag"}[$("product").value]||"Dieline")+" — flat blank → die-cut → fold";
+    const isBag=$("product").value==="bag";
+    if($("dlBagRow")) $("dlBagRow").style.display=isBag?"flex":"none";
+    if($("dlBagRow2")) $("dlBagRow2").style.display=isBag?"flex":"none";
   } else { const Wlab=$("W").parentElement.querySelector("label"), Hlab=$("H").parentElement.querySelector("label");
     if(Wlab) Wlab.textContent="Width"; if(Hlab) Hlab.textContent="Height"; }
   // SLIPCASE: show its panel + relabel W/H to the book width/height it holds
@@ -887,15 +1088,35 @@ function onProductChange(){
   // FLAT POST-PRESS / B3: show the die-cut/punch/score/fold panel for flat non-dieline products
   if($("fppFields")) $("fppFields").style.display=isFlatPP($("product").value)?"block":"none";
   if($("ptagFields")) $("ptagFields").style.display=isPastedTag($("product").value)?"block":"none";
+  if($("jkFields")) $("jkFields").style.display=isJacket($("product").value)?"block":"none";
   // Flat embellishment panel: visible for any non-signature, non-dieline, non-slipcase product.
   const _pv=$("product").value;
-  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table";
+  const lan=isLanyard(_pv), pou=isPouch(_pv), rb=isRigidBox(_pv);
+  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan && !pou && !rb;
   if($("flatEmbFields")) $("flatEmbFields").style.display=isFlatEmbProd?"block":"none";
+  // LARGE FORMAT: show the sq.ft panel, hide the whole sheet engine (paper / colours / sheet sizes / flat / booklet).
+  const lf=isLF(_pv);
+  if($("lfFields")) $("lfFields").style.display=lf?"block":"none";
+  // LANYARD / POUCH / RIGID BOX: show the per-piece panel, hide the whole sheet engine like large format.
+  if($("lanFields")) $("lanFields").style.display=lan?"block":"none";
+  if($("pouFields")) $("pouFields").style.display=pou?"block":"none";
+  if($("rbFields")) $("rbFields").style.display=rb?"block":"none";
+  const hideSheet=lf||lan||pou||rb;
+  ["paperBox","colourBox","sheetSizeBox"].forEach(id=>{ if($(id)) $(id).style.display=hideSheet?"none":""; });   // restore for sheet products
+  if(hideSheet){ ["fppFields","flatEmbFields","bookletFields","flatFields"].forEach(id=>{ if($(id)) $(id).style.display="none"; }); }
+  if(lf){ if(typeof lfMediaRate==="function") lfMediaRate();
+    if(_pv==="standee" && $("lfRoller") && (!$("lfRoller").value||$("lfRoller").value==="0")) $("lfRoller").value=900;
+    if($("unit") && $("unit").value!=="ft" && $("unit").value!=="in") $("unit").value="ft"; }
+  if(lan && typeof lanyardMediaRate==="function") lanyardMediaRate();
+  if(pou && typeof pouchMediaRate==="function") pouchMediaRate();
+  if(rb && typeof rigidBoxApplySeeds==="function") rigidBoxApplySeeds();
   applyMarginDefault();
   applyGangedDefault();
   applyMenuRateHint();
   onCoverChange();
 }
+// Large-format media → default ₹/sq.ft (editable). Vinyl/PP for standee, flex for banner by default.
+function lfMediaRate(){ const m=$("lfMedia")?$("lfMedia").value:"vinyl"; const r=(LF_MEDIA[m]||LF_MEDIA.vinyl).r; if($("lfRate")) $("lfRate").value=r; }
 // default wiro ₹/calendar by type (NKK sir: part wiro = 2 short pieces, saves cost vs full)
 function tcWiroDefault(){ const t=$("tcWiro")?$("tcWiro").value:"none";
   // NKK sir 2026-07-18 reconcile: 13-16 leaf table calendars run ~₹15-25/pc wire-O.
@@ -1145,6 +1366,21 @@ function computePaper(inp){
 /* ---------- read + validate ---------- */
 function run(){
   $("err").textContent=""; document.querySelectorAll("input").forEach(e=>e.classList.remove("bad"));
+  // LANYARD: per-piece textile model — no size/sheet needed, just quantity. Render directly.
+  if(isLanyard($("product").value)){ renderLanyard(); return; }
+  // POUCH: per-piece converted model — no size/sheet needed, just quantity. Render directly.
+  if(isPouch($("product").value)){ renderPouch(); return; }
+  // RIGID BOX: per-piece hand-assembled model — needs L×W×H (width, height, box depth). Render directly.
+  if(isRigidBox($("product").value)){
+    if(!(num("W",0)>0)||!(num("H",0)>0)||!(num("rbH",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); if($("rbH"))$("rbH").classList.add("bad"); $("err").textContent="Please enter box length, width and depth (L=width, W=height, H=box depth)."; return; }
+    rigidBoxApplySeeds(); renderRigidBox(); return;
+  }
+  // LARGE FORMAT: per-sq.ft model — skip the whole sheet engine (imposition/plates/paper) and render directly.
+  if(isLF($("product").value)){ if(!(num("W",0)>0)||!(num("H",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); $("err").textContent="Please enter: width, height (banner/standee size)."; return; } renderLF(); return; }
+  // BOOK JACKET: a flat printed sheet whose blank width = 2×coverW + spine + 2×flap. Compute the blank from the
+  // book geometry and write it into the size fields, then fall through to the normal FLAT sheet engine (plates /
+  // imposition / lamination) — a jacket is a real sheet job, not a per-piece item.
+  if(isJacket($("product").value) && typeof jacketApplyGeometry==="function") jacketApplyGeometry();
   const booklet=isSig($("product").value);
   const req=[["W","width"],["H","height"],["gsm","GSM"]];
   req.push(booklet?["pages","total pages"]:[null,null], booklet?["copies","quantity"]:["copies2","quantity"]);
@@ -1154,15 +1390,20 @@ function run(){
   if(missing.length){ $("err").textContent="Please enter: "+missing.join(", ")+"."; return; }
   if(!sizes.length){ $("err").textContent="Tick at least one sheet size."; return; }
   const unit=$("unit").value;
-  // Binding-dependent page validation: folded sections = multiple of 4; leaf bindings = 2; mechanical = 1.
+  // Binding-dependent page count: folded sections = multiple of 4; leaf bindings = 2; mechanical = 1.
+  // NKK sir 2026-07-23: an odd count is not an error — printers complete the signature with blank leaves.
+  // Round UP to the next valid multiple, price that, and show a non-fatal note (was a hard bail that made
+  // the whole job unpriceable). The user can still change the page count or binding to override.
+  let pageRoundNote="";
   if(booklet){
     const bind=$("binding")?$("binding").value:"saddle";
     const mult=BIND_MULT[bind]||4;
     const pg=Math.round(num("pages",0));
-    if(mult>1 && pg%mult!==0){ $("pages").classList.add("bad");
-      const up=Math.ceil(pg/mult)*mult, dn=Math.floor(pg/mult)*mult;
-      $("err").textContent=`For ${BINDING_NAME[bind]||bind} binding, pages must be a multiple of ${mult}. Nearest valid: ${dn} or ${up}.`;
-      return; }
+    if(mult>1 && pg>0 && pg%mult!==0){
+      const up=Math.ceil(pg/mult)*mult;
+      $("pages").value=up;   // add blank leaves to complete the folding signature
+      pageRoundNote=`⚠ ${pg}pp isn't a valid ${BINDING_NAME[bind]||bind} count (multiple of ${mult}) — priced as <b>${up}pp</b> (${up-pg} blank${up-pg>1?"s":""} added). Edit pages or binding to change.`;
+    }
   }
   const inp={
     product_name:$("product_name").value.trim(), product:$("product").value, isSig:booklet, orientation:$("orientation").value,
@@ -1183,8 +1424,24 @@ function run(){
   // the assembled dims (W=A, H=B) + depth/capacity (dlC) + glue flap (dlGlue) + tuck/flap/pocket (dlFlap),
   // then drive the whole paper/imposition engine off the blank. Die-cutting + gluing are added in dielinePlan.
   if(isDieline(inp.product)){ const ti=v=>toIn(v,unit);
-    const A=inp.W, B=inp.H, C=ti(num("dlC",0)), g=ti(num("dlGlue",0)), f=ti(num("dlFlap",0));
-    const bl=dielineBlank(inp.product,A,B,C,g,f);
+    // A,B (=inp.W/H) are already in INCHES; C (a box dimension entered in the working unit) is converted with
+    // ti(). UNIT FIX: the glue flap (dlGlue) and tuck/flap/pocket (dlFlap) are fabrication ALLOWANCES specified
+    // in MILLIMETRES — convert them mm→inches ALWAYS. (Previously they were run through toIn() from the working
+    // unit, a no-op on inches, so a 30 mm flap became 30 INCHES and ballooned the folder/envelope blank.)
+    const A=inp.W, B=inp.H, C=ti(num("dlC",0)), g=num("dlGlue",0)/MM, f=num("dlFlap",0)/MM;
+    let bl;
+    if(inp.product==="bag"){
+      // Bag blank depends on construction. A 16" bag's wrap-around blank (~2A+2C) is too wide for any press
+      // sheet, so bags are usually printed as 2 PANELS (front + back) and pasted — each panel ≈ half width.
+      // Real fixed allowances (inches): side seam 0.75, top hem 1.25 (independent of the mm carton defaults).
+      const panels=Math.max(1,Math.round(num("dlBagPanels",1))), seam=0.75, hem=1.25;
+      const bw = panels>=2 ? (A+C+seam) : (2*A+2*C+seam);   // 2-panel: one panel; 1-panel: wrap-around
+      const bh = B+C+hem;
+      bl={blankW:+bw.toFixed(2), blankH:+bh.toFixed(2), type:"bag", desc:`Paper bag ${A}×${B}${C>0?`×${C} gusset`:""}, ${panels} panel/bag`};
+      inp.extent=panels;
+    } else {
+      bl=dielineBlank(inp.product,A,B,C,g,f);
+    }
     inp.dieline=Object.assign({},bl,{A:+A.toFixed(2),B:+B.toFixed(2),C:+C.toFixed(2),g:+g.toFixed(2),f:+f.toFixed(2),unit});
     inp.W=bl.blankW; inp.H=bl.blankH; inp.isSig=false;
     if($("dlBlankHint")) $("dlBlankHint").innerHTML=`<b>Flat blank ${bl.blankW} × ${bl.blankH} in</b> (${bl.desc}). Printing/coating use the Paper fields. Rates editable — confirm with sir.`;
@@ -1209,7 +1466,7 @@ function run(){
   // BINDING (NKK sir): auto-pick by spine unless user overrode; rate auto by pages·qty; check saddle limits.
   if(booklet){ autoBindingBySpine(inp.spineMM); inp.binding=$("binding").value;
     if(!bindingRateEdited) $("bindingRate").value=bindingRateFor(inp.binding,inp.pages,inp.copies);
-    const bc=bindingCheck(inp); if($("bindingWarn")) $("bindingWarn").innerHTML=bc.html; }
+    const bc=bindingCheck(inp); if($("bindingWarn")) $("bindingWarn").innerHTML=(pageRoundNote?`<div style="color:#a9761a;font-size:12px;margin-bottom:5px">${pageRoundNote}</div>`:"")+bc.html; }
   else if($("bindingWarn")) $("bindingWarn").innerHTML="";
   LASTINP=inp;
   const r=computePaper(inp);
@@ -1256,16 +1513,38 @@ function render(r){
   r.bestRunnable=runnable||null;
   showSheet(runnable||bw||bp||r.options.find(o=>o.ups));
 }
+// DIGITAL-NATIVE make-ready (NKK sir 2026-07-23): a digital press has NO plates and effectively no
+// make-ready — you print the exact run + a few spoilage sheets. The offset default (setup=100 sheets/form)
+// is an OFFSET assumption; letting it ride onto a digital route inflated its sheet count (e.g. 17 cards →
+// 102 "sheets" → digital printing ₹28×102) and made digital always look pricier than offset. When we
+// re-impose for a digital press, override the make-ready + running spoilage to digital-realistic values.
+const DIGITAL_MR=3;       // make-ready sheets for the whole digital job (vs ~100/form on offset)
+const DIGITAL_SPOIL=1;    // running spoilage % on digital (vs ~5% offset)
+// Minimum digital-print (click) charge per job — a digital press won't be fired up for a handful of clicks;
+// the shop bills a floor that covers file handling / RIP / a test print / minimum run. EDITABLE — confirm the
+// real figure with sir. This is a defensible shop-floor default, NOT tuned to any recorded amount.
+let DIGITAL_MIN_JOB=300;  // ₹ floor on the digital printing line (0 disables)
 // MACHINE CUT (NKK sir): a manually-chosen smaller press → cut the purchased sheet down to the machine
-// size and recompute the imposition on the cut sheet.
+// size and recompute the imposition on the cut sheet. For a DIGITAL press we also re-impose (even if the
+// sheet already fits) so the digital make-ready above replaces the offset one baked into the base option.
 function applyMachineCut(base,m){
   if(!base||!m||!LASTINP) return base;
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4)));
-  if(machineFit(m,base.sw,base.sh)==="fits"&&m.col>=need) return base;     // press already fits → no cut
+  const fitsWhole = machineFit(m,base.sw,base.sh)==="fits" && m.col>=need;
+  if(fitsWhole && !m.digital) return base;     // offset press already fits → no cut
+  const isDig=!!m.digital;
+  const digOv = isDig ? {setup:DIGITAL_MR, running:DIGITAL_SPOIL} : {};
+  if(fitsWhole && isDig){
+    // Digital press fits the base sheet whole — re-impose on the SAME sheet purely to swap in the digital
+    // make-ready/spoilage (the base option carries the offset make-ready). No cut-down.
+    const rr=computePaper(Object.assign({},LASTINP,{sizes:[[base.sw,base.sh]]},digOv));
+    const oo=rr.options&&rr.options[0];
+    return (oo&&oo.ups>0)?oo:base;
+  }
   const mp=maxPrint(m), cw=Math.floor(mp[0]), ch=Math.floor(mp[1]);
   if(cw<2||ch<2) return base;
   // impose on the press MAX first (gives the most ups the press can carry in one pass)
-  const r=computePaper(Object.assign({},LASTINP,{sizes:[[cw,ch]],rotate:true}));
+  const r=computePaper(Object.assign({},LASTINP,{sizes:[[cw,ch]],rotate:true},digOv));
   const co=r.options&&r.options[0];
   if(co&&co.ups>0){
     // CUT TO THE REQUIRED PRINT SIZE (NKK sir — "Cut sheet (on press)"): cut to the actual IMAGED area
@@ -1287,6 +1566,12 @@ function applyMachineCut(base,m){
     co.paperWtSheet=+pWt.toFixed(4); co.paperWeight=+(pWt*parentSheets).toFixed(2);
     return co;
   }
+  // Digital press can't image the spread even cut down (e.g. an A4 book spread wider than the 13" digital
+  // sheet): still cost it as a DIGITAL job on the base sheet layout — no plates, digital make-ready — rather
+  // than returning `base` with the offset 100-sheet/layout make-ready baked in. Short-run digital books are
+  // the target; area/rate is per the base sheet (an approximation, flagged for sir).
+  if(isDig){ const rr=computePaper(Object.assign({},LASTINP,{sizes:[[base.sw,base.sh]]},digOv));
+    const oo=rr.options&&rr.options[0]; if(oo&&oo.ups>0) return oo; }
   return base;
 }
 function sheetSummary(o){
@@ -2162,7 +2447,9 @@ function setMachineMode(v){ MACHINE_MODE=v; if(CHOSEN){renderMachine(CHOSEN); sh
 // parent down to a cheaper small-band press (NKK sir: e.g. Komori L-32).
 function textRouteCost(base,m){ try{
   const eff=applyMachineCut(base,m); if(!eff||!eff.ups) return Infinity;
-  const q=priceJob(eff,currentPriceParams(),m); return q.paper+q.printing+q.plates;
+  const q=priceJob(eff,currentPriceParams(),m);
+  if(m.digital && !(q.printing>0)) return Infinity;   // guard: a 0-rate digital route must not look artificially cheapest
+  return q.paper+q.printing+q.plates;
 }catch(e){ return Infinity; } }
 // A press can run a sheet WHOLE (fits) or via a CUT-down to its print size (sheet too big). Returns the route.
 function pressRoute(o,m,need){
@@ -2172,15 +2459,20 @@ function pressRoute(o,m,need){
   if(fit==="fits") return {m,route:"whole",cost:textRouteCost(o,m)};
   const eff=applyMachineCut(o,m);                                   // too_big → try cut to press size
   if(eff&&eff.ups&&eff.cutMachine) return {m,route:"cut",cutTo:eff.cutTo,cost:textRouteCost(o,m)};
+  // Digital press that can't image the spread even cut down: applyMachineCut falls back to the base layout
+  // priced as a digital job (no plates). It carries no cutMachine, so accept it explicitly as a digital route.
+  if(eff&&eff.ups&&m.digital) return {m,route:"digital",cost:textRouteCost(o,m)};
   return null;
 }
 function renderMachine(o){
   const need=Math.max(Math.round(num("cf",4)),Math.round(num("cb",4))), box=$("machine");
   // every press that can run this job WHOLE or via a CUT, cheapest total cost first (NKK sir's cut-to-save logic)
   const routes=MACHINES.map(m=>pressRoute(o,m,need)).filter(Boolean).sort((a,b)=>a.cost-b.cost);
-  // DIGITAL excluded from AUTO pick (no plates + click-rate card pending → it looks artificially cheapest);
-  // it stays selectable in Manual. Auto ranks offset presses by total route cost.
-  const autoRoutes=routes.filter(r=>!r.m.digital);
+  // DIGITAL excluded from AUTO pick by default (it stays selectable in Manual). The LEARNING module can
+  // enable the sir-gated DIGITAL_AUTO rule (default OFF) to rank digital routes alongside offset — the
+  // digital click-rate card is now live, and textRouteCost returns Infinity for a 0-rate digital route so
+  // it can't look artificially cheapest. Offset still wins on long runs; digital wins on short ones.
+  const autoRoutes=routes.filter(r=>!r.m.digital);   // auto ranks offset routes only (unchanged)
   if(MACHINE_MODE==="auto"&&!autoRoutes.length&&!routes.length){
     SELECTED_MACHINE=null;
     const biggest=MACHINES.slice().sort((a,b)=>Math.max(...b.max)-Math.max(...a.max))[0];
@@ -2191,6 +2483,16 @@ function renderMachine(o){
   }
   if(MACHINE_MODE==="auto"){ SELECTED_MACHINE=(autoRoutes[0]||routes[0]).m; }   // auto = cheapest offset route
   else if(!SELECTED_MACHINE) SELECTED_MACHINE=(routes[0]&&routes[0].m)||MACHINES[0];
+  // LEARNING — DIGITAL_AUTO (sir-gated, default OFF): swap the chosen press to a digital one when the
+  // digital route (no plates, digital make-ready) is cheaper than the offset pick. Applies to flat AND
+  // signature products: short-run books route to digital too (no plates on a 10-copy magazine), while long
+  // runs keep offset because the per-sheet digital click still loses on volume. Any press mode, so the
+  // sweep's manual/whole-sheet baseline is untouched except where digital genuinely wins.
+  if(typeof learnFlag==="function" && learnFlag("DIGITAL_AUTO")){
+    const digRoutes=MACHINES.filter(mm=>mm.digital).map(mm=>pressRoute(o,mm,need)).filter(Boolean).sort((a,b)=>a.cost-b.cost);
+    const curCost = SELECTED_MACHINE ? textRouteCost(o,SELECTED_MACHINE) : Infinity;
+    if(digRoutes[0] && digRoutes[0].cost < curCost){ SELECTED_MACHINE=digRoutes[0].m; }
+  }
   const m=SELECTED_MACHINE, mp=maxPrint(m);
   const selEff=applyMachineCut(o,m), hrs=(selEff&&selEff.ups?selEff.total:o.total)/m.speed;
   const mFit=machineFit(m,o.sw,o.sh), mBad=mFit==="too_small"||m.col<need;   // too_big is now OK (we cut)
@@ -2251,8 +2553,8 @@ function activePrint(){ return PRINT_SOURCES[($("printSrc")&&$("printSrc").value
 function plateRate(src,band){ return src.mode==="band" ? PRINT[band].plate : src.plate; }
 // coating rate sources (per 100 sq.in + job minimum)
 const COAT_SOURCES={
-  card:{label:"Standard card (current)",r:{none:{r:0,min:0},matt:{r:0.44,min:1000},gloss:{r:0.24,min:800},bopp:{r:0.45,min:1000},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}},
-  anderson:{label:"Anderson agreement",r:{none:{r:0,min:0},matt:{r:0.44,min:0},gloss:{r:0.24,min:0},bopp:{r:0.40,min:0},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.18,min:600},maqua:{r:0.30,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}}
+  card:{label:"Standard card (current)",r:{none:{r:0,min:0},matt:{r:0.44,min:1000},gloss:{r:0.24,min:800},velvet:{r:0.90,min:1500},bopp:{r:0.45,min:1000},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.12,min:800},maqua:{r:0.25,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}},
+  anderson:{label:"Anderson agreement",r:{none:{r:0,min:0},matt:{r:0.44,min:0},gloss:{r:0.24,min:0},velvet:{r:0.90,min:1500},bopp:{r:0.40,min:0},uv:{r:0.30,min:1000},mattuv:{r:0.32,min:1000},gaqua:{r:0.18,min:600},maqua:{r:0.30,min:1000},varnish:{r:0.10,min:600},drip:{r:0.55,min:3500}}}
 };
 function activeCoat(){ return (COAT_SOURCES[($("coatSrc")&&$("coatSrc").value)||"card"]||COAT_SOURCES.card).r; }
 // COVER EMBELLISHMENTS (NKK sir): coating + up to 3 combinable embellishments (foil/spot-UV/emboss/drip).
@@ -2279,7 +2581,7 @@ function coverEmbList(){
 // screen job scales the per-pc rate AND the job minimum by the side count (window.screenGoldSides).
 // DISABLED by default → current behaviour (both Keventer brochures unchanged). Flip to true once sir
 // confirms whether his "~₹8k + ₹1.5/pc" is per-side or for-both, then tune SCREEN_SIDE_MIN_SCALE.
-const SCREEN_GOLD_SIDE_AWARE=true;
+const SCREEN_GOLD_SIDE_AWARE=false;
 const SCREEN_SIDE_MIN_SCALE=1.0;   // how much the ₹ job-minimum grows per extra side (1.0 = fully doubles for 2 sides)
 function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cover printed sheets
   const sides = (SCREEN_GOLD_SIDE_AWARE && window.screenGoldSides>1) ? window.screenGoldSides : 1;
@@ -2339,7 +2641,19 @@ const MARGIN_DEFAULT={
   catalogue:40, brochure_multi:40, annual:40,
   // packaging / dieline — mid
   envelope:20, folder:25, sleeve:25, carton_tuck:25, carton_seal:25,
-  slipcase:40
+  slipcase:40,
+  // large format — standee/banner: per-sqft media + finishing; ~30% is the trade norm
+  banner:30, standee:30,
+  // paper bag — converting; mid margin
+  bag:30,
+  // lanyard — traded/converting textile item, per-piece; trade norm ~30%
+  lanyard:30,
+  // pouch — per-piece converted item; mid margin
+  pouch:30,
+  // rigid set-up box — premium hand-assembled packaging; higher margin like slipcase
+  rigidbox:40,
+  // book jacket — flat printed sheet (cover-like); standard flat margin
+  jacket:30
 };
 // ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
 // Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
@@ -2348,7 +2662,7 @@ const MARGIN_DEFAULT={
 // 11 reconcile gaps unchanged). Flip DESIGN_MARGIN_TIERS_ENABLED=true ONLY once sir confirms the
 // breakpoints + %. The numbers below are PLACEHOLDERS from a single data point (udyogi) — get 2-3
 // more real catalogue quotes at different volumes before trusting them.
-const DESIGN_MARGIN_TIERS_ENABLED=true;
+const DESIGN_MARGIN_TIERS_ENABLED=false;
 const DESIGN_MARGIN_TIERS={   // product → [{maxQty, margin}] ascending; first tier whose maxQty ≥ qty wins
   catalogue:     [{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:12}],
   brochure_multi:[{maxQty:750,margin:40},{maxQty:2000,margin:25},{maxQty:1e9,margin:12}],
@@ -2587,6 +2901,15 @@ function dielinePlan(){
   if(glue>0) items.push({name:`Gluing / folding (₹${num("dlGlueRate",0.5)}/pc × ${pieces.toLocaleString("en-IN")})`,cost:glue});
   const seal=num("dlSeal",0)*pieces;                         // mono carton bottom sealing (NKK sir)
   if(seal>0) items.push({name:`Bottom sealing (₹${num("dlSeal",0)}/pc)`,cost:seal});
+  // PAPER BAG making — eyelets + rope handle + die-cut/fold/paste into a bag, all per BAG (not per blank).
+  if(dln.type==="bag"){
+    const eye=Math.round(num("dlBagEyelets",4))*8*pieces;
+    if(eye>0) items.push({name:`Eyelets (${Math.round(num("dlBagEyelets",4))}/bag × ₹8 × ${pieces.toLocaleString("en-IN")})`,cost:eye});
+    const rope=num("dlBagRope",12)*pieces;
+    if(rope>0) items.push({name:`Rope / handle (₹${num("dlBagRope",12)}/bag)`,cost:rope});
+    const make=num("dlBagMake",25)*pieces;
+    if(make>0) items.push({name:`Bag making / pasting (₹${num("dlBagMake",25)}/bag)`,cost:make});
+  }
   const total=items.reduce((s,i)=>s+i.cost,0);
   return {items,total,sizes:{blankW:dln.blankW,blankH:dln.blankH,desc:dln.desc,type:dln.type,sheets,pieces,
     A:dln.A,B:dln.B,C:dln.C,g:dln.g,f:dln.f,unit:dln.unit}};
@@ -2882,6 +3205,8 @@ function priceJob(o,p,machine){
     const gsmUsed = (LASTINP&&LASTINP.gsm)||num("gsm",170);
     digitalRate=digitalRateFor(!!p.isSpecial, o.sw, o.sh, gsmUsed, sidesUsed);
     printing=digitalRate*sheets;                                   // sheets = printed sheets (both sides/sheet)
+    // Minimum digital-job floor: a tiny click count can't cost less than the shop's minimum charge.
+    if(DIGITAL_MIN_JOB>0 && printing<DIGITAL_MIN_JOB) printing=DIGITAL_MIN_JOB;
     plateCount=0; plates=0;
   } else {
     // PER-MACHINE rate card (printing depends on the SELECTED machine) — else band/source rates.
@@ -3061,7 +3386,227 @@ function finishingMakeReady(textP,cp,p,tq,cq){
   const print=+(printText+printCover).toFixed(2);
   return {perOp,textOps,coverOps,ops:textOps+coverOps,sheets,cost:+cost.toFixed(2),print,total:+(cost+print).toFixed(2),wt:+wt.toFixed(2)};
 }
+// LARGE-FORMAT QUOTE (NKK sir 2026-07-23): area × qty × ₹/sqft + roller + eyelets + board mount + hemming +
+// design, then overhead / margin / GST like every other product. No sheets / plates / imposition. Returns the
+// same {p,q} shape combinedPrice uses, so the diagnostic sweep and the UI read it unchanged.
+function largeFormatQuote(){
+  const unit=$("unit")?$("unit").value:"ft";
+  const areaEach=Math.max(0, toFt(num("W",0),unit)*toFt(num("H",0),unit));   // sq.ft per piece
+  const qty=Math.max(1,Math.round(num("lfQty",1)));
+  const rate=num("lfRate",35), roller=num("lfRoller",0), eyelets=Math.round(num("lfEyelets",0)),
+        boardR=num("lfBoard",0), hem=num("lfHem",0), design=num("lfDesign",0);
+  const totalArea=areaEach*qty, print=totalArea*rate, board=boardR>0?totalArea*boardR:0, eyeCost=eyelets*8*qty;
+  const finishing=roller*qty + eyeCost + hem*qty + board + design;
+  const base=print+finishing;
+  const overhead=base*num("overhead",0)/100, prod=base+overhead;
+  const mPct=Math.min(Math.max(num("margin",30),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round(print),printing:Math.round(print),plates:0,packing:0,freight:0,
+    unit:grand/qty, areaEach:+areaEach.toFixed(2), totalArea:+totalArea.toFixed(1), qty,
+    print:Math.round(print),roller:Math.round(roller*qty),board:Math.round(board),eyelets:Math.round(eyeCost),hem:Math.round(hem*qty),design:Math.round(design)};
+  return {p:{margin:mPct,gst:gstPct,books:qty}, q, text:{}, cover:null, coverPlan:null, largeFormat:true};
+}
+function renderLF(){
+  LASTINP={product:$("product").value, W:num("W",0), H:num("H",0), copies:Math.max(1,Math.round(num("lfQty",1))), unit:$("unit").value, isSig:false};
+  CHOSEN=null; RESULT={largeFormat:true};
+  const x=largeFormatQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const mediaName=($("lfMedia")&&LF_MEDIA[$("lfMedia").value]||{}).name||"media";
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`Large format: <b>${LASTINP.W}×${LASTINP.H} ${LASTINP.unit}</b> = <b>${q.areaEach} sq.ft</b>/pc · ${q.qty} pc · <b>${q.totalArea} sq.ft</b> total · ${mediaName} @ ₹${num("lfRate",35)}/sq.ft`;
+  const rows=[[`Print + media (${q.totalArea} sq.ft × ₹${num("lfRate",35)})`,q.print]];
+  if(q.roller) rows.push([`Roller stand × ${q.qty}`,q.roller]);
+  if(q.eyelets) rows.push(["Eyelets",q.eyelets]);
+  if(q.board) rows.push(["Board mount",q.board]);
+  if(q.hem) rows.push(["Hemming / stitching",q.hem]);
+  if(q.design) rows.push(["Design / setup",q.design]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.qty} pc · ₹${Math.round(q.unit).toLocaleString("en-IN")}/pc</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${mediaName} · ${q.totalArea} sq.ft</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-sq.ft model — no plates/sheets. Rates editable, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
+// LANYARD quote — per-piece strap + printing + hardware, one-time setup, then margin. No sheets/plates.
+function lanyardMediaRate(){ const m=$("lanMedia")?$("lanMedia").value:"polyester"; const r=(LANYARD_MEDIA[m]||LANYARD_MEDIA.polyester).r; if($("lanStrap")) $("lanStrap").value=r; }
+function lanyardQuote(){
+  const qty=Math.max(1,Math.round(num("lanQty",1)));
+  const widthMM=Math.max(5,num("lanWidth",20));
+  const strapR=Math.max(0,num("lanStrap",9))*(widthMM/20);        // wider webbing costs proportionally more
+  const sides=Math.max(1,Math.round(num("lanSides",1)));
+  const method=$("lanMethod")?$("lanMethod").value:"screen";
+  const colors=Math.max(0,Math.round(num("lanColors",1)));
+  const hw=Math.max(0,num("lanHw",2.5));                          // hook / clip / breakaway / holder, ₹/pc
+  let inkPc=0, setup=0;
+  if(method==="screen"){ inkPc=num("lanInk",1.5)*colors*sides; setup=num("lanScreen",150)*colors*sides; }
+  else { inkPc=0; setup=num("lanPlate",300); }                    // sublimation: full colour in strap rate, one transfer setup
+  const makeOnce=Math.max(0,num("lanMake",0));
+  const perPc=strapR+inkPc+hw;
+  const run=perPc*qty, base=run+setup+makeOnce;
+  const overhead=base*num("overhead",0)/100, prod=base+overhead;
+  const mPct=Math.min(Math.max(num("margin",30),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round(strapR*qty),printing:Math.round(inkPc*qty),plates:0,packing:0,freight:0,
+    unit:grand/qty, qty, widthMM, sides, method, colors,
+    strap:Math.round(strapR*qty), print:Math.round(inkPc*qty), hardware:Math.round(hw*qty),
+    setup:Math.round(setup), make:Math.round(makeOnce), perPc:+perPc.toFixed(2)};
+  return {p:{margin:mPct,gst:gstPct,books:qty}, q, text:{}, cover:null, coverPlan:null, lanyard:true};
+}
+function renderLanyard(){
+  LASTINP={product:$("product").value, copies:Math.max(1,Math.round(num("lanQty",1))), isSig:false, lanyard:true};
+  CHOSEN=null; RESULT={lanyard:true};
+  const x=lanyardQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const mediaName=($("lanMedia")&&LANYARD_MEDIA[$("lanMedia").value]||{}).name||"lanyard";
+  const methodTxt=q.method==="screen"?`screen ${q.colors}-col${q.sides>1?" ×2 sides":""}`:"dye-sublimation";
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`Lanyard: <b>${q.widthMM}mm</b> ${mediaName} · ${methodTxt} · <b>${q.qty} pc</b> · ₹${q.perPc.toFixed(2)}/pc unit cost`;
+  const rows=[[`Strap (${mediaName}, ${q.widthMM}mm × ${q.qty})`,q.strap]];
+  if(q.print) rows.push([`Printing (${q.colors}-col${q.sides>1?" ×2":""})`,q.print]);
+  if(q.hardware) rows.push([`Hardware (hook/clip) × ${q.qty}`,q.hardware]);
+  if(q.setup) rows.push([q.method==="screen"?"Screen setup (one-time)":"Transfer / plate setup",q.setup]);
+  if(q.make) rows.push(["Sampling / make (once)",q.make]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.qty} pc · ₹${Math.round(q.unit).toLocaleString("en-IN")}/pc</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${mediaName} · ${methodTxt}</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-piece textile model — no plates/sheets. Rates editable, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
+// POUCH quote — per-piece material + decoration + drawstring + make/convert, one-time setup, then margin.
+function pouchMediaRate(){ const m=$("pouMedia")?$("pouMedia").value:"velvet"; const spec=POUCH_MEDIA[m]||POUCH_MEDIA.velvet;
+  if($("pouMat")) $("pouMat").value=spec.r;
+  // fabric → drawstring + stitch make; board → no drawstring, die-cut + glue converting (seed a cutting forme).
+  if($("pouDraw")) $("pouDraw").value=spec.fabric?10:0;
+  if($("pouMake")) $("pouMake").value=spec.fabric?0:1.5;
+  if($("pouForme")) $("pouForme").value=spec.fabric?0:3500;
+  if($("pouDecor") && !spec.fabric && $("pouDecor").value==="foil") $("pouDecor").value="offset"; }
+function pouchQuote(){
+  const qty=Math.max(1,Math.round(num("pouQty",1)));
+  const mat=Math.max(0,num("pouMat",40));
+  const draw=Math.max(0,num("pouDraw",0));          // drawstring / handle ₹/pc
+  const make=Math.max(0,num("pouMake",0));          // stitching (fabric) or die-cut+glue (board) ₹/pc
+  const decor=$("pouDecor")?$("pouDecor").value:"foil";
+  const colors=Math.max(0,Math.round(num("pouColors",1)));
+  let decPc=0, decSetup=0, decLbl="";
+  if(decor==="foil"){ decPc=num("pouFoil",15); decSetup=num("pouFoilBlock",1500); decLbl="Gold/silver foil"; }
+  else if(decor==="screen"){ decPc=num("pouInk",1.5)*colors; decSetup=num("pouScreen",150)*colors; decLbl=`Screen print (${colors}-col)`; }
+  else if(decor==="offset"){ decPc=num("pouOff",6); decSetup=num("pouOffSetup",0); decLbl="Offset print (4-col)"; }
+  else { decLbl="No decoration"; }
+  const forme=Math.max(0,num("pouForme",0));         // cutting forme (board pouches)
+  const makeOnce=Math.max(0,num("pouSetup",0));
+  const perPc=mat+draw+make+decPc;
+  const run=perPc*qty, base=run+decSetup+forme+makeOnce;
+  const overhead=base*num("overhead",0)/100, prod=base+overhead;
+  const mPct=Math.min(Math.max(num("margin",30),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round(mat*qty),printing:Math.round(decPc*qty),plates:0,packing:0,freight:0,
+    unit:grand/qty, qty, decor, decLbl, colors,
+    material:Math.round(mat*qty), draw:Math.round(draw*qty), make:Math.round(make*qty), decoration:Math.round(decPc*qty),
+    decSetup:Math.round(decSetup), forme:Math.round(forme), setup:Math.round(makeOnce), perPc:+perPc.toFixed(2)};
+  return {p:{margin:mPct,gst:gstPct,books:qty}, q, text:{}, cover:null, coverPlan:null, pouch:true};
+}
+function renderPouch(){
+  LASTINP={product:$("product").value, copies:Math.max(1,Math.round(num("pouQty",1))), isSig:false, pouch:true};
+  CHOSEN=null; RESULT={pouch:true};
+  const x=pouchQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const mediaName=($("pouMedia")&&POUCH_MEDIA[$("pouMedia").value]||{}).name||"pouch";
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`Pouch: <b>${mediaName}</b> · ${q.decLbl} · <b>${q.qty} pc</b> · ₹${q.perPc.toFixed(2)}/pc unit cost`;
+  const rows=[[`Material (${mediaName} × ${q.qty})`,q.material]];
+  if(q.decoration) rows.push([`${q.decLbl}`,q.decoration]);
+  if(q.draw) rows.push([`Drawstring / handle × ${q.qty}`,q.draw]);
+  if(q.make) rows.push([`Make / convert × ${q.qty}`,q.make]);
+  if(q.decSetup) rows.push([q.decor==="foil"?"Foil block (one-time)":"Screen setup (one-time)",q.decSetup]);
+  if(q.forme) rows.push(["Cutting forme (one-time)",q.forme]);
+  if(q.setup) rows.push(["Sampling / setup (once)",q.setup]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.qty} pc · ₹${Math.round(q.unit).toLocaleString("en-IN")}/pc</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${mediaName} · ${q.decLbl}</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-piece pouch model — no plates/sheets. Rates editable, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
+// RIGID BOX quote — per-piece component build-up seeded from L×W×H geometry, then margin. No sheets/plates.
+function rigidLabourSeed(maxDim){ return maxDim<=6?15 : maxDim<=10?30 : maxDim<=16?50 : 80; }   // hand-assembly ₹/pc by size
+function rigidBoxApplySeeds(){   // seed labour + lid depth from the entered dimensions (all editable after)
+  const u=$("unit")?$("unit").value:"in", toI=v=>u==="mm"?v/25.4:u==="cm"?v/2.54:u==="ft"?v*12:v;
+  const L=toI(num("W",0)), W=toI(num("H",0)), H=toI(num("rbH",0));
+  const maxDim=Math.max(L,W,H);
+  if($("rbLabour") && (!$("rbLabour").value||+$("rbLabour").value===0)) $("rbLabour").value=rigidLabourSeed(maxDim||10);
+  if($("rbLidH") && (!$("rbLidH").value||+$("rbLidH").value===0) && H>0) $("rbLidH").value=+Math.max(1.25,H*0.4).toFixed(2);
+}
+function rigidBoxQuote(){
+  const u=$("unit")?$("unit").value:"in", toI=v=>u==="mm"?v/25.4:u==="cm"?v/2.54:u==="ft"?v*12:v;
+  const L=Math.max(0,toI(num("W",0))), W=Math.max(0,toI(num("H",0))), H=Math.max(0,toI(num("rbH",0)));
+  const qty=Math.max(1,Math.round(num("rbQty",1)));
+  const style=$("rbStyle")?$("rbStyle").value:"topbottom"; const sp=RIGIDBOX_STYLES[style]||RIGIDBOX_STYLES.topbottom;
+  const lidH=Math.max(0,num("rbLidH",Math.max(1.25,H*0.4)));
+  // board area (sq.in) — base tray always; lid adds for lidded styles; open styles use a multiplier.
+  const base = L*W + 2*H*(L+W);
+  let boardArea;
+  if(sp.lid){ const lid = L*W + 2*lidH*(L+W); boardArea = base + lid; }
+  else { boardArea = base * sp.mult; }
+  boardArea = Math.max(0, boardArea);
+  const boardR=num("rbBoard",0.174), wrapR=num("rbWrap",0.14), linR=num("rbLining",0.06);
+  const lined = $("rbLined") ? $("rbLined").value!=="no" : true;
+  const boardCost = boardArea*boardR;
+  const wrapCost = boardArea*1.10*wrapR;                    // +10% turn-in/overlap
+  const liningCost = lined ? boardArea*1.05*linR : 0;
+  const labour = Math.max(0,num("rbLabour",rigidLabourSeed(Math.max(L,W,H)||10)));
+  const partition = Math.max(0,num("rbPartition",0));
+  const foil = $("rbFoil") && $("rbFoil").value!=="no" ? num("rbFoilRate",12) : 0;
+  const foilBlock = foil>0 ? num("rbFoilBlock",1200) : 0;
+  const forme = Math.max(0,num("rbForme",0));
+  const sampleOnce = Math.max(0,num("rbSample",0));
+  const perPc = boardCost+wrapCost+liningCost+labour+partition+foil;
+  const run = perPc*qty, base$ = run + foilBlock + forme + sampleOnce;
+  const overhead=base$*num("overhead",0)/100, prod=base$+overhead;
+  const mPct=Math.min(Math.max(num("margin",40),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round((boardCost+wrapCost+liningCost)*qty),printing:Math.round(wrapCost*qty),plates:0,packing:0,freight:0,
+    unit:grand/qty, qty, style:sp.name, boardArea:+boardArea.toFixed(0), L:+L.toFixed(1),W:+W.toFixed(1),H:+H.toFixed(1),
+    board:Math.round(boardCost*qty), wrap:Math.round(wrapCost*qty), lining:Math.round(liningCost*qty),
+    labour:Math.round(labour*qty), partition:Math.round(partition*qty), foil:Math.round(foil*qty),
+    foilBlock:Math.round(foilBlock), forme:Math.round(forme), sample:Math.round(sampleOnce), perPc:+perPc.toFixed(2)};
+  return {p:{margin:mPct,gst:gstPct,books:qty}, q, text:{}, cover:null, coverPlan:null, rigidbox:true};
+}
+function renderRigidBox(){
+  LASTINP={product:$("product").value, copies:Math.max(1,Math.round(num("rbQty",1))), isSig:false, rigidbox:true};
+  CHOSEN=null; RESULT={rigidbox:true};
+  const x=rigidBoxQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`Rigid box: <b>${q.style}</b> · ${q.L}×${q.W}×${q.H} in · board ${q.boardArea} sq.in/pc · <b>${q.qty} pc</b> · ₹${q.perPc.toFixed(2)}/pc unit cost`;
+  const rows=[[`Greyboard carcass (${q.boardArea} sq.in × ${q.qty})`,q.board],[`Outer wrap + print`,q.wrap]];
+  if(q.lining) rows.push([`Inner lining`,q.lining]);
+  rows.push([`Box-making labour × ${q.qty}`,q.labour]);
+  if(q.partition) rows.push([`Partition / insert × ${q.qty}`,q.partition]);
+  if(q.foil) rows.push([`Foiling × ${q.qty}`,q.foil]);
+  if(q.foilBlock) rows.push(["Foil block (one-time)",q.foilBlock]);
+  if(q.forme) rows.push(["Cutting forme (one-time)",q.forme]);
+  if(q.sample) rows.push(["Sampling (one-time)",q.sample]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.qty} pc · ₹${Math.round(q.unit).toLocaleString("en-IN")}/pc</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${q.style} · ${q.L}×${q.W}×${q.H} in</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-piece rigid-box build-up — hand-assembled, no plates/sheets. Rates editable, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
 function combinedPrice(){
+  if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")) return rigidBoxQuote();
+  if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")) return pouchQuote();
+  if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")) return lanyardQuote();
+  if(typeof isLF==="function" && isLF($("product")?$("product").value:"")) return largeFormatQuote();
+  // Guard: run() bails (with an on-screen "enter width/height" message) before an imposition is chosen when
+  // the spec is missing a size, so CHOSEN can be null. Programmatic callers (diagnostic sweep / cost harness)
+  // call combinedPrice() directly — return an explicit unpriceable marker instead of dereferencing null.
+  if(!CHOSEN){ return {p:currentPriceParams(), q:{grand:0,prod:0,margin:0,paper:0,packing:0,freight:0}, text:{}, cover:null, coverPlan:null, unpriceable:true, reason:"no valid sheet size — width/height not provided"}; }
   const p=currentPriceParams(), textP=Object.assign({},p), cp=coverPlan();
   // Coating is the CLIENT's choice (NKK sir): the cover has its own coating; the inside/text coating is
   // separate — set it to None for a cover-only job, or pick a coating to also coat all the inside sheets.
@@ -3205,7 +3750,9 @@ function voiceCorrect(s){
 function parseSpec(raw){
   const plain=String(raw||"").toLowerCase().replace(/[,]/g," ").replace(/\s+/g," ").trim();
   const corrected=voiceCorrect(raw);
-  const t=" "+corrected+" ";
+  // Normalise smart/curly quotes to ASCII so a curly-inch mark (8.5” X 11”) reads as the straight " unit —
+  // otherwise the ” sits between the number and the separator and defeats the size regex (row bails on size).
+  const t=(" "+corrected+" ").replace(/[“”″]/g,'"').replace(/[‘’′]/g,"'");
   const f={}, notes=[];
   const digits=s=>parseInt(String(s).replace(/[^0-9]/g,""),10);
   // SIZE — CLOSE size (trimmed) wins over open size. Handles unit-repeated + "(w)" markers.
@@ -3213,7 +3760,10 @@ function parseSpec(raw){
   const SIZES={a2:[16.54,23.39],a3:[11.69,16.54],a4:[8.27,11.69],a5:[5.83,8.27],a6:[4.13,5.83],letter:[8.5,11],legal:[8.5,14]};
   for(const k in SIZES){ if(new RegExp("\\b"+k+"\\b").test(t)){ f.unit="in"; f.W=SIZES[k][0]; f.H=SIZES[k][1]; notes.push("size "+k.toUpperCase()); break; } }
   // find every "N unit? x N unit?" occurrence + optional "(w)"/"(h)" markers between them
-  const sizeRe=/(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?\s*(?:x|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(mm|cm|in|inch|inches|")?\s*(?:\([wh]\))?/g;
+  // NKK sir 2026-07-23: the size text keeps its original case (voiceCorrect doesn't lowercase), so the
+  // separator must accept CAPITAL X and the × glyph, not just lowercase x — briefs like 8.5" X 11", 9" X 9",
+  // 168 mm X 205 mm were silently unparsed → run() bailed "enter width, height". `i` flag + × cover them.
+  const sizeRe=/(\d+(?:\.\d+)?)\s*(mm|cm|feet|foot|ft|in|inch|inches|"|')?\s*(?:\([wh]\))?\s*(?:x|×|by|into|\*)\s*(\d+(?:\.\d+)?)\s*(mm|cm|feet|foot|ft|in|inch|inches|"|')?\s*(?:\([wh]\))?/gi;
   const sizeMatches=[];
   for(const m of t.matchAll(sizeRe)){
     const unit=m[2]||m[4]||"", start=m.index;
@@ -3229,12 +3779,29 @@ function parseSpec(raw){
   const pickSize=closeSize||nonSheet[0]||sizeMatches[0];
   if(pickSize && f.W==null){
     f.W=pickSize.W; f.H=pickSize.H;
-    f.unit=/mm/.test(pickSize.unit)?"mm":/cm/.test(pickSize.unit)?"cm":"in";
+    f.unit=/mm/.test(pickSize.unit)?"mm":/cm/.test(pickSize.unit)?"cm":/f(?:ee|oo)?t|'/.test(pickSize.unit)?"ft":"in";
+    // AI UNIT-PLAUSIBILITY (NKK sir 2026-07-23): a real finished print piece is at most ~48 in on a side
+    // (the largest press/poster). If the size resolves bigger than that, an unmarked mm/cm size was almost
+    // certainly read as inches — e.g. "210 x 297" → 210 in is impossible. Reinterpret in the unit that gives
+    // a physical size, so the RATE (driven by area) can't explode from a unit slip. Only fires on the
+    // unambiguous >48 in case; a genuine ≤48 in sheet, or an explicit mm/cm marker, is left untouched.
+    const MAX_IN=48, toIn=(v,u)=>u==="mm"?v/25.4:u==="cm"?v/2.54:u==="ft"?v*12:v;
+    // Only auto-correct when the unit was UNMARKED. An explicit marker (inch / mm / ft) is trusted — a
+    // large-format banner really is 189" / 15 ft, so it must NOT be "corrected" to mm.
+    if(!pickSize.unit && Math.max(toIn(f.W,f.unit),toIn(f.H,f.unit))>MAX_IN){
+      const mmMax=Math.max(f.W,f.H)/25.4, cmMax=Math.max(f.W,f.H)/2.54;
+      if(mmMax>=0.5 && mmMax<=MAX_IN){ notes.push(`unit → mm (${f.W}×${f.H} in impossible for a print piece)`); f.unit="mm"; }
+      else if(cmMax>=0.5 && cmMax<=MAX_IN){ notes.push(`unit → cm (${f.W}×${f.H} in impossible; cm fits)`); f.unit="cm"; }
+    }
     notes.push("size "+f.W+"×"+f.H+" "+f.unit+(pickSize.close?" (close)":""));
   }
   // SHEET SIZE presets to tick (e.g. "18×25" for cover, "20×30" for text)
   const sheetSizes=[];
   for(const s of sizeMatches){
+    // The product's OWN trim size is not a sheet-size preset — only a DIFFERENT size named in the brief is a
+    // sheet to tick. (Bug: a poster/wall-calendar trim like 12×18 in is integer + in 15–50 range, so it was
+    // mis-added as a custom sheet and the real sheets un-ticked → "no sheet fits". A4 trims (max 11) never hit.)
+    if(pickSize && s.W===pickSize.W && s.H===pickSize.H && s.unit===pickSize.unit) continue;
     if(Number.isInteger(s.W)&&Number.isInteger(s.H)&&Math.max(s.W,s.H)>=15&&Math.max(s.W,s.H)<=50&&s.W<40&&s.H<40){
       const w=Math.min(s.W,s.H), h=Math.max(s.W,s.H); const key=`${w},${h}`;
       if(!sheetSizes.includes(key)) sheetSizes.push(key);
@@ -3282,19 +3849,40 @@ function parseSpec(raw){
   // ORIENTATION
   if(/\bportrait\b/.test(t)) f.orientation="portrait"; else if(/\blandscape\b/.test(t)) f.orientation="landscape";
   if(f.orientation) notes.push(f.orientation);
+  // COVER vs INSIDE/TEXT colours (NKK sir 2026-07-23): a separate-cover book often states BOTH, e.g.
+  // "Cover 4+0, inside 1 color all through". Parse each clause to its own field so the inside isn't billed at
+  // the cover's colours — the #6 over-quote was 132 inside pages charged 4-colour instead of 1.
+  const NUMW={one:1,two:2,three:3,four:4,five:5,six:6}, asN=v=>NUMW[v]!=null?NUMW[v]:+v;
+  const clauseColours=(cl)=>{ if(!cl) return null;
+    let m=cl.match(/(?<![\d.])(\d)\s*\+\s*(\d)(?![\d.])/) || cl.match(/(\d)\s*(?:plus|by|and)\s*(\d)\s*(?:colou?r|print|side)/);
+    if(m) return [+m[1],+m[2]];
+    const c=cl.match(/(\d|one|two|three|four|five|six)\s*colou?r/); if(!c) return null;
+    const n=asN(c[1]);
+    if(/one\s*side|single\s*side|1\s*side|front\s*only/.test(cl)) return [n,0];
+    return [n,n];   // "all through / throughout / both sides" (or unspecified) → both sides
+  };
+  // A brief mentions 'cover' twice (once for paper, once for colours), so scan ALL cover/inside clauses and
+  // take the first that actually yields colours — skipping the paper clause ("Cover 250gsm art board").
+  let covC=null, insC=null;
+  for(const mm of t.matchAll(/\bcover\b\s*[:\-]?\s*([^|.]*?)(?=\binside\b|\||\.|$)/g)){ const c=clauseColours(mm[1]); if(c){ covC=c; break; } }
+  for(const mm of t.matchAll(/\binside\b\s*[:\-]?\s*([^|.]*?)(?=\bcover\b|\||\.|$)/g)){ const c=clauseColours(mm[1]); if(c){ insC=c; break; } }
+  if(covC && insC){                                   // both stated → separate cover with distinct colours
+    f.coverCf=covC[0]; f.coverCb=covC[1]; f.cf=insC[0]; f.cb=insC[1]; f.separateCover=true;
+    notes.push(`cover ${covC[0]}+${covC[1]} · inside ${insC[0]}+${insC[1]}`);
+  }
   // COLOURS — Explicit "N+M color" wins. Then "N color one side" → N+0. Then "N color both sides" → N+N.
-  // Then fallbacks (4 color / cmyk / single / bw).
+  // Then fallbacks (4 color / cmyk / single / bw). Skipped if cover/inside already set the colours above.
   // Anchor on colour|print|side so the common trade shorthand "1+1 print" / "3+3 print" / "4+0"
   // is caught — not just "N+N colour". Without this every "N+N print" card silently fell back to
   // 4+4 (8 plates), so a 3+3 and a 1+1 priced identically (NKK sir 2026-07-21 rfid-card reconcile).
-  let cm=t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*(?:colou?r|print|side)/);
+  let cm=(f.cf!=null)?null:t.match(/(\d)\s*(?:plus|\+|by|x|and)\s*(\d)\s*(?:colou?r|print|side)/);
   // Also accept a bare plus-separated "N+N" (e.g. quick-typed "4+0") — safe because sizes use × / x,
   // never "+". Lookbehind/ahead guard against page counts like "10+2" and decimals (NKK sir 2026-07-21).
-  if(!cm) cm=t.match(/(?<![\d.])(\d)\s*\+\s*(\d)(?![\d.])/);
+  if(!cm && f.cf==null) cm=t.match(/(?<![\d.])(\d)\s*\+\s*(\d)(?![\d.])/);
   // NB: cm[1]/cm[2] are always \d, so DON'T `|| 4` — that turned a legit back "+0" (one-side print,
   // e.g. "3+0 print") into +4, because 0 is falsy (NKK sir 2026-07-21 rfid-tag reconcile).
   if(cm){ f.cf=+cm[1]; f.cb=+cm[2]; notes.push("colours "+f.cf+"+"+f.cb); }
-  else {
+  else if(f.cf==null) {
     // "N color one side" OR "one side N color" — both orders
     const oneSide=t.match(/(\d|one|two|three|four|five|six)\s*colou?r\s*(?:one\s*side|1\s*side|single\s*side|front\s*only)/)
                 ||t.match(/(?:one\s*side|1\s*side|single\s*side|front\s*only)\s*(\d|one|two|three|four|five|six)\s*colou?r/);
@@ -3333,11 +3921,12 @@ function parseSpec(raw){
           .replace(/\b(?:matt|matte|gloss)\s*(?:art|paper|board|coated|c2s|imported|cover|inside|text|finish\s+cutting)\b/g," ")
           .replace(/\bgloss(?:y)?\s*ink\b/g," ");
   const L=[[/matt\s*uv/,"mattuv","Matt UV"],[/matt\s*(?:lam|lamination|coating|coat|finish)|matte\s*(?:lam|lamination|coating|coat|finish)|matt\s*lam(?:inat)?/,"matt","Matt lam"],
+    [/\bvelvet\b|\bvelvate\b|soft\s*touch|suede\s*(?:lam|finish|coat)/,"velvet","Velvet lam"],   // velvet / soft-touch (premium)
     [/gloss\s*uv/,"uv","Gloss UV"],[/gloss\s*(?:lam|lamination|coating|coat|finish)/,"gloss","Gloss lam"],
     [/\bbopp\b/,"bopp","BOPP"],[/drip/,"drip","Drip-off UV"],[/varnish/,"varnish","Varnish"],[/\buv\b/,"uv","Gloss UV"],
     // fallbacks (only fire on isolated 'matt'/'gloss' — paper-name context stripped above)
     [/\bmatt\b|\bmatte\b/,"matt","Matt lam"],[/\bgloss\b/,"gloss","Gloss lam"]];
-  if(/lamination|\blam\b|coating|\buv\b|varnish|bopp|matt|gloss|matte/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){
+  if(/lamination|\blam\b|coating|\buv\b|varnish|bopp|matt|gloss|matte|velvet|velvate|soft\s*touch|suede/.test(tl)) for(const [re,v,lbl] of L){ if(re.test(tl)){
     // 2026-07-21: coating clause with 'inside' / 'text' / 'throughout ... inside' targets inside, not cover.
     // Look for those words in ±40 chars around the match.
     const m=tl.match(re); const idx=m?tl.indexOf(m[0]):-1;
@@ -3351,8 +3940,11 @@ function parseSpec(raw){
   // Screen printing MUST come before generic 'foil' — gold screen ≠ foil (a common Keventer mix-up).
   const EMB=[[/(?:gold|golden)\s*screen(?:\s*print(?:ing)?)?|screen(?:\s*print(?:ing)?)\s*(?:in\s*)?gold/,"screen_gold","Screen printing — gold"],
     [/(?:silver)\s*screen(?:\s*print(?:ing)?)?|screen(?:\s*print(?:ing)?)\s*(?:in\s*)?silver/,"screen_silver","Screen printing — silver"],
+    [/\bmgi\s*uv|mgi\s*gold|sand\s*uv|digital\s*gold/,"mgi_uv","MGI / digital gold"],   // digital gold = MGI-type, before generic gold
+    // generic gold/silver DECORATION (printing/ink/foil), not a paper name (e.g. 'gold art paper') or edge-gilding
+    [/\bgold(?:en)?\s*(?:print(?:ing)?|ink|foil|block(?:ing)?|stamp(?:ing)?|deco|decoration)|(?:print(?:ing)?|ink|foil|block(?:ing)?)\s*(?:in\s*)?gold\b/,"screen_gold","Gold printing"],
+    [/\bsilver\s*(?:print(?:ing)?|ink|foil|block(?:ing)?|stamp(?:ing)?)|(?:print(?:ing)?|ink|foil|block(?:ing)?)\s*(?:in\s*)?silver\b/,"screen_silver","Silver printing"],
     [/screen\s*print(?:ing)?/,"screen_other","Screen printing — other"],
-    [/\bmgi\s*uv|mgi\s*gold|sand\s*uv/,"mgi_uv","MGI UV"],
     [/metal\s*stamp(?:ing)?|steel\s*plate/,"metal_stamp","Metal stamping"],
     [/spot\s*uv/,"spotuv","Spot UV"],[/raised\s*uv|textured\s*uv/,"raiseduv","Raised UV"],[/\bfoil(?:ing|ed|s)?\b/,"foil","Foil"],
     [/\bemboss/,"emboss","Emboss"],[/\bdeboss/,"deboss","Deboss"],[/\btexture\b/,"texture","Texture effect"]];
@@ -3361,6 +3953,9 @@ function parseSpec(raw){
     // NKK sir 2026-07-18: 'screen_other' fires on 'screen printing' fragment even when 'gold/silver
     // screen printing' already matched. Skip it if a specific screen colour was already picked.
     if(v==="screen_other" && (embs.includes("screen_gold")||embs.includes("screen_silver"))) continue;
+    // One gold decoration only: 'digital gold' matches mgi_uv AND the generic gold-print line (screen_gold).
+    // Whichever fires first wins; skip the second so gold isn't double-charged.
+    const GOLD=["screen_gold","mgi_uv"]; if(GOLD.includes(v) && embs.some(e=>GOLD.includes(e))) continue;
     embs.push(v); notes.push("embellishment: "+lbl);
   }
   if(embs.length) f.coverEmb=embs.slice(0,3);
@@ -3377,15 +3972,34 @@ function parseSpec(raw){
   // "back-to-back paste/pasting" in the same brief is a pasted_tag (not a book b2b binding).
   const isTag=/\bhang\s*tag\b|\btag\b(?!\s*line)/.test(t);
   const b2bMention=/back\s*to\s*back|\bb2b\b/.test(t);
-  const P=[[/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/manual/,"manual"],[/annual/,"annual"],
-    [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag/,"pasted_tag"],
-    [/letter\s*head|note\s*pad|note\s*head|writing\s*pad/,"insert"],
+  // Product detection — recorded NK product types → the estimator's nearest cost model. Order: specific →
+  // generic. Added 2026-07-23 so the AI RECOGNISES more recorded types. Only DEFENSIBLE mappings are here:
+  // prospectus→catalogue, diary/notebook→booklet, menu/ticket→card, form→insert, wall-cal→sheet-calendar,
+  // gift-wrap→sleeve, sticker/label→insert (flat + die-cut). Standee/banner is mapped to poster (closest
+  // large flat) but is really large-format — confirm its rate. Genuinely different families with no model
+  // yet — BAG, POUCH, LANYARD — are deliberately NOT mapped: they'd mis-price as a box/card, so they stay
+  // unrecognised (an honest "no matching product") until a dedicated rate model exists.
+  const P=[[/prospectus|admission\s*kit/,"catalogue"],
+    [/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/\bmanual\b/,"manual"],[/annual/,"annual"],
+    [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag|\btag\b(?!\s*line)/,"pasted_tag"],
+    [/floor\s*plan|site\s*plan/,"poster"],
+    [/letter\s*head|note\s*pad|note\s*head|writing\s*pad|\bform\b/,"insert"],
     [/certificate|marks\s*sheet|diploma/,"card"],
-    [/leaflet|flyer/,"leaflet"],[/poster/,"poster"],
-    [/table\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],[/dangler|tent/,"dangler"],
-    [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve/,"sleeve"],[/carton|box/,"carton_tuck"],
+    [/note\s*book|notebook|\bdiary\b/,"booklet"],
+    [/wall\s*calendar/,"calendar_sheet"],[/table\s*calendar|desk\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],
+    [/\bsticker\b|\blabel\b/,"insert"],
+    [/leaflet|flyer/,"leaflet"],
+    [/dust\s*jacket|book\s*jacket|\bjacket\b|book\s*wrapper/,"jacket"],
+    [/lanyard|neck\s*strap|badge\s*(?:strap|ribbon)/,"lanyard"],
+    [/pouch|drawstring\s*bag|potli/,"pouch"],
+    [/standee|roll\s*[-]?\s*up/,"standee"],[/\bbanner\b|hoarding|backdrop|\bflex\b/,"banner"],[/poster/,"poster"],
+    [/dangler|tent/,"dangler"],
+    [/paper\s*bag|carry\s*bag|shopping\s*bag|\bbag\b/,"bag"],
+    [/rigid\s*box|set[- ]?up\s*box|hard\s*case\s*box|hardcase\s*(?:slider|box)|gift\s*box|magnetic\s*(?:flap\s*)?box|slider\s*box|drawer\s*box|shoulder\s*box|neck\s*box|telescop\w*\s*box|top\s*(?:and\s*)?bottom\s*box|two\s*[- ]?piece\s*box/,"rigidbox"],
+    [/envelope/,"envelope"],[/folder/,"folder"],[/sleeve|gift\s*wrap/,"sleeve"],[/carton|\bbox\b/,"carton_tuck"],
     [/slipcase/,"slipcase"],
-    [/visiting|greeting|\bcard\b/,"card"],
+    [/menu(?:\s*card)?|\bticket\b/,"card"],
+    [/visiting|greeting|invite|\bcard\b/,"card"],
     [/booklet|brochure|book\b/,"booklet"]];
   for(const [re,v] of P){ if(re.test(t)){ f.product=v; break; } }
   // If we saw "tag" + "back-to-back" it's a pasted tag, even if the explicit "pasted tag" phrase wasn't used.
@@ -3455,10 +4069,75 @@ function applyVoiceSpec(raw){
       notes.push(`size ${d[0]}×${d[1]} in (${f.product==="card"?"card":"tag"} default${areaIn>=50?" — A4 mis-parse overridden":" — none in brief"})`);
     }
   }
+  // SIGNATURE product (booklet / catalogue / magazine) with a PAGE COUNT but no trim size in the brief:
+  // magazines & catalogues are routinely quoted by page count alone. Assume a standard A4 portrait trim so
+  // the job can be priced, and flag the assumption (editable). NKK sir 2026-07-23. Cards/tags keep their own
+  // default above; flat products with no size still (correctly) fail — a leaflet needs a real size.
+  if(typeof isSig==="function" && isSig(f.product) && f.pages>0 && (!f.W || !f.H)){
+    if($("unit")) $("unit").value="in"; setV("W",8.27); setV("H",11.69);
+    if($("orientation") && !f.orientation){ $("orientation").value="portrait"; }
+    notes.push("size 8.27×11.69 in (A4 portrait assumed — no trim size in brief)");
+  }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
+  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); if(isRigidBox(f.product)) setV("rbQty",f.copies); }   // per-piece products read their own qty field
+  // BOOK JACKET: a parsed size is the BOOK cover, not the flat blank. Route it into the jacket geometry panel
+  // (cover W×H + a spine seeded from page count + default 3" flaps); jacketApplyGeometry() then fills the real
+  // flat blank into W/H. Single-side print (cf,0) and foil are handled by the shared parser + emb panel.
+  if(isJacket(f.product)){
+    if(f.W!=null && $("jkCoverW") && (!$("jkCoverW").value||+$("jkCoverW").value===0)) $("jkCoverW").value=f.W;
+    if(f.H!=null && $("jkCoverH") && (!$("jkCoverH").value||+$("jkCoverH").value===0)) $("jkCoverH").value=f.H;
+    if($("jkSpine") && (!$("jkSpine").value||+$("jkSpine").value===0) && f.pages) $("jkSpine").value=+Math.max(0.2,f.pages*0.0025).toFixed(2);
+    if(typeof jacketApplyGeometry==="function") jacketApplyGeometry();
+  }
+  // RIGID BOX: pull box depth (3rd dimension) + style + foil straight off the brief; L,W already in W/H fields.
+  if(isRigidBox(f.product)){
+    const rl=String(raw||"").toLowerCase();
+    // "12 x 8 x 4" — a 3-number size means the 3rd is the box depth (H).
+    const m3=rl.match(/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/);
+    if(m3 && $("rbH")) $("rbH").value=+m3[3];
+    if($("rbStyle")){
+      if(/slider|drawer|hardcase\s*slider/.test(rl)) $("rbStyle").value="slider";
+      else if(/magnetic/.test(rl)) $("rbStyle").value="magnetic";
+      else if(/shoulder|neck\s*box/.test(rl)) $("rbStyle").value="shoulder";
+      else if(/tray/.test(rl)) $("rbStyle").value="traylid";
+      else if(/top\s*(?:and\s*)?bottom|two\s*[- ]?piece/.test(rl)) $("rbStyle").value="topbottom";
+    }
+    if($("rbFoil") && /foil/.test(rl)) $("rbFoil").value="yes";
+    if($("rbPartition") && /partition|insert|divider/.test(rl) && (!$("rbPartition").value||+$("rbPartition").value===0)) $("rbPartition").value=15;
+    // onProductChange already fired the seed while dims were still 0 (fallback labour). Clear the auto-seeded
+    // labour/lid so the seed re-derives from the NOW-known L×W×H instead of the 0-dimension fallback.
+    if($("rbLabour")) $("rbLabour").value=0; if($("rbLidH")) $("rbLidH").value=0;
+    if(typeof rigidBoxApplySeeds==="function") rigidBoxApplySeeds();
+  }
+  // POUCH: read material + decoration straight off the brief (per-piece model, not the sheet parser).
+  if(isPouch(f.product)){
+    const rl=String(raw||"").toLowerCase();
+    const matMap=[[/velvet/,"velvet"],[/satin/,"satin"],[/canvas|cotton/,"canvas"],[/jute/,"jute"],[/non\s*[- ]?woven/,"nonwoven"],[/glamkot|glam\s*kot/,"glamkot"],[/art\s*card|art\s*board/,"artcard"]];
+    for(const [re,v] of matMap){ if(re.test(rl) && $("pouMedia")){ $("pouMedia").value=v; if(typeof pouchMediaRate==="function") pouchMediaRate(); break; } }
+    if($("pouDecor")){
+      if(/foil|gold\s*foil|silver\s*foil|foil\s*stamp/.test(rl)) $("pouDecor").value="foil";
+      else if(/screen\s*print|screen\s*printing/.test(rl)) $("pouDecor").value="screen";
+      else if(/offset|4\s*colou?r|four\s*colou?r|cmyk|full\s*colou?r/.test(rl)) $("pouDecor").value="offset";
+    }
+    if($("pouColors") && f.cf!=null) $("pouColors").value=Math.max(1,f.cf);
+  }
+  // LANYARD colour parse: "3 color printing" → screen colours. The shared colour parser only registers a
+  // bare count for 4-col / 1-col, so read the count straight off the brief for any 1–6 colour lanyard.
+  if(isLanyard(f.product) && $("lanColors")){
+    const W2N={one:1,two:2,three:3,four:4,five:5,six:6};
+    let n = (f.cf!=null) ? f.cf : null;
+    if(n==null){ const m=String(raw||"").toLowerCase().match(/(\d|one|two|three|four|five|six)\s*colou?r/); if(m) n=W2N[m[1]]||+m[1]; }
+    if(n!=null) $("lanColors").value=Math.max(1,n);
+    // "sublimation" / "dye sub" in the brief → full-colour method (no per-screen colours).
+    if(/sublim|dye\s*sub/i.test(String(raw||"")) && $("lanMethod")){ $("lanMethod").value="sublim"; }
+  }
   if(f.extent!=null) setV("extentFlat",f.extent);   // calendars: leaves-per-copy
   setV("gsm",f.gsm); setV("coverGsm",f.coverGsm);
   setV("cf",f.cf); setV("cb",f.cb);
+  // Separate cover colours (cover 4+0 vs inside 1-col) — parsed distinctly from the text colours above.
+  if(f.coverCf!=null && $("coverCf")) $("coverCf").value=f.coverCf;
+  if(f.coverCb!=null && $("coverCb")) $("coverCb").value=f.coverCb;
+  if(f.separateCover && isSig(f.product) && $("coverType")){ $("coverType").value="separate"; if(typeof onCoverChange==="function") onCoverChange(); }
   if(f.coverType){ setV("coverType",f.coverType); if(typeof onCoverChange==="function") onCoverChange(); }
   if(f.paperType){ const ps=$("paperTypeSel"); if(ps){ ps.value=f.paperType; if(typeof onPaperTypeChange==="function") onPaperTypeChange(); }
     const cs=$("coverTypeSel"); if(cs){ cs.value=f.paperType; if(typeof onCoverTypeChange==="function") onCoverTypeChange(); } }
@@ -3482,7 +4161,9 @@ function applyVoiceSpec(raw){
   // Pasted tag: pasting rate default when brief mentions back-to-back or the product is pasted_tag.
   if((f.product==="pasted_tag") && $("ptagPaste") && (!$("ptagPaste").value||$("ptagPaste").value==="0")){ $("ptagPaste").value=100; }
   // SHEET SIZE presets — tick the parsed sizes; add any missing size as a custom chip.
-  if(f.sheetSizes && f.sheetSizes.length){
+  // Skip for dieline/bag: a bag's "16×11" is the FINISHED size, not a print sheet — the blank + default
+  // sheets drive imposition, so ticking 16×11 as the only sheet would wrongly shrink the press stock.
+  if(f.sheetSizes && f.sheetSizes.length && !isDieline(f.product)){
     const chips=$("ssChips");
     if(chips){
       // uncheck all first, then tick each parsed size, adding any that isn't already a chip
@@ -3709,6 +4390,10 @@ function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
   try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
   catch(e){ $("m_price").innerHTML=html; } }
 function showPrice(){
+  if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")){ if(num("W",0)>0&&num("H",0)>0&&num("rbH",0)>0) renderRigidBox(); return; }   // rigid box has no CHOSEN
+  if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")){ renderPouch(); return; }   // pouch has no CHOSEN
+  if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")){ renderLanyard(); return; }   // lanyard has no CHOSEN
+  if(typeof isLF==="function" && isLF($("product")?$("product").value:"")){ renderLF(); return; }   // large format has no CHOSEN
   if(!CHOSEN)return;
   autoPaperRate();                                 // refresh ₹/sheet from price list for the chosen sheet
   const x=combinedPrice(),p=x.p,q=x.q,inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
@@ -4313,9 +4998,29 @@ async function runDiagnosticSweep(urlArg, builtin){
 // press pick / flags don't leak into the next one (sir 2026-07-21: ₹29k phantom coat on Medilab from a
 // prior 'matt' spec). Shared by the diagnostic sweep and the quick-set builder.
 function resetParserFields(){
-  window.marginEdited=false; window.gangedEdited=false; window.flatRateEdited=false; window.bindingEdited=false;
-  if(window.MACHINE_MODE!=null) window.MACHINE_MODE="auto";
-  if(window.COVER_MACHINE_MODE!=null) window.COVER_MACHINE_MODE="auto";
+  // These are module-scoped `let`s, NOT window props — the old `window.marginEdited=...` set a useless window
+  // property and NEVER reset the real flag, so margin/ganged/binding overrides leaked across sweep rows. Assign
+  // the bare bindings. Also reset spineEdited + bindingRateEdited (previously never reset) and clear the spine
+  // field, so a booklet's spine thickness (which drives cover size + cost) always auto-recomputes deterministically.
+  marginEdited=false; gangedEdited=false; flatRateEdited=false; bindingEdited=false;
+  spineEdited=false; bindingRateEdited=false;
+  if($("spineMM")) $("spineMM").value="";
+  // CRITICAL: null the imposition globals. If run() bails on THIS row (missing field, or pages not a valid
+  // multiple for the binding), it returns WITHOUT recomputing these — so combinedPrice() would otherwise
+  // price the PREVIOUS row's leftover CHOSEN/LASTINP and report it as this row's number. Nulling them makes a
+  // bailed run fall through combinedPrice()'s !CHOSEN guard → an honest "unpriceable", never a stale price.
+  CHOSEN=null; CHOSEN_BASE=null; RESULT=null; LASTINP=null;
+  if($("err")) $("err").textContent="";
+  // Price every swept row in AUTO press mode (cheapest correct route), not the sticky manual default.
+  // NKK sir 2026-07-23: these were `window.MACHINE_MODE=...` but MACHINE_MODE is a module-scoped `let`, so
+  // window.MACHINE_MODE was undefined and the reset silently did NOTHING — the whole sweep ran locked to the
+  // manual default press (Komori L-32), which also prevented the DIGITAL_AUTO auto-route from ever firing.
+  // Sweep prices on the stable manual/whole-sheet default press (Komori L-32, set at init) — the same basis
+  // as the interactive app. Auto's cut-route imposition mis-folds book signatures and underprices them, so we
+  // do NOT use auto here. The DIGITAL_AUTO rule instead applies a TARGETED digital swap for flat products only
+  // (see renderMachine), so books/large runs are untouched. Keep MANUAL_PICK intact (don't null it).
+  MACHINE_MODE="manual";
+  COVER_MACHINE_MODE="manual";
   ["coverEmb1","coverEmb2","coverEmb3","flatEmb1","flatEmb2","flatEmb3"].forEach(id=>{const el=$(id); if(el) el.value="none";});
   if($("lam")) $("lam").value="none";
   if($("coverLam")) $("coverLam").value="none";
@@ -4328,6 +5033,74 @@ function resetParserFields(){
   if($("ptagPaste")) $("ptagPaste").value=0;
   if($("flatRatePc")) $("flatRatePc").value="";
   if($("extentFlat")) $("extentFlat").value=1;
+  // NKK sir 2026-07-23: reset every SPEC field a brief might leave unset back to its fresh-page default,
+  // so a row that omits (say) colours or paper type can't silently inherit the PREVIOUS row's value.
+  // Without this, batch pricing is order-dependent — a job's price changes based on what was priced before
+  // it (e.g. a single-colour leaflet leaking 1+1 into a card that didn't state its colours). It also keeps
+  // the "no size recorded" flag honest: a sizeless row must stay sizeless, not borrow the last W/H.
+  if($("cf")) $("cf").value=4;
+  if($("cb")) $("cb").value=4;
+  if($("gsm")) $("gsm").value="";
+  if($("W")) $("W").value="";
+  if($("H")) $("H").value="";
+  if($("unit")) $("unit").value="in";
+  if($("pages")) $("pages").value="";
+  if($("coverGsm")) $("coverGsm").value=300;
+  if($("coverCf")) $("coverCf").value=4;
+  if($("coverCb")) $("coverCb").value=4;
+  if($("paperTypeSel")) $("paperTypeSel").value="";
+  if($("paperGrade")){ if(typeof fillGradeList==="function") fillGradeList("paperGrade",""); $("paperGrade").value="__auto"; }
+  if($("coverGrade")){ if(typeof fillGradeList==="function") fillGradeList("coverGrade",""); $("coverGrade").value="__auto"; }
+  if($("colpreset")) $("colpreset").value="";
+  if($("coverColPreset")) $("coverColPreset").value="";
+  // Large-format fields (roller/eyelets/board/hem/design) — reset so a prior standee's roller can't leak
+  // into the next banner. lfRate/lfQty are re-set by onProductChange/lfMediaRate per product.
+  ["lfRoller","lfEyelets","lfBoard","lfHem","lfDesign"].forEach(id=>{ if($(id)) $(id).value=0; });
+  if($("lfQty")) $("lfQty").value=1;
+  // Lanyard fields — reset to defaults so a prior lanyard row can't leak into the next (qty/colours/make).
+  if($("lanQty")) $("lanQty").value=1;
+  if($("lanColors")) $("lanColors").value=1;
+  if($("lanSides")) $("lanSides").value="1";
+  if($("lanWidth")) $("lanWidth").value=20;
+  if($("lanMake")) $("lanMake").value=0;
+  if($("lanMethod")) $("lanMethod").value="screen";
+  if($("lanMedia")){ $("lanMedia").value="polyester"; if(typeof lanyardMediaRate==="function") lanyardMediaRate(); }
+  // Pouch fields — reset to defaults so a prior pouch row can't leak into the next.
+  if($("pouQty")) $("pouQty").value=1;
+  if($("pouColors")) $("pouColors").value=1;
+  if($("pouDecor")) $("pouDecor").value="foil";
+  if($("pouSetup")) $("pouSetup").value=0;
+  if($("pouMedia")){ $("pouMedia").value="velvet"; if(typeof pouchMediaRate==="function") pouchMediaRate(); }
+  // Book-jacket geometry — reset so a prior jacket's cover/spine/flap can't leak into the next.
+  if($("jkCoverW")) $("jkCoverW").value=0;
+  if($("jkCoverH")) $("jkCoverH").value=0;
+  if($("jkSpine")) $("jkSpine").value=0;
+  if($("jkFlap")) $("jkFlap").value=3;
+  if($("jkBleed")) $("jkBleed").value=0.125;
+  if($("jkBlank")) $("jkBlank").textContent="Flat jacket blank: — ";
+  // Rigid-box fields — reset so a prior box (depth/labour/lid/foil/partition) can't leak into the next.
+  if($("rbQty")) $("rbQty").value=1;
+  if($("rbH")) $("rbH").value=0;
+  if($("rbLidH")) $("rbLidH").value=0;
+  if($("rbLabour")) $("rbLabour").value=0;
+  if($("rbPartition")) $("rbPartition").value=0;
+  if($("rbFoil")) $("rbFoil").value="no";
+  if($("rbStyle")) $("rbStyle").value="topbottom";
+  if($("rbLined")) $("rbLined").value="yes";
+  if($("rbForme")) $("rbForme").value=0;
+  if($("rbSample")) $("rbSample").value=0;
+  // SHEET-SIZE chips: restore the canonical default set. applyVoiceSpec only re-ticks these when the brief
+  // NAMES sheet sizes; otherwise a row inherits the previous row's ticks (and any custom chip a prior row
+  // appended lingers in the DOM), so the imposition — and the price — depended on sweep ORDER. Remove custom
+  // chips and reset the six standard ones to their fresh-page checked state so every row imposes identically.
+  const ssChips=$("ssChips");
+  if(ssChips){
+    const DEFAULT_SS={"18,25":false,"20,30":true,"23,36":true,"25,36":true,"28,40":true,"30,40":true};
+    [...ssChips.querySelectorAll(".ss")].forEach(c=>{
+      if(DEFAULT_SS[c.value]===undefined){ const lab=c.closest("label"); if(lab) lab.remove(); }  // drop custom-added chip
+      else { c.checked=DEFAULT_SS[c.value]; }                                                       // reset standard chip
+    });
+  }
 }
 function priceAuditRecord(rec){
   const brief=rec.brief;
@@ -4337,7 +5110,10 @@ function priceAuditRecord(rec){
   if(rec.qty>0){ if($("copies2")) $("copies2").value=rec.qty; if($("copies")) $("copies").value=rec.qty; }
   applyGangedDefault(); applyMenuRateHint(); applyMarginDefault();  // re-apply margin AFTER qty (volume-tiered)
   run();
+  const runErr = $("err") ? $("err").textContent.trim() : "";   // run() bailed → don't trust a stale price
   const x = combinedPrice(); const q=x.q, t=x.text, cq=x.cover;
+  rec.unpriceable = !!x.unpriceable || !!runErr;
+  if(rec.unpriceable) rec.unpriceReason = runErr || x.reason;
   if(!rec.qty){ const c=$("copies2")||$("copies"); rec.qty = c ? (parseInt(String(c.value).replace(/[^0-9]/g,""),10)||0) : 0; }  // show the qty the estimator used
   rec.est   = Math.round(q.grand||0);
   rec.prod  = Math.round(q.prod||0);
@@ -4359,6 +5135,85 @@ function priceAuditRecord(rec){
   rec.src_print = LIVE_STATUS.printing && LIVE_STATUS.printing.ok ? "live sheet PRINTING_RATES" : "built-in";
   rec.src_coat  = LIVE_STATUS.postpress && LIVE_STATUS.postpress.ok ? "live sheet POST_PRESS" : "built-in";
   rec.src_digital = LIVE_STATUS.digital && LIVE_STATUS.digital.ok ? "live sheet Digital press rate" : "built-in";
+  diagnoseRecord(rec);   // attach dx (reason + confidence) — never fits, only explains
+}
+/* ===================================================================================================
+   DIAGNOSTIC ENGINE (NKK sir 2026-07-23) — explains WHY est ≠ recorded ₹, per row, with a confidence.
+   It NEVER changes a price. It reads the estimator's own component breakdown (plate/paper/emb/…) plus
+   the recorded amount & spec, and attributes the gap to a named cause. Where only a total exists (no
+   size, no qty, per-piece basis, unsupported product) it says so plainly: "line-item breakdown
+   unavailable" — it does not invent a number. Rules are ordered; the first that fires wins.
+   Reason codes:
+     INCOMPLETE_SIZE   spec has no width/height → not priceable
+     NO_PRODUCT        estimator has no product for this item
+     BASIS_PERPIECE    recorded ₹ is per-piece (or qty missing) — can't compare to an order total
+     NO_AMOUNT         no recorded ₹ to compare against
+     ALIGNED           |gap| < 15%  → model matches
+     SHORT_RUN_LOADING over-quote driven by fixed press cost (plates/make-ready) on a short/digital run
+     EMBELLISH_MISSING under-quote: spec names foil/gold/emboss/spot-UV the estimator didn't cost
+     MULTI_ITEM        under-quote: brief bundles 2 deliverables, estimator priced one
+     CONVERTING_UNDER  under-quote: box/carton/converting work not fully modeled
+     UNDER_REVIEW      under-quote with no single clear driver → human review
+     OVER_REVIEW       over-quote not explained by short-run loading → human review
+   =================================================================================================== */
+const DX_LABEL={
+  INCOMPLETE_SIZE:"Incomplete spec — no size recorded",
+  NO_PRODUCT:"No matching estimator product",
+  BASIS_PERPIECE:"Per-lot / per-piece mismatch",
+  NO_AMOUNT:"No recorded amount to compare",
+  ALIGNED:"Aligned with recorded price",
+  SHORT_RUN_LOADING:"Short-run press-cost loading",
+  EMBELLISH_MISSING:"Embellishment in spec not costed",
+  MULTI_ITEM:"Multi-item job — one component priced",
+  CONVERTING_UNDER:"Converting / box work under-costed",
+  UNDER_REVIEW:"Under-quote — needs review",
+  OVER_REVIEW:"Over-quote — needs review"
+};
+DX_LABEL.SPEC_UNPRICEABLE="Spec could not be priced";
+const DX_NO_BREAKDOWN=new Set(["INCOMPLETE_SIZE","SPEC_UNPRICEABLE","NO_PRODUCT","BASIS_PERPIECE","NO_AMOUNT"]);
+function diagnoseRecord(rec){
+  const set=(code,conf,dir,signals)=>{ rec.dxCode=code; rec.dxReason=DX_LABEL[code]; rec.dxConfidence=conf;
+    rec.dxDirection=dir; rec.dxSignals=signals; rec.dxNoBreakdown=DX_NO_BREAKDOWN.has(code);
+    rec.dxNote=rec.dxNoBreakdown?"line-item breakdown unavailable":""; return rec; };
+  const brief=String(rec.brief||"").toLowerCase();
+  const nk=Number(rec.nk)||0, est=Number(rec.est)||0, qty=Number(rec.qty)||0;
+  const gap=(rec.gapPct===""||rec.gapPct==null)?null:Number(rec.gapPct);
+  // ---- 1) data / basis problems: only a total exists, no like-for-like comparison possible ----
+  if(rec.unpriceable){ const why=String(rec.unpriceReason||"").trim();
+    const code = (!why || /width|height|size|sheet/i.test(why)) ? "INCOMPLETE_SIZE" : "SPEC_UNPRICEABLE";
+    const r=set(code,"high","n/a", why||"run() found no valid sheet — width/height absent");
+    if(why && code==="SPEC_UNPRICEABLE") rec.dxReason="Spec could not be priced — "+why;
+    return r; }
+  if(!rec.product)     return set("NO_PRODUCT","high","n/a","estimator produced no product for this spec");
+  if(nk>0 && qty>0 && nk<qty) return set("BASIS_PERPIECE","high","n/a",`recorded ₹${nk} < qty ${qty} — total can't be below piece count`);
+  if(qty<=0 && nk>0)   return set("BASIS_PERPIECE","high","n/a","quantity not recorded — order total not computable");
+  if(nk<=0)            return set("NO_AMOUNT","high","n/a","no recorded price on this record");
+  // ---- 2) aligned ----
+  if(gap!=null && Math.abs(gap)<15) return set("ALIGNED","high","aligned",`gap ${gap>=0?"+":""}${gap}% within ±15%`);
+  // ---- component-derived signals ----
+  const plate=Number(rec.plate)||0, emb=Number(rec.emb)||0;
+  const plateShare=est>0?plate/est:0;                       // fixed press cost (plates + make-ready) as a share of total
+  const isConverting=/^(carton_|sleeve$|folder$)/.test(rec.product) || /\b(box|carton|tuck|mono ?carton|die ?cut)\b/.test(brief);
+  const wantsEmb=/\b(gold|foil|silver|emboss|deboss|spot ?uv|spot-uv|metallic|foiling|blocking)\b/.test(brief);
+  const isMultiItem=(/\bcard\b/.test(brief)&&/\benvelope\b/.test(brief)) || /\b(\w+)\s+and\s+(\w+)\b.*\b(printing|color|colour)\b.*,.*\b(printing|color|colour)\b/.test(brief) || /\benvelope\b.*\bcard\b/.test(brief);
+  // ---- 3) under-quote branch (est below recorded) ----
+  if(gap!=null && gap<=-15){
+    if(isConverting)  return set("CONVERTING_UNDER","med","under",`product=${rec.product}; die/assembly not fully modeled (gap ${gap}%)`);
+    if(wantsEmb&&emb===0) return set("EMBELLISH_MISSING","high","under",`spec names foil/gold/emboss but Emb line = ₹0 (gap ${gap}%)`);
+    if(isMultiItem)   return set("MULTI_ITEM","med","under",`brief bundles 2 deliverables; estimator priced one (gap ${gap}%)`);
+    return set("UNDER_REVIEW","low","under",`no single driver isolated (gap ${gap}%)`);
+  }
+  // ---- 4) over-quote branch (est above recorded) ----
+  if(gap!=null && gap>=15){
+    const shortRun = qty>0 && qty<=500;
+    const midRun   = qty>500 && qty<=1500;
+    if(shortRun && plateShare>=0.35) return set("SHORT_RUN_LOADING","high","over",`qty ${qty}, plates=₹${plate} = ${Math.round(plateShare*100)}% of est (gap +${gap}%)`);
+    if(shortRun && plateShare>=0.20) return set("SHORT_RUN_LOADING","med","over",`qty ${qty}, plates ${Math.round(plateShare*100)}% of est (gap +${gap}%)`);
+    if(shortRun)                     return set("SHORT_RUN_LOADING","low","over",`short run qty ${qty} (gap +${gap}%); fixed-cost share modest`);
+    if(midRun && plateShare>=0.25)   return set("SHORT_RUN_LOADING","med","over",`qty ${qty}, plates ${Math.round(plateShare*100)}% of est (gap +${gap}%)`);
+    return set("OVER_REVIEW","low","over",`qty ${qty}, plates ${Math.round(plateShare*100)}% of est (gap +${gap}%)`);
+  }
+  return set("OVER_REVIEW","low","n/a","unclassified");
 }
 // Price a batch of records and render the comparative report. Shared by the CSV sweep and the typed input.
 function runSweepRecords(records){
@@ -4369,6 +5224,8 @@ function runSweepRecords(records){
     audit.push(rec);
   }
   renderAuditReport(audit);
+  recordLearning(audit);   // remember the confirmed diagnoses, then surface learned patterns
+  renderLearnPanel();
   auditStatus(`✓ ${ok} row${ok!==1?"s":""} priced · ${err} error${err!==1?"s":""} · <a href="#" onclick="downloadAuditCSV(event)">download CSV</a>`);
   window.__AUDIT_ROWS__ = audit;
 }
@@ -4388,25 +5245,143 @@ function runPastedSweep(){
   auditStatus(`⏳ Running ${records.length} job${records.length!==1?"s":""}…`);
   setTimeout(()=>{ try{ runSweepRecords(records); }catch(e){ auditStatus('<span style="color:#c0392b">Error: '+String(e).slice(0,120)+'</span>'); } }, 20);
 }
+/* ===================================================================================================
+   LEARNING MODULE (NKK sir 2026-07-23) — the system REMEMBERS confirmed diagnoses and turns recurring
+   ones into structural correction PROPOSALS. It never fits a price and never changes live estimates on
+   its own: every proposed fix is a sir-gate that is OFF by default. Sir sees the evidence + a before/after
+   impact preview, then decides. Nothing here calibrates numbers to match the recorded amounts.
+   =================================================================================================== */
+function loadLedger(){ try{ return JSON.parse(localStorage.getItem("LEARN_LEDGER")||"[]")||[]; }catch(e){ return []; } }
+function saveLedger(l){ try{ localStorage.setItem("LEARN_LEDGER", JSON.stringify(l.slice(-2000))); }catch(e){} }
+function clearLedger(){ try{ localStorage.removeItem("LEARN_LEDGER"); }catch(e){} renderLearnPanel(); }
+// Append the confirmed diagnoses from a sweep. One record per job+cause; a re-run updates it in place.
+function recordLearning(rows){
+  const led=loadLedger(), day=new Date().toISOString().slice(0,10);
+  for(const r of rows){ if(r.err||!r.dxCode) continue;
+    const key=(r.jobId||"?")+"|"+r.dxCode, i=led.findIndex(e=>e.key===key);
+    const rec={key,day,jobId:r.jobId||"",product:r.product||"",dxCode:r.dxCode,reason:r.dxReason,
+      conf:r.dxConfidence,dir:r.dxDirection,gap:(r.gapPct===""||r.gapPct==null?null:Number(r.gapPct)),qty:Number(r.qty)||0};
+    if(i>=0) led[i]=rec; else led.push(rec);
+  }
+  saveLedger(led); return led;
+}
+// Gated structural corrections. OFF until sir enables. Keyed to the cause they address.
+const LEARN_RULES={
+  DIGITAL_AUTO:{ cause:"SHORT_RUN_LOADING", dir:"over",
+    title:"Route short-runs to digital (flat AND book) — ON by default",
+    detail:"When a digital route is cheaper than the chosen offset press, use it — for flat products (cards, leaflets, letterheads, forms, tags) AND signature books/magazines on short runs. Digital has no plates and near-zero make-ready: the route images on a 13×19 / 12×18 digital sheet (or the base layout, no plates, when a book spread is wider than the digital sheet) with digital spoilage (≈3 sheets) instead of the offset ~100-sheet make-ready. Long runs keep offset (per-sheet click loses on volume). ON by default (sir-confirmed 2026-07-23); untick to price everything offset.\n\n✔ MEASURED on the 50 with LIVE NEW SUSHMA rates: ~28/39 rows route to digital, aligned band 1→5. Flat short-runs collapse (17-pc ID card +399%→−11%, digital letterhead +537%→+5%); book short-runs too (small brochure +110%→−7%, 10-copy magazine +1772%→+383%). A digital minimum-job floor (DIGITAL_MIN_JOB, ₹300, editable) guards degenerate tiny jobs. Residual over-quotes on the tiniest magazine runs are binding/cover minimums + the A4 trim assumption, not this rule; premium/embellished card under-quotes are a separate cost-capture item.",
+    proposal:"ON by default — short runs (flat + book) route to the cheaper digital press. Untick to force offset everywhere. Set the real digital minimum (DIGITAL_MIN_JOB, ₹300) with sir." }
+};
+function loadLearnFlags(){ try{ return JSON.parse(localStorage.getItem("LEARN_FLAGS")||"{}")||{}; }catch(e){ return {}; } }
+function saveLearnFlags(f){ try{ localStorage.setItem("LEARN_FLAGS", JSON.stringify(f)); }catch(e){} }
+// Per-rule defaults when the user hasn't explicitly toggled the rule. DIGITAL_AUTO is now ON by default
+// (sir-confirmed 2026-07-23): short runs — flat and book — route to the cheaper digital press. A user can
+// still turn it OFF from the learning panel; an explicit choice (true/false) always wins over the default.
+const LEARN_FLAG_DEFAULTS={DIGITAL_AUTO:true};
+function learnFlag(k){ const f=loadLearnFlags(); return (k in f) ? !!f[k] : !!LEARN_FLAG_DEFAULTS[k]; }
+function setLearnFlag(k,v){ const f=loadLearnFlags(); f[k]=!!v; saveLearnFlags(f);
+  auditStatus(v?`✓ Rule "${k}" ENABLED — live estimates now use it. Re-run the sweep to see the effect.`:`Rule "${k}" disabled — live estimates unchanged.`);
+  if(typeof RESULT!=="undefined"&&RESULT) run(); renderLearnPanel(); }
+// Mine the ledger into recurring patterns (grouped by cause) with evidence.
+function mineLearnings(){
+  const led=loadLedger(), by={};
+  for(const e of led){ const b=(by[e.dxCode]=by[e.dxCode]||{code:e.dxCode,reason:e.reason,dir:e.dir,jobs:[],conf:{high:0,med:0,low:0},prods:{},gaps:[]});
+    b.jobs.push(e.jobId); if(b.conf[e.conf]!=null)b.conf[e.conf]++; if(e.product)b.prods[e.product]=(b.prods[e.product]||0)+1; if(e.gap!=null)b.gaps.push(e.gap); }
+  return Object.values(by).map(b=>{ b.n=b.jobs.length;
+    const g=b.gaps.slice().sort((x,y)=>x-y); b.medGap=g.length?g[Math.floor(g.length/2)]:null;
+    b.rule=Object.entries(LEARN_RULES).find(([k,r])=>r.cause===b.code); return b; })
+    .sort((a,b)=>b.n-a.n);
+}
+// Re-price the ledger's short-run rows via the digital route to PREVIEW the DIGITAL_AUTO rule's effect,
+// without touching live estimates. Shows offset (today) vs digital (proposed) vs recorded.
+function previewDigitalImpact(ev){ if(ev) ev.preventDefault();
+  const rows=(window.__AUDIT_ROWS__||[]).filter(r=>!r.err && r.dxCode==="SHORT_RUN_LOADING");
+  if(!rows.length){ auditStatus("Run a sweep with short-run rows first, then preview."); return; }
+  const was=learnFlag("DIGITAL_AUTO"), f=loadLearnFlags();
+  const out=[];
+  f.DIGITAL_AUTO=true; saveLearnFlags(f);                 // temporarily on, live UI not re-run
+  try{ for(const r of rows){ const rec={brief:r.brief,qty:r.qty,nk:r.nk}; try{ priceAuditRecord(rec); out.push({jobId:r.jobId,nk:r.nk,offset:r.est,digital:rec.est,prod:rec.product}); }catch(e){} } }
+  finally{ f.DIGITAL_AUTO=was; saveLearnFlags(f); }
+  const inr=n=>n==null?"—":"₹"+Number(n).toLocaleString("en-IN");
+  const impr=out.map(o=>{ const bo=o.nk>0?Math.round((o.offset-o.nk)/o.nk*100):null, bd=o.nk>0?Math.round((o.digital-o.nk)/o.nk*100):null;
+    const better=bd!=null&&bo!=null&&Math.abs(bd)<Math.abs(bo);
+    return `<tr><td style="text-align:left;padding:3px 8px">${o.jobId}</td><td style="padding:3px 8px">${inr(o.nk)}</td><td style="padding:3px 8px">${inr(o.offset)}${bo!=null?` <span style="color:#c0392b">(${bo>=0?"+":""}${bo}%)</span>`:""}</td><td style="padding:3px 8px">${inr(o.digital)}${bd!=null?` <span style="color:${better?"#1c7a52":"#a9761a"}">(${bd>=0?"+":""}${bd}%)</span>`:""}</td><td style="padding:3px 8px">${better?"✓ closer":"—"}</td></tr>`; }).join("");
+  const closer=out.filter(o=>{ const bo=o.nk>0?Math.abs((o.offset-o.nk)/o.nk):9, bd=o.nk>0?Math.abs((o.digital-o.nk)/o.nk):9; return bd<bo; }).length;
+  const el=$("learnPreview"); if(el) el.innerHTML=`<div style="margin-top:8px;font-size:12px"><b>Impact preview — digital route on ${out.length} short-run rows:</b> ${closer}/${out.length} land closer to recorded. Live estimates unchanged (preview only).<div style="overflow-x:auto"><table style="border-collapse:collapse;margin-top:6px;font-size:11.5px"><thead><tr><th style="text-align:left;padding:3px 8px">Job</th><th style="padding:3px 8px">Recorded</th><th style="padding:3px 8px">Offset (today)</th><th style="padding:3px 8px">Digital (proposed)</th><th style="padding:3px 8px"></th></tr></thead><tbody>${impr}</tbody></table></div></div>`;
+}
+function renderLearnPanel(){
+  const el=$("learnPanel"); if(!el) return;
+  const pats=mineLearnings();
+  if(!pats.length){ el.innerHTML=`<div style="font-size:12px;color:#8a7aa6">🎓 No learnings yet — run a diagnostic sweep and confirmed causes accumulate here (remembered between visits).</div>`; return; }
+  const total=loadLedger().length;
+  const card=p=>{ const col=p.dir==="over"?"#c0392b":p.dir==="under"?"#2563a8":p.dir==="aligned"?"#1c7a52":"#6b7480";
+    const prods=Object.entries(p.prods).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,v])=>`${k}×${v}`).join(", ");
+    const conf=`${p.conf.high}H · ${p.conf.med}M · ${p.conf.low}L`;
+    let rule="";
+    if(p.rule){ const [k,r]=p.rule; const on=learnFlag(k);
+      rule=`<div style="margin-top:8px;background:#fff;border:1px dashed ${on?"#1c7a52":"#c9b8ec"};border-radius:8px;padding:9px 11px">
+        <div style="font-weight:700;color:#3a1276;font-size:12px">🛠 Proposed correction: ${r.title}</div>
+        <div style="font-size:11.5px;color:#5a5170;margin:5px 0;white-space:pre-line">${r.detail}</div>
+        <div style="font-size:11.5px;color:#3a1276;margin-bottom:7px"><b>Rule:</b> ${r.proposal}</div>
+        <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:${on?"#1c7a52":"#6b3fb3"};cursor:pointer">
+          <input type="checkbox" ${on?"checked":""} onchange="setLearnFlag('${k}',this.checked)"> ${on?"Enabled in live estimates (sir-confirmed)":"Apply in live estimates (sir-confirmed) — OFF"}</label>
+        <a href="#" onclick="previewDigitalImpact(event)" style="margin-left:12px;font-size:12px;color:#6b3fb3">Preview impact →</a>
+      </div>`;
+    } else {
+      rule=`<div style="margin-top:6px;font-size:11.5px;color:#8a7aa6">No automatic correction proposed — this cause is a data/basis or spec-capture issue to fix at the source record, not a pricing rule.</div>`;
+    }
+    return `<div style="background:#f7f2fe;border:1px solid #e6def7;border-left:4px solid ${col};border-radius:9px;padding:11px 13px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px">
+        <div style="font-weight:800;color:${col};font-size:13px">${p.reason} <span style="color:#8a7aa6;font-weight:600">· ${p.n} rows</span></div>
+        <div style="font-size:11px;color:#8a7aa6">conf ${conf}${p.medGap!=null?` · median gap ${p.medGap>=0?"+":""}${p.medGap}%`:""}</div>
+      </div>
+      ${prods?`<div style="font-size:11px;color:#8a7aa6;margin-top:3px">seen on: ${prods}</div>`:""}
+      ${rule}</div>`;
+  };
+  el.innerHTML=`<div style="font-weight:800;color:#3a1276;font-size:13px;margin-bottom:9px">🎓 What the system learned <span style="color:#8a7aa6;font-weight:600">— ${total} confirmed diagnoses remembered · <a href="#" onclick="clearLedger();return false" style="color:#a37">reset</a></span></div>
+    ${pats.map(card).join("")}
+    <div id="learnPreview"></div>`;
+}
+// Diagnostic rollup: group priced rows by cause so the dominant problem is visible at a glance.
+function diagnosisRollup(rows){
+  const priced=rows.filter(r=>!r.err && r.dxReason);
+  if(!priced.length) return "";
+  const by={}; for(const r of priced){ (by[r.dxCode]=by[r.dxCode]||{code:r.dxCode,label:r.dxReason,dir:r.dxDirection,n:0,ids:[]}); by[r.dxCode].n++; by[r.dxCode].ids.push(r.jobId); }
+  const order=Object.values(by).sort((a,b)=>b.n-a.n);
+  const comparable=priced.filter(r=>!r.dxNoBreakdown).length;
+  const aligned=(by.ALIGNED?by.ALIGNED.n:0);
+  const chip=g=>{ const col=g.dir==="aligned"?"#1c7a52":g.dir==="over"?"#c0392b":g.dir==="under"?"#2563a8":"#6b7480";
+    return `<span style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid #e6def7;border-left:4px solid ${col};border-radius:7px;padding:5px 10px;margin:0 6px 6px 0;font-size:12px">
+      <b style="color:${col}">${g.n}</b><span style="color:#3a1276">${g.label}</span></span>`; };
+  return `<div style="background:#f4eefe;border:1px solid #e6def7;border-radius:10px;padding:12px 14px;margin-bottom:14px">
+    <div style="font-weight:800;color:#3a1276;font-size:13px;margin-bottom:8px">🔎 Diagnosis rollup — ${priced.length} rows · ${comparable} comparable · ${aligned} aligned (±15%)</div>
+    <div style="display:flex;flex-wrap:wrap">${order.map(chip).join("")}</div>
+    <div style="font-size:11px;color:#8a7aa6;margin-top:6px">Each row is explained from the estimator's own component breakdown — never fitted. Grey = only a total exists (no size / qty / per-piece basis / unsupported product): line-item breakdown unavailable.</div>
+  </div>`;
+}
 function renderAuditReport(rows){
   const el=$("auditReport"); if(!el) return;
   const inr=n=>n===""||n==null?"":"₹"+Number(n).toLocaleString("en-IN");
   const gapStyle=g=>{ if(g==="") return ""; const a=Math.abs(g); const c=a<15?"#1c7a52":a<30?"#a9761a":"#c0392b"; return `color:${c};font-weight:700`; };
   const th=(t,w)=>`<th style="padding:6px 8px;background:#e9deff;color:#3a1276;text-align:right;white-space:nowrap${w?';width:'+w:''}">${t}</th>`;
   const td=(v,s)=>`<td style="padding:5px 8px;border-bottom:1px solid #ede7f8;text-align:right;white-space:nowrap${s?';'+s:''}">${v}</td>`;
-  let html=`<table style="width:100%;border-collapse:collapse;font-size:12px">
-    <thead><tr>${th("Job","","left")}${th("Client")}${th("Qty")}${th("NK ₹")}${th("Est ₹")}${th("Gap %")}${th("Paper")}${th("Print")}${th("Plate")}${th("Coat")}${th("Emb")}${th("Bind")}${th("PP")}${th("Pack+Frt")}${th("Margin")}${th("Prod")}${th("Ganged")}<th style="padding:6px 8px;background:#e9deff;color:#3a1276">Sources</th></tr></thead><tbody>`;
+  let html=diagnosisRollup(rows)+`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr>${th("Job","","left")}${th("Client")}${th("Qty")}${th("NK ₹")}${th("Est ₹")}${th("Gap %")}<th style="padding:6px 8px;background:#e9deff;color:#3a1276;text-align:left">Diagnosis</th>${th("Conf")}${th("Paper")}${th("Print")}${th("Plate")}${th("Coat")}${th("Emb")}${th("Bind")}${th("PP")}${th("Pack+Frt")}${th("Margin")}${th("Prod")}${th("Ganged")}<th style="padding:6px 8px;background:#e9deff;color:#3a1276">Sources</th></tr></thead><tbody>`;
+  const confBadge=c=>{ if(!c) return ""; const col=c==="high"?"#1c7a52":c==="med"?"#a9761a":"#8a6d9e"; return `<span style="display:inline-block;padding:1px 6px;border-radius:9px;background:${col};color:#fff;font-size:10px;font-weight:700">${c}</span>`; };
+  const dirIcon=d=>d==="over"?"▲ ":d==="under"?"▼ ":d==="aligned"?"✓ ":"• ";
   for(const r of rows){
-    if(r.err){ html+=`<tr><td colspan="18" style="padding:6px;background:#fde7e7;color:#c0392b">${r.jobId}: ${r.err}</td></tr>`; continue; }
+    if(r.err){ html+=`<tr><td colspan="20" style="padding:6px;background:#fde7e7;color:#c0392b">${r.jobId}: ${r.err}</td></tr>`; continue; }
     const gapDisp = r.gapPct===""?"—":(r.gapPct>=0?"+":"")+r.gapPct+"%";
-    html+=`<tr><td style="padding:5px 8px;border-bottom:1px solid #ede7f8;text-align:left">${r.jobId}</td>${td(r.client||"")}${td(r.qty||"")}${td(inr(r.nk))}${td(inr(r.est))}${td(gapDisp, gapStyle(r.gapPct))}${td(inr(r.paper))}${td(inr(r.print))}${td(inr(r.plate))}${td(inr(r.coat))}${td(inr(r.emb))}${td(inr(r.bind))}${td(inr(r.pp))}${td(inr(r.pack+r.frt))}${td(inr(r.mgn))}${td(inr(r.prod))}${td(r.ganged)}<td style="padding:5px 8px;border-bottom:1px solid #ede7f8;font-size:10.5px;color:#6b7480">${r.product}·${r.src_paper}·${r.src_print}·${r.src_digital}</td></tr>`;
+    const dxCol = r.dxNoBreakdown?"#6b7480":(r.dxDirection==="aligned"?"#1c7a52":r.dxDirection==="over"?"#c0392b":r.dxDirection==="under"?"#2563a8":"#3a1276");
+    const dxCell = `<td style="padding:5px 8px;border-bottom:1px solid #ede7f8;text-align:left"><span style="color:${dxCol};font-weight:600">${dirIcon(r.dxDirection)}${r.dxReason||"—"}</span>${r.dxNote?`<div style="font-size:10px;color:#8a96a4">${r.dxNote}</div>`:""}${r.dxSignals?`<div style="font-size:10px;color:#a3adba" title="${String(r.dxSignals).replace(/"/g,'&quot;')}">${String(r.dxSignals).length>60?String(r.dxSignals).slice(0,58)+"…":r.dxSignals}</div>`:""}</td>`;
+    html+=`<tr><td style="padding:5px 8px;border-bottom:1px solid #ede7f8;text-align:left">${r.jobId}</td>${td(r.client||"")}${td(r.qty||"")}${td(inr(r.nk))}${td(inr(r.est))}${td(gapDisp, gapStyle(r.gapPct))}${dxCell}${td(confBadge(r.dxConfidence))}${td(inr(r.paper))}${td(inr(r.print))}${td(inr(r.plate))}${td(inr(r.coat))}${td(inr(r.emb))}${td(inr(r.bind))}${td(inr(r.pp))}${td(inr(r.pack+r.frt))}${td(inr(r.mgn))}${td(inr(r.prod))}${td(r.ganged)}<td style="padding:5px 8px;border-bottom:1px solid #ede7f8;font-size:10.5px;color:#6b7480">${r.product}·${r.src_paper}·${r.src_print}·${r.src_digital}</td></tr>`;
   }
-  html+="</tbody></table>";
+  html+="</tbody></table></div>";
   el.innerHTML=html;
 }
 function downloadAuditCSV(e){ if(e) e.preventDefault();
   const rows=window.__AUDIT_ROWS__||[]; if(!rows.length) return;
-  const cols=["jobId","client","qty","nk","est","gapPct","paper","print","plate","coat","emb","bind","pp","pack","frt","mgn","prod","product","margin","ganged","src_paper","src_print","src_coat","src_digital"];
+  const cols=["jobId","client","qty","nk","est","gapPct","dxReason","dxConfidence","dxDirection","dxNote","dxSignals","paper","print","plate","coat","emb","bind","pp","pack","frt","mgn","prod","product","margin","ganged","src_paper","src_print","src_coat","src_digital"];
   const csv=[cols.join(",")].concat(rows.map(r=>cols.map(c=>{const v=r[c]==null?"":r[c]; return String(v).replace(/"/g,'""').replace(/,/g," ");}).join(","))).join("\n");
   const blob=new Blob([csv],{type:"text/csv"}), a=document.createElement("a");
   a.href=URL.createObjectURL(blob); a.download=`audit_${new Date().toISOString().slice(0,10)}.csv`; a.click();
