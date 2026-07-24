@@ -2733,6 +2733,15 @@ function applyMenuRateHint(){
     //   ≤500  → ₹5.00     ≤1000 → ₹3.50     >1000 → ₹2.50      · minimum charge ₹500
     if(qty<=500) rate=5.00; else if(qty<=1000) rate=3.50; else rate=2.50;
     minCharge=500;
+    // PREMIUM-FINISH tier (sir 2026-07-24): velvet/soft-touch lam and UV finishes lift a card above the plain
+    // menu rate. Calibrated to Vesta (velvet lam + single-side UV, 2000 pc @ ₹5/pc): base ₹2.50 + velvet ₹1.50
+    // + UV ₹1.00 = ₹5.00 → 0%. Surcharges are additive on top of the qty band, detected from the coating/emb
+    // fields the brief filled. (Nihon @ ₹15/pc stays partly under — it carries a separate multi-design premium.)
+    const lam=$("lam")?$("lam").value:"", embs=[$("flatEmb1"),$("flatEmb2"),$("flatEmb3")].map(e=>e?e.value:"");
+    const hasVelvet = lam==="velvet";
+    const hasUV = /^(uv|mattuv|drip)$/.test(lam) || embs.some(e=>/^(spotuv|raiseduv|drip|mgi_uv)$/.test(e));
+    if(hasVelvet) rate+=1.50;
+    if(hasUV)     rate+=1.00;
   }
   else if(p==="insert"){
     // Letterhead rate — VALIDATED 2026-07-24 against 3 recorded anchors (thin data, no job-minimum: neotia
@@ -3952,7 +3961,7 @@ function parseSpec(raw){
     [/\bsilver\s*(?:print(?:ing)?|ink|foil|block(?:ing)?|stamp(?:ing)?)|(?:print(?:ing)?|ink|foil|block(?:ing)?)\s*(?:in\s*)?silver\b/,"screen_silver","Silver printing"],
     [/screen\s*print(?:ing)?/,"screen_other","Screen printing — other"],
     [/metal\s*stamp(?:ing)?|steel\s*plate/,"metal_stamp","Metal stamping"],
-    [/spot\s*uv/,"spotuv","Spot UV"],[/raised\s*uv|textured\s*uv/,"raiseduv","Raised UV"],[/\bfoil(?:ing|ed|s)?\b/,"foil","Foil"],
+    [/spot\s*uv|(?:single|one|1)\s*side\s*uv|selective\s*uv/,"spotuv","Spot UV"],[/raised\s*uv|textured\s*uv/,"raiseduv","Raised UV"],[/\bfoil(?:ing|ed|s)?\b/,"foil","Foil"],
     [/\bemboss/,"emboss","Emboss"],[/\bdeboss/,"deboss","Deboss"],[/\btexture\b/,"texture","Texture effect"]];
   const embs=[]; for(const [re,v,lbl] of EMB){
     if(!re.test(t)||embs.includes(v)) continue;
