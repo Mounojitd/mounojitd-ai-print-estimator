@@ -4003,7 +4003,7 @@ function parseSpec(raw){
     [/note\s*book|notebook|\bdiary\b/,"booklet"],
     [/wall\s*calendar/,"calendar_sheet"],[/table\s*calendar|desk\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],
     [/\bsticker\b|\blabel\b/,"insert"],
-    [/leaflet|flyer/,"leaflet"],
+    [/leaflet|flyer|pamphlet|hand\s*bill/,"leaflet"],
     [/dust\s*jacket|book\s*jacket|\bjacket\b|book\s*wrapper/,"jacket"],
     [/lanyard|neck\s*strap|badge\s*(?:strap|ribbon)/,"lanyard"],
     [/pouch|drawstring\s*bag|potli/,"pouch"],
@@ -4026,6 +4026,11 @@ function parseSpec(raw){
   // "Folded card" / "greeting card with a fold" is a leaflet, not a visiting card (sir 2026-07-21).
   // The generic /\bcard\b/ rule wins on the LITERAL word 'card' in "Folded card" — downgrade to leaflet.
   if(f.product==="card" && foldHit && noBookBind) f.product="leaflet";
+  // PANEL-FOLDED BROCHURE: a brochure with an explicit tri/gate/z/bi/double fold and NO page count is a folded
+  // FLAT sheet (multi-panel leaflet), not a bound book — downgrade booklet→leaflet. Real multi-page brochures
+  // keep a page count or a bind keyword, so this won't touch them (Tega/Metravi etc. stay booklet/catalogue).
+  const panelFold=/\b(?:tri|z|c|gate|double|half|cross|3|4|6)\s*[- ]?fold(?:ing|ed)?\b|\b(?:tri|bi)fold\b/.test(t);
+  if(f.product==="booklet" && panelFold && noBookBind && f.pages==null) f.product="leaflet";
   // REPRINT (NKK sir 2026-07-17 Keventer): 'reprint' / 'reprinting' → plates already exist.
   if(/\brepri?nt(?:ing)?\b/.test(t)){ f.reprint=true; notes.push("reprint — plates reused (10% fee)"); }
   // Pasted-tag / flat products: clear the b2b binding (it's the product, not a book-binding), and
