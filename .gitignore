@@ -13,3 +13,6 @@ tools/*.exe
 
 # NKK sir confidential pre-production price DB — keep LOCAL, never publish (Pages is public)
 db/pre_production/
+
+# Coverage workbook output — contains NK job values (confidential), never publish
+NKK_Products_and_Coverage.xlsx
