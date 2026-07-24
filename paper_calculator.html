@@ -1424,7 +1424,11 @@ function run(){
   // the assembled dims (W=A, H=B) + depth/capacity (dlC) + glue flap (dlGlue) + tuck/flap/pocket (dlFlap),
   // then drive the whole paper/imposition engine off the blank. Die-cutting + gluing are added in dielinePlan.
   if(isDieline(inp.product)){ const ti=v=>toIn(v,unit);
-    const A=inp.W, B=inp.H, C=ti(num("dlC",0)), g=ti(num("dlGlue",0)), f=ti(num("dlFlap",0));
+    // A,B (=inp.W/H) are already in INCHES; C (a box dimension entered in the working unit) is converted with
+    // ti(). UNIT FIX: the glue flap (dlGlue) and tuck/flap/pocket (dlFlap) are fabrication ALLOWANCES specified
+    // in MILLIMETRES — convert them mm→inches ALWAYS. (Previously they were run through toIn() from the working
+    // unit, a no-op on inches, so a 30 mm flap became 30 INCHES and ballooned the folder/envelope blank.)
+    const A=inp.W, B=inp.H, C=ti(num("dlC",0)), g=num("dlGlue",0)/MM, f=num("dlFlap",0)/MM;
     let bl;
     if(inp.product==="bag"){
       // Bag blank depends on construction. A 16" bag's wrap-around blank (~2A+2C) is too wide for any press
@@ -3794,6 +3798,10 @@ function parseSpec(raw){
   // SHEET SIZE presets to tick (e.g. "18×25" for cover, "20×30" for text)
   const sheetSizes=[];
   for(const s of sizeMatches){
+    // The product's OWN trim size is not a sheet-size preset — only a DIFFERENT size named in the brief is a
+    // sheet to tick. (Bug: a poster/wall-calendar trim like 12×18 in is integer + in 15–50 range, so it was
+    // mis-added as a custom sheet and the real sheets un-ticked → "no sheet fits". A4 trims (max 11) never hit.)
+    if(pickSize && s.W===pickSize.W && s.H===pickSize.H && s.unit===pickSize.unit) continue;
     if(Number.isInteger(s.W)&&Number.isInteger(s.H)&&Math.max(s.W,s.H)>=15&&Math.max(s.W,s.H)<=50&&s.W<40&&s.H<40){
       const w=Math.min(s.W,s.H), h=Math.max(s.W,s.H); const key=`${w},${h}`;
       if(!sheetSizes.includes(key)) sheetSizes.push(key);
