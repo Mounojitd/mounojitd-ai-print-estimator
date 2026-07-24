@@ -2735,12 +2735,13 @@ function applyMenuRateHint(){
     minCharge=500;
   }
   else if(p==="insert"){
-    // Letterhead rate (100gsm maplitho/excel bond, single-side 4c, A4):
-    //   ≤500   → ₹9.00
+    // Letterhead rate — VALIDATED 2026-07-24 against 3 recorded anchors (thin data, no job-minimum: neotia
+    // ₹250 / renovar ₹950 sit below any floor, so letterheads scale cleanly with qty, unlike cards):
+    //   ≤500   → ₹10.00   (Mint 400 pc @ ₹4,000 = ₹10/pc; was ₹9 → −10%, nudged to reconcile)
     //   ≤2000  → ₹8.00
-    //   ≤5000  → ₹7.00
-    //   >5000  → ₹1.32/pc (Egra Medilab 50k @ ₹66k = ₹1.32)
-    if(qty<=500) rate=9.00; else if(qty<=2000) rate=8.00;
+    //   ≤5000  → ₹7.00    (Jupiter 3000 pc @ ₹21,000 = ₹7/pc — exact)
+    //   >5000  → ₹1.50    (Egra Medilab 50k @ ₹76,733 = ₹1.53/pc — exact; Reliance 50k @ ₹0.96 is 80gsm, lighter)
+    if(qty<=500) rate=10.00; else if(qty<=2000) rate=8.00;
     else if(qty<=5000) rate=7.00; else rate=1.50;
   }
   else if(p==="pasted_tag"){
