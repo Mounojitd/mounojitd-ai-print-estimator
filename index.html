@@ -278,6 +278,7 @@
           <option value="lanyard">Lanyard (printed neck strap)</option>
           <option value="pouch">Pouch (fabric / printed board)</option>
           <option value="rigidbox">Rigid set-up box (hand-assembled)</option>
+          <option value="jacket">Book jacket (dust jacket)</option>
               <option value="calendar_sheet">Single-sheet calendar</option>
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
@@ -647,6 +648,21 @@
           <div class="fld"><label>Embellishment 3</label><select id="flatEmb3" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
         </div>
       </div>
+      <div id="jkFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#3f7c9c;background:#eef6fa">
+        <div class="ptitle" style="color:#1f5b78">📖 Book jacket — flat blank from book geometry (prices as a flat sheet)</div>
+        <div class="hint" style="margin:-2px 0 6px">Enter the <b>book cover</b> dimensions; the flat jacket blank (width = 2×cover + spine + 2×flap) is computed and filled into the size fields above, then priced through the normal sheet engine. Add gloss/lam + foil + creasing in the panels below.</div>
+        <div class="row3">
+          <div class="fld"><label>Cover width (in)</label><input id="jkCoverW" type="number" step="0.25" value="0" oninput="jacketApplyGeometry();showPrice()" /><div class="hint">one board, e.g. 9</div></div>
+          <div class="fld"><label>Cover height (in)</label><input id="jkCoverH" type="number" step="0.25" value="0" oninput="jacketApplyGeometry();showPrice()" /></div>
+          <div class="fld"><label>Spine (in)</label><input id="jkSpine" type="number" step="0.125" value="0" oninput="jacketApplyGeometry();showPrice()" /><div class="hint">book thickness</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Flap width (in)</label><input id="jkFlap" type="number" step="0.5" value="3" oninput="jacketApplyGeometry();showPrice()" /><div class="hint">each turn-in flap</div></div>
+          <div class="fld"><label>Bleed (in)</label><input id="jkBleed" type="number" step="0.0625" value="0.125" oninput="jacketApplyGeometry();showPrice()" /></div>
+          <div class="fld"></div>
+        </div>
+        <div class="hint" id="jkBlank" style="margin-top:4px;font-weight:600;color:#1f5b78">Flat jacket blank: — </div>
+      </div>
       <div id="ptagFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c3aed;background:#f7f2ff">
         <div class="ptitle" style="color:#5b21b6">🏷 Pasted tag — 2 sheets back-to-back</div>
         <div class="hint" style="margin:-2px 0 6px">Each finished tag = <b>2 press sheets pasted together</b>. Paper × 2 automatically. Add die-cut + hole-punch in the panel below.</div>
@@ -934,8 +950,25 @@ const SIGNATURE_PRODUCTS=new Set(["booklet","catalogue","magazine","manual","ann
 const isSig=p=>SIGNATURE_PRODUCTS.has(p);
 // FLAT POST-PRESS / B3 (NKK sir GNM review): flat non-dieline products that can still need shaping/folding.
 // (calendar_table has its own wiro+stand panel, so it is excluded here.)
-const FLAT_PP_PRODUCTS=new Set(["leaflet","poster","card","calendar_sheet","dangler","insert","pasted_tag"]);
+const FLAT_PP_PRODUCTS=new Set(["leaflet","poster","card","calendar_sheet","dangler","insert","pasted_tag","jacket"]);
 const isFlatPP=p=>FLAT_PP_PRODUCTS.has(p);
+// BOOK / DUST JACKET — a flat printed sheet that wraps a book cover: blank width = 2×coverW + spine + 2×flap.
+// Prices through the normal FLAT sheet engine (plates/imposition/lamination); the only jacket-specific step is
+// computing the flat blank from the book's cover geometry. Single-side print + gloss + foil + creasing typical.
+const JACKET_PRODUCTS=new Set(["jacket"]);
+const isJacket=p=>JACKET_PRODUCTS.has(p);
+// Compute the flat jacket blank from book cover geometry and write it into the W/H size fields (in the current
+// unit). flatW = 2×coverW + spine + 2×flap ; flatH = coverH + 2×bleed. All jacket inputs are in inches.
+function jacketApplyGeometry(){
+  const cw=num("jkCoverW",0), ch=num("jkCoverH",0), sp=num("jkSpine",0), fl=num("jkFlap",0), bl=num("jkBleed",0.125);
+  if(!(cw>0)||!(ch>0)) return;   // no book geometry yet — leave any manually-entered W/H alone
+  const flatW = 2*cw + sp + 2*fl, flatH = ch + 2*bl;
+  const u=$("unit")?$("unit").value:"in";
+  const fromIn = v => u==="mm"?v*25.4 : u==="cm"?v*2.54 : u==="ft"?v/12 : v;   // inches → current unit
+  if($("W")) $("W").value=+fromIn(flatW).toFixed(2);
+  if($("H")) $("H").value=+fromIn(flatH).toFixed(2);
+  if($("jkBlank")) $("jkBlank").textContent=`Flat jacket blank: ${flatW.toFixed(2)} × ${flatH.toFixed(2)} in  (2×${cw} + spine ${sp} + 2×flap ${fl})`;
+}
 // PASTED TAG (NKK sir 2026-07-17 Sunili ILI job): flat hang-tag, 2 sheets pasted back-to-back to make
 // one thick tag. Paper AND its weight double per finished piece; adds a pasting labour line. Die-cut +
 // hole-punch use the existing B3 fppFields (already flat post-press).
@@ -1055,6 +1088,7 @@ function onProductChange(){
   // FLAT POST-PRESS / B3: show the die-cut/punch/score/fold panel for flat non-dieline products
   if($("fppFields")) $("fppFields").style.display=isFlatPP($("product").value)?"block":"none";
   if($("ptagFields")) $("ptagFields").style.display=isPastedTag($("product").value)?"block":"none";
+  if($("jkFields")) $("jkFields").style.display=isJacket($("product").value)?"block":"none";
   // Flat embellishment panel: visible for any non-signature, non-dieline, non-slipcase product.
   const _pv=$("product").value;
   const lan=isLanyard(_pv), pou=isPouch(_pv), rb=isRigidBox(_pv);
@@ -1343,6 +1377,10 @@ function run(){
   }
   // LARGE FORMAT: per-sq.ft model — skip the whole sheet engine (imposition/plates/paper) and render directly.
   if(isLF($("product").value)){ if(!(num("W",0)>0)||!(num("H",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); $("err").textContent="Please enter: width, height (banner/standee size)."; return; } renderLF(); return; }
+  // BOOK JACKET: a flat printed sheet whose blank width = 2×coverW + spine + 2×flap. Compute the blank from the
+  // book geometry and write it into the size fields, then fall through to the normal FLAT sheet engine (plates /
+  // imposition / lamination) — a jacket is a real sheet job, not a per-piece item.
+  if(isJacket($("product").value) && typeof jacketApplyGeometry==="function") jacketApplyGeometry();
   const booklet=isSig($("product").value);
   const req=[["W","width"],["H","height"],["gsm","GSM"]];
   req.push(booklet?["pages","total pages"]:[null,null], booklet?["copies","quantity"]:["copies2","quantity"]);
@@ -2609,7 +2647,9 @@ const MARGIN_DEFAULT={
   // pouch — per-piece converted item; mid margin
   pouch:30,
   // rigid set-up box — premium hand-assembled packaging; higher margin like slipcase
-  rigidbox:40
+  rigidbox:40,
+  // book jacket — flat printed sheet (cover-like); standard flat margin
+  jacket:30
 };
 // ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
 // Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
@@ -3941,6 +3981,7 @@ function parseSpec(raw){
     [/wall\s*calendar/,"calendar_sheet"],[/table\s*calendar|desk\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],
     [/\bsticker\b|\blabel\b/,"insert"],
     [/leaflet|flyer/,"leaflet"],
+    [/dust\s*jacket|book\s*jacket|\bjacket\b|book\s*wrapper/,"jacket"],
     [/lanyard|neck\s*strap|badge\s*(?:strap|ribbon)/,"lanyard"],
     [/pouch|drawstring\s*bag|potli/,"pouch"],
     [/standee|roll\s*[-]?\s*up/,"standee"],[/\bbanner\b|hoarding|backdrop|\bflex\b/,"banner"],[/poster/,"poster"],
@@ -4031,6 +4072,15 @@ function applyVoiceSpec(raw){
   }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
   if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); if(isRigidBox(f.product)) setV("rbQty",f.copies); }   // per-piece products read their own qty field
+  // BOOK JACKET: a parsed size is the BOOK cover, not the flat blank. Route it into the jacket geometry panel
+  // (cover W×H + a spine seeded from page count + default 3" flaps); jacketApplyGeometry() then fills the real
+  // flat blank into W/H. Single-side print (cf,0) and foil are handled by the shared parser + emb panel.
+  if(isJacket(f.product)){
+    if(f.W!=null && $("jkCoverW") && (!$("jkCoverW").value||+$("jkCoverW").value===0)) $("jkCoverW").value=f.W;
+    if(f.H!=null && $("jkCoverH") && (!$("jkCoverH").value||+$("jkCoverH").value===0)) $("jkCoverH").value=f.H;
+    if($("jkSpine") && (!$("jkSpine").value||+$("jkSpine").value===0) && f.pages) $("jkSpine").value=+Math.max(0.2,f.pages*0.0025).toFixed(2);
+    if(typeof jacketApplyGeometry==="function") jacketApplyGeometry();
+  }
   // RIGID BOX: pull box depth (3rd dimension) + style + foil straight off the brief; L,W already in W/H fields.
   if(isRigidBox(f.product)){
     const rl=String(raw||"").toLowerCase();
@@ -5013,6 +5063,13 @@ function resetParserFields(){
   if($("pouDecor")) $("pouDecor").value="foil";
   if($("pouSetup")) $("pouSetup").value=0;
   if($("pouMedia")){ $("pouMedia").value="velvet"; if(typeof pouchMediaRate==="function") pouchMediaRate(); }
+  // Book-jacket geometry — reset so a prior jacket's cover/spine/flap can't leak into the next.
+  if($("jkCoverW")) $("jkCoverW").value=0;
+  if($("jkCoverH")) $("jkCoverH").value=0;
+  if($("jkSpine")) $("jkSpine").value=0;
+  if($("jkFlap")) $("jkFlap").value=3;
+  if($("jkBleed")) $("jkBleed").value=0.125;
+  if($("jkBlank")) $("jkBlank").textContent="Flat jacket blank: — ";
   // Rigid-box fields — reset so a prior box (depth/labour/lid/foil/partition) can't leak into the next.
   if($("rbQty")) $("rbQty").value=1;
   if($("rbH")) $("rbH").value=0;
