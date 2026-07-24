@@ -2745,8 +2745,12 @@ function applyMenuRateHint(){
     else if(qty<=5000) rate=7.00; else rate=1.50;
   }
   else if(p==="pasted_tag"){
-    // Sunili family — ₹2.10-2.20/pc for 15k pcs at 40×93mm
-    rate=2.10;
+    // Tag rate — DERIVED 2026-07-24 from 9 recorded Sunili jobs (350gsm RFID hang tags, 40×93mm). Was a flat
+    // ₹2.10 which under-quoted short runs by ~half. Two clean anchors: 2000 pc @ ₹8,300 = ₹4.15/pc and 15000
+    // pc @ ₹31,500 = ₹2.10/pc (8 jobs). Bands reconcile both to within ±5%; the ≤10000 middle is INTERPOLATED
+    // (no recorded qty between 2k and 15k) — conservative, editable.
+    //   ≤2000 → ₹4.00     ≤10000 → ₹3.00 (interpolated)     >10000 → ₹2.10
+    if(qty<=2000) rate=4.00; else if(qty<=10000) rate=3.00; else rate=2.10;
   }
   if(rate>0){ $("flatRatePc").value=rate.toFixed(2); }
   if($("flatRateMin") && !flatMinEdited) $("flatRateMin").value = minCharge>0 ? String(minCharge) : "";
