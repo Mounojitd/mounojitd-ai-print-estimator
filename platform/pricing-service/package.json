@@ -1,0 +1,15 @@
+{
+  "name": "print-pricing-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP wrapper exposing the validated print estimator engine (paper_calculator.html) as POST /estimate. Phase 0.4a of PLATFORM_PLAN.md.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node smoke.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.48.0"
+  }
+}

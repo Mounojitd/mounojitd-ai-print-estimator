@@ -1,0 +1,226 @@
+[
+ {
+  "id": 1,
+  "key": "booklet",
+  "label": "Book / Booklet",
+  "family": "book",
+  "engine_product_key": "booklet",
+  "active": true
+ },
+ {
+  "id": 2,
+  "key": "catalogue",
+  "label": "Catalogue",
+  "family": "book",
+  "engine_product_key": "catalogue",
+  "active": true
+ },
+ {
+  "id": 3,
+  "key": "magazine",
+  "label": "Magazine",
+  "family": "book",
+  "engine_product_key": "magazine",
+  "active": true
+ },
+ {
+  "id": 4,
+  "key": "manual",
+  "label": "Manual",
+  "family": "book",
+  "engine_product_key": "manual",
+  "active": true
+ },
+ {
+  "id": 5,
+  "key": "annual",
+  "label": "Annual report",
+  "family": "book",
+  "engine_product_key": "annual",
+  "active": true
+ },
+ {
+  "id": 6,
+  "key": "brochure_multi",
+  "label": "Brochure (multi-page)",
+  "family": "book",
+  "engine_product_key": "brochure_multi",
+  "active": true
+ },
+ {
+  "id": 7,
+  "key": "leaflet",
+  "label": "Leaflet / Flyer",
+  "family": "flat",
+  "engine_product_key": "leaflet",
+  "active": true
+ },
+ {
+  "id": 8,
+  "key": "poster",
+  "label": "Poster",
+  "family": "flat",
+  "engine_product_key": "poster",
+  "active": true
+ },
+ {
+  "id": 9,
+  "key": "card",
+  "label": "Visiting / Greeting card",
+  "family": "flat",
+  "engine_product_key": "card",
+  "active": true
+ },
+ {
+  "id": 10,
+  "key": "banner",
+  "label": "Banner / Flex (large format)",
+  "family": "largeformat",
+  "engine_product_key": "banner",
+  "active": true
+ },
+ {
+  "id": 11,
+  "key": "standee",
+  "label": "Roll-up standee (large format)",
+  "family": "largeformat",
+  "engine_product_key": "standee",
+  "active": true
+ },
+ {
+  "id": 12,
+  "key": "lanyard",
+  "label": "Lanyard (printed neck strap)",
+  "family": "perpiece",
+  "engine_product_key": "lanyard",
+  "active": true
+ },
+ {
+  "id": 13,
+  "key": "pouch",
+  "label": "Pouch (fabric / printed board)",
+  "family": "perpiece",
+  "engine_product_key": "pouch",
+  "active": true
+ },
+ {
+  "id": 14,
+  "key": "rigidbox",
+  "label": "Rigid set-up box (hand-assembled)",
+  "family": "rigid",
+  "engine_product_key": "rigidbox",
+  "active": true
+ },
+ {
+  "id": 15,
+  "key": "jacket",
+  "label": "Book jacket (dust jacket)",
+  "family": "flat",
+  "engine_product_key": "jacket",
+  "active": true
+ },
+ {
+  "id": 16,
+  "key": "ncr",
+  "label": "NCR / carbonless form (per set)",
+  "family": "perpiece",
+  "engine_product_key": "ncr",
+  "active": true
+ },
+ {
+  "id": 17,
+  "key": "calendar_sheet",
+  "label": "Single-sheet calendar",
+  "family": "calendar",
+  "engine_product_key": "calendar_sheet",
+  "active": true
+ },
+ {
+  "id": 18,
+  "key": "calendar_table",
+  "label": "Table calendar",
+  "family": "calendar",
+  "engine_product_key": "calendar_table",
+  "active": true
+ },
+ {
+  "id": 19,
+  "key": "dangler",
+  "label": "Dangler / Tent card",
+  "family": "flat",
+  "engine_product_key": "dangler",
+  "active": true
+ },
+ {
+  "id": 20,
+  "key": "insert",
+  "label": "Loose insert / single sheet",
+  "family": "flat",
+  "engine_product_key": "insert",
+  "active": true
+ },
+ {
+  "id": 21,
+  "key": "pasted_tag",
+  "label": "Pasted tag / Hang tag (2 sheets pasted back-to-back)",
+  "family": "flat",
+  "engine_product_key": "pasted_tag",
+  "active": true
+ },
+ {
+  "id": 22,
+  "key": "carton_tuck",
+  "label": "Carton / mono carton (tuck-end)",
+  "family": "converting",
+  "engine_product_key": "carton_tuck",
+  "active": true
+ },
+ {
+  "id": 23,
+  "key": "carton_seal",
+  "label": "Mono carton (seal-end / glued bottom)",
+  "family": "converting",
+  "engine_product_key": "carton_seal",
+  "active": true
+ },
+ {
+  "id": 24,
+  "key": "sleeve",
+  "label": "Sleeve / wrap",
+  "family": "converting",
+  "engine_product_key": "sleeve",
+  "active": true
+ },
+ {
+  "id": 25,
+  "key": "folder",
+  "label": "Presentation folder",
+  "family": "converting",
+  "engine_product_key": "folder",
+  "active": true
+ },
+ {
+  "id": 26,
+  "key": "envelope",
+  "label": "Envelope",
+  "family": "converting",
+  "engine_product_key": "envelope",
+  "active": true
+ },
+ {
+  "id": 27,
+  "key": "bag",
+  "label": "Paper bag (printed carry bag)",
+  "family": "converting",
+  "engine_product_key": "bag",
+  "active": true
+ },
+ {
+  "id": 28,
+  "key": "slipcase",
+  "label": "Slipcase / book sleeve",
+  "family": "rigid",
+  "engine_product_key": "slipcase",
+  "active": true
+ }
+]

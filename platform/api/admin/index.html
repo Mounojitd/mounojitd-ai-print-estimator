@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Rate-card & catalog admin</title>
+<style>
+  :root { --line:#e2e6ea; --brand:#2e5496; --green:#1e6b2e; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:14px/1.5 system-ui,Segoe UI,Roboto,sans-serif; color:#1a1f24; background:#f7f8fa; }
+  header { background:#1f3864; color:#fff; padding:12px 18px; font-weight:700; }
+  header small { font-weight:400; opacity:.8; }
+  .wrap { display:grid; grid-template-columns:230px 1fr; gap:0; min-height:calc(100vh - 46px); }
+  nav { border-right:1px solid var(--line); background:#fff; padding:10px; }
+  nav h3 { font-size:11px; letter-spacing:.5px; text-transform:uppercase; color:#8a94a0; margin:14px 6px 6px; }
+  nav a { display:flex; justify-content:space-between; padding:6px 8px; border-radius:7px; cursor:pointer; color:#243; text-decoration:none; }
+  nav a:hover { background:#eef2f8; } nav a.active { background:var(--brand); color:#fff; }
+  nav a .n { opacity:.6; font-variant-numeric:tabular-nums; }
+  main { padding:18px 22px; }
+  table { border-collapse:collapse; width:100%; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); font-size:13px; vertical-align:top; }
+  th { background:#f2f5f9; font-size:11px; letter-spacing:.4px; text-transform:uppercase; color:#5a6672; }
+  tr:last-child td { border-bottom:none; }
+  button { font:inherit; border:1px solid var(--brand); background:#eef4fa; color:var(--brand); border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:600; }
+  button.primary { background:var(--brand); color:#fff; }
+  .edit { cursor:pointer; color:var(--brand); font-weight:600; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px; max-width:640px; }
+  .fld { margin-bottom:10px; } .fld label { display:block; font-size:12px; color:#5a6672; margin-bottom:2px; }
+  .fld input { width:100%; padding:7px 9px; border:1px solid var(--line); border-radius:7px; font:inherit; }
+  textarea { width:100%; min-height:130px; padding:9px; border:1px solid var(--line); border-radius:8px; font:12.5px ui-monospace,monospace; }
+  .msg { margin-left:10px; font-weight:600; }
+  .hint { color:#7a848f; font-size:12px; }
+</style>
+</head>
+<body>
+<header>Rate-card &amp; catalog admin <small id="hstat"></small></header>
+<div class="wrap">
+  <nav id="nav"></nav>
+  <main id="main"><p class="hint">Loading…</p></main>
+</div>
+<script>
+const API = location.origin;
+let CATS = {}, activeCat = null;
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+async function api(path, opts) { const r = await fetch(API + path, opts); if (!r.ok) throw new Error((await r.json()).error || r.status); return r.json(); }
+
+async function boot() {
+  const h = await api('/health'); $('#hstat').textContent = `· ${h.templates} templates · ${h.rateCards} rate cards`;
+  CATS = await api('/rate-cards/categories');
+  renderNav();
+  selectCat(Object.keys(CATS)[0]);
+}
+function renderNav() {
+  const rc = Object.entries(CATS).map(([c, n]) =>
+    `<a class="rc ${c===activeCat?'active':''}" data-cat="${c}">${labelCat(c)}<span class="n">${n}</span></a>`).join('');
+  $('#nav').innerHTML = `<h3>Rate cards</h3>${rc}<h3>Catalog</h3><a class="tpl" data-cat="__templates">Product templates</a>`;
+  document.querySelectorAll('nav a').forEach(a => a.onclick = () => a.dataset.cat==='__templates' ? showTemplates() : selectCat(a.dataset.cat));
+}
+const labelCat = c => ({press_source:'Press rates',binding:'Binding',product_margin:'Product margins',largeformat_media:'Large-format media',pouch_media:'Pouch media',lanyard_media:'Lanyard media',ncr_ply_rate:'NCR ply',rigidbox_style:'Rigid-box styles'}[c] || c);
+
+async function selectCat(cat) {
+  activeCat = cat; renderNav();
+  const cards = await api('/rate-cards?category=' + encodeURIComponent(cat));
+  const rows = cards.map(c => `<tr><td><b>${esc(c.key)}</b></td><td>${esc(c.label||'')}</td>
+    <td>${esc(JSON.stringify(c.values))}</td><td>v${c.version}</td>
+    <td><span class="edit" data-cat="${c.category}" data-key="${esc(c.key)}">edit</span></td></tr>`).join('');
+  $('#main').innerHTML = `<h2>${labelCat(cat)} <span class="hint">— ${cards.length} entries</span></h2>
+    <p class="hint">These are the engine's rate values as editable data. Edit &amp; save; each save bumps the version and logs history (reproducible quotes).</p>
+    <table><thead><tr><th>Key</th><th>Label</th><th>Values</th><th>Ver</th><th></th></tr></thead><tbody>${rows}</tbody></table>`;
+  document.querySelectorAll('.edit').forEach(e => e.onclick = () => editCard(e.dataset.cat, e.dataset.key));
+}
+async function editCard(cat, key) {
+  const c = await api(`/rate-cards/${encodeURIComponent(cat)}/${encodeURIComponent(key)}`);
+  const flat = Object.values(c.values).every(v => typeof v !== 'object');
+  const fields = flat
+    ? Object.entries(c.values).map(([k, v]) => `<div class="fld"><label>${esc(k)}</label><input data-k="${esc(k)}" value="${esc(v)}" data-type="${typeof v}"></div>`).join('')
+    : `<div class="fld"><label>values (JSON)</label><textarea id="jsonv">${esc(JSON.stringify(c.values, null, 2))}</textarea></div>`;
+  $('#main').innerHTML = `<div class="card"><h2>Edit — ${esc(cat)} / ${esc(key)} <span class="hint">v${c.version}</span></h2>
+    <div class="fld"><label>Label</label><input id="label" value="${esc(c.label||'')}"></div>
+    ${fields}
+    <button class="primary" id="save">Save (new version)</button>
+    <button id="back">Cancel</button><span class="msg" id="msg"></span>
+    <p class="hint" style="margin-top:12px">Note: this edits the rate DATA. Wiring the pricing engine to read these live is the next step (P0.4c); today the engine still holds its own copy.</p></div>`;
+  $('#back').onclick = () => selectCat(cat);
+  $('#save').onclick = async () => {
+    let values;
+    if (flat) { values = {}; document.querySelectorAll('input[data-k]').forEach(i => { const t = i.dataset.type; values[i.dataset.k] = t==='number' ? Number(i.value) : t==='boolean' ? (i.value==='true') : i.value; }); }
+    else { try { values = JSON.parse($('#jsonv').value); } catch { $('#msg').textContent = '✗ invalid JSON'; return; } }
+    try { const r = await api(`/rate-cards/${encodeURIComponent(cat)}/${encodeURIComponent(key)}`, { method:'PUT', headers:{'content-type':'application/json'}, body: JSON.stringify({ values, label: $('#label').value }) });
+      $('#msg').textContent = `✓ saved v${r.version}`; CATS = await api('/rate-cards/categories'); setTimeout(()=>selectCat(cat), 500);
+    } catch (e) { $('#msg').textContent = '✗ ' + e.message; }
+  };
+}
+async function showTemplates() {
+  activeCat = '__templates'; renderNav();
+  const t = await api('/templates');
+  const rows = t.map(x => `<tr><td><b>${esc(x.key)}</b></td><td>${esc(x.label)}</td><td>${esc(x.family)}</td><td>${esc(x.engine_product_key)}</td><td>${x.active?'✓':'—'}</td></tr>`).join('');
+  $('#main').innerHTML = `<h2>Product templates <span class="hint">— ${t.length}</span></h2>
+    <p class="hint">Catalogue product → engine product key + family. New product types are new rows here, not new code (roadmap reframe #2).</p>
+    <table><thead><tr><th>Key</th><th>Label</th><th>Family</th><th>Engine key</th><th>Active</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+boot().catch(e => $('#main').innerHTML = `<p style="color:#c0392b">Failed to load: ${esc(e.message)}. Is the API running?</p>`);
+</script>
+</body>
+</html>

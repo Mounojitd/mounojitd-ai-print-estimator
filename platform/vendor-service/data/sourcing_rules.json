@@ -1,0 +1,18 @@
+{
+  "_note": "Maps a production-traveller stage to a sourcing decision. First matching rule wins; default is in-house. capability = the vendor capability a bought-out stage needs (used to suggest vendors). Edit freely — this is data.",
+  "rules": [
+    { "match": "pre-?press|plate", "sourcing": "in-house", "capability": "prepress" },
+    { "match": "large-?format", "sourcing": "bought-out", "capability": "largeformat" },
+    { "match": "coating|lamination", "sourcing": "bought-out", "capability": "lamination" },
+    { "match": "foil|embellish|emboss|uv\\b", "sourcing": "bought-out", "capability": "foil" },
+    { "match": "die-?cut", "sourcing": "bought-out", "capability": "diecut" },
+    { "match": "glu|assembly|make", "sourcing": "bought-out", "capability": "gluing" },
+    { "match": "binding|perfect|section|sewing|wiro|spiral|comb|stitch|pinning", "sourcing": "bought-out", "capability": "binding" },
+    { "match": "paper cutting|^cutting|sheet", "sourcing": "in-house", "capability": "cutting" },
+    { "match": "printing|print", "sourcing": "in-house", "capability": "printing" },
+    { "match": "fold", "sourcing": "in-house", "capability": "folding" },
+    { "match": "trim", "sourcing": "in-house", "capability": "trimming" },
+    { "match": "pack", "sourcing": "in-house", "capability": "packing" },
+    { "match": "dispatch|deliver", "sourcing": "bought-out", "capability": "dispatch" }
+  ]
+}

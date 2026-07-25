@@ -16,3 +16,29 @@ db/pre_production/
 
 # Coverage workbook output — contains NK job values (confidential), never publish
 NKK_Products_and_Coverage.xlsx
+
+# Node deps for platform services
+platform/**/node_modules/
+node_modules/
+
+# runtime rate-card change log (created by the API at runtime)
+platform/api/data/rate_card_history.json
+
+# saved customer quotes (created at runtime; may hold customer contact details)
+platform/quote-service/data/
+
+# orders + payments (created at runtime; hold customer + payment detail)
+platform/order-service/data/
+
+# B1 history index — anonymised but derived from the confidential DB; keep LOCAL, never commit
+platform/history-service/data/
+
+# real product photo binaries (served locally; may be large) — keep the JSON map, not the bytes
+platform/api/data/photos/
+
+# production jobs + actuals (created at runtime; hold customer + operational detail)
+platform/production-service/data/
+
+# vendor runtime store: the REAL vendor master (names/contacts/GST) + POs stay LOCAL. Seed + rules are committed.
+platform/vendor-service/data/vendors.json
+platform/vendor-service/data/pos.json

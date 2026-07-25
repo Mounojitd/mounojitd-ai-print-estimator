@@ -1,0 +1,908 @@
+[
+ {
+  "id": 1,
+  "category": "press_source",
+  "key": "anderson",
+  "label": "Naba Mudran (agreement)",
+  "version": 1,
+  "values": {
+   "label": "Naba Mudran (agreement)",
+   "mode": "band"
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 2,
+  "category": "press_source",
+  "key": "nabamudran",
+  "label": "Nabamudran Heidelberg-102",
+  "version": 1,
+  "values": {
+   "label": "Nabamudran Heidelberg-102",
+   "mode": "flat",
+   "lotQty": 3000,
+   "lot4": 2200,
+   "tiers": [
+    {
+     "upTo": 10000,
+     "r": 720
+    },
+    {
+     "upTo": null,
+     "r": 640
+    }
+   ],
+   "plate": 550
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 3,
+  "category": "press_source",
+  "key": "komori_l40",
+  "label": "Komori L-40",
+  "version": 1,
+  "values": {
+   "label": "Komori L-40",
+   "mode": "flat",
+   "lotQty": 2000,
+   "lot4": 2700,
+   "tiers": [
+    {
+     "upTo": null,
+     "r": 460
+    }
+   ],
+   "plate": 400
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 4,
+  "category": "press_source",
+  "key": "komori_l32",
+  "label": "Komori L-32",
+  "version": 1,
+  "values": {
+   "label": "Komori L-32",
+   "mode": "flat",
+   "lotQty": 2000,
+   "lot4": 2400,
+   "tiers": [
+    {
+     "upTo": null,
+     "r": 360
+    }
+   ],
+   "plate": 400
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 5,
+  "category": "press_source",
+  "key": "balaji_2030",
+  "label": "Balaji Press 20×30",
+  "version": 1,
+  "values": {
+   "label": "Balaji Press 20×30",
+   "mode": "flat",
+   "lotQty": 2000,
+   "lot4": 2700,
+   "tiers": [
+    {
+     "upTo": null,
+     "r": 460
+    }
+   ],
+   "plate": 400
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 6,
+  "category": "press_source",
+  "key": "balaji_1925",
+  "label": "Balaji Press 19×25",
+  "version": 1,
+  "values": {
+   "label": "Balaji Press 19×25",
+   "mode": "flat",
+   "lotQty": 2000,
+   "lot4": 2400,
+   "tiers": [
+    {
+     "upTo": null,
+     "r": 360
+    }
+   ],
+   "plate": 400
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 7,
+  "category": "binding",
+  "key": "none",
+  "label": "none",
+  "version": 1,
+  "values": {
+   "rate": 0,
+   "minimum": 0
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 8,
+  "category": "binding",
+  "key": "saddle",
+  "label": "saddle",
+  "version": 1,
+  "values": {
+   "rate": 3.5,
+   "minimum": 500
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 9,
+  "category": "binding",
+  "key": "side",
+  "label": "side",
+  "version": 1,
+  "values": {
+   "rate": 4,
+   "minimum": 600
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 10,
+  "category": "binding",
+  "key": "sewn",
+  "label": "sewn",
+  "version": 1,
+  "values": {
+   "rate": 4.32,
+   "minimum": 3000
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 11,
+  "category": "binding",
+  "key": "perfect",
+  "label": "perfect",
+  "version": 1,
+  "values": {
+   "rate": 9,
+   "minimum": 1000
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 12,
+  "category": "binding",
+  "key": "sewn_perfect",
+  "label": "sewn_perfect",
+  "version": 1,
+  "values": {
+   "rate": 6.75,
+   "minimum": 2000
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 13,
+  "category": "binding",
+  "key": "soft",
+  "label": "soft",
+  "version": 1,
+  "values": {
+   "rate": 9,
+   "minimum": 1000
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 14,
+  "category": "binding",
+  "key": "case",
+  "label": "case",
+  "version": 1,
+  "values": {
+   "rate": 95,
+   "minimum": 5000
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 15,
+  "category": "binding",
+  "key": "wireo",
+  "label": "wireo",
+  "version": 1,
+  "values": {
+   "rate": 12,
+   "minimum": 1000
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 16,
+  "category": "binding",
+  "key": "spiral",
+  "label": "spiral",
+  "version": 1,
+  "values": {
+   "rate": 10,
+   "minimum": 800
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 17,
+  "category": "binding",
+  "key": "comb",
+  "label": "comb",
+  "version": 1,
+  "values": {
+   "rate": 8,
+   "minimum": 800
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 18,
+  "category": "binding",
+  "key": "pad",
+  "label": "pad",
+  "version": 1,
+  "values": {
+   "rate": 2,
+   "minimum": 300
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 19,
+  "category": "binding",
+  "key": "b2b",
+  "label": "b2b",
+  "version": 1,
+  "values": {
+   "rate": 5,
+   "minimum": 800
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 20,
+  "category": "binding",
+  "key": "other",
+  "label": "other",
+  "version": 1,
+  "values": {
+   "rate": 0,
+   "minimum": 0
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 21,
+  "category": "product_margin",
+  "key": "card",
+  "label": "card",
+  "version": 1,
+  "values": {
+   "margin_pct": 8
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 22,
+  "category": "product_margin",
+  "key": "insert",
+  "label": "insert",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 23,
+  "category": "product_margin",
+  "key": "pasted_tag",
+  "label": "pasted_tag",
+  "version": 1,
+  "values": {
+   "margin_pct": 40
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 24,
+  "category": "product_margin",
+  "key": "leaflet",
+  "label": "leaflet",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 25,
+  "category": "product_margin",
+  "key": "poster",
+  "label": "poster",
+  "version": 1,
+  "values": {
+   "margin_pct": 20
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 26,
+  "category": "product_margin",
+  "key": "dangler",
+  "label": "dangler",
+  "version": 1,
+  "values": {
+   "margin_pct": 20
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 27,
+  "category": "product_margin",
+  "key": "calendar_sheet",
+  "label": "calendar_sheet",
+  "version": 1,
+  "values": {
+   "margin_pct": 20
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 28,
+  "category": "product_margin",
+  "key": "booklet",
+  "label": "booklet",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 29,
+  "category": "product_margin",
+  "key": "magazine",
+  "label": "magazine",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 30,
+  "category": "product_margin",
+  "key": "manual",
+  "label": "manual",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 31,
+  "category": "product_margin",
+  "key": "calendar_table",
+  "label": "calendar_table",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 32,
+  "category": "product_margin",
+  "key": "catalogue",
+  "label": "catalogue",
+  "version": 1,
+  "values": {
+   "margin_pct": 40
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 33,
+  "category": "product_margin",
+  "key": "brochure_multi",
+  "label": "brochure_multi",
+  "version": 1,
+  "values": {
+   "margin_pct": 40
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 34,
+  "category": "product_margin",
+  "key": "annual",
+  "label": "annual",
+  "version": 1,
+  "values": {
+   "margin_pct": 40
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 35,
+  "category": "product_margin",
+  "key": "envelope",
+  "label": "envelope",
+  "version": 1,
+  "values": {
+   "margin_pct": 20
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 36,
+  "category": "product_margin",
+  "key": "folder",
+  "label": "folder",
+  "version": 1,
+  "values": {
+   "margin_pct": 25
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 37,
+  "category": "product_margin",
+  "key": "sleeve",
+  "label": "sleeve",
+  "version": 1,
+  "values": {
+   "margin_pct": 25
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 38,
+  "category": "product_margin",
+  "key": "carton_tuck",
+  "label": "carton_tuck",
+  "version": 1,
+  "values": {
+   "margin_pct": 25
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 39,
+  "category": "product_margin",
+  "key": "carton_seal",
+  "label": "carton_seal",
+  "version": 1,
+  "values": {
+   "margin_pct": 25
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 40,
+  "category": "product_margin",
+  "key": "slipcase",
+  "label": "slipcase",
+  "version": 1,
+  "values": {
+   "margin_pct": 40
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 41,
+  "category": "product_margin",
+  "key": "banner",
+  "label": "banner",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 42,
+  "category": "product_margin",
+  "key": "standee",
+  "label": "standee",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 43,
+  "category": "product_margin",
+  "key": "bag",
+  "label": "bag",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 44,
+  "category": "product_margin",
+  "key": "lanyard",
+  "label": "lanyard",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 45,
+  "category": "product_margin",
+  "key": "pouch",
+  "label": "pouch",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 46,
+  "category": "product_margin",
+  "key": "rigidbox",
+  "label": "rigidbox",
+  "version": 1,
+  "values": {
+   "margin_pct": 40
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 47,
+  "category": "product_margin",
+  "key": "jacket",
+  "label": "jacket",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 48,
+  "category": "product_margin",
+  "key": "ncr",
+  "label": "ncr",
+  "version": 1,
+  "values": {
+   "margin_pct": 30
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 49,
+  "category": "largeformat_media",
+  "key": "flex",
+  "label": "Flex (frontlit)",
+  "version": 1,
+  "values": {
+   "rate_per_sqft": 15
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 50,
+  "category": "largeformat_media",
+  "key": "starflex",
+  "label": "Star flex",
+  "version": 1,
+  "values": {
+   "rate_per_sqft": 22
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 51,
+  "category": "largeformat_media",
+  "key": "vinyl",
+  "label": "Vinyl / PP",
+  "version": 1,
+  "values": {
+   "rate_per_sqft": 35
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 52,
+  "category": "largeformat_media",
+  "key": "backlit",
+  "label": "Backlit flex",
+  "version": 1,
+  "values": {
+   "rate_per_sqft": 50
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 53,
+  "category": "largeformat_media",
+  "key": "fabric",
+  "label": "Fabric / cloth",
+  "version": 1,
+  "values": {
+   "rate_per_sqft": 45
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 54,
+  "category": "largeformat_media",
+  "key": "photo",
+  "label": "Photo paper",
+  "version": 1,
+  "values": {
+   "rate_per_sqft": 40
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 55,
+  "category": "pouch_media",
+  "key": "velvet",
+  "label": "Velvet fabric",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 40,
+   "fabric": true
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 56,
+  "category": "pouch_media",
+  "key": "satin",
+  "label": "Satin fabric",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 28,
+   "fabric": true
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 57,
+  "category": "pouch_media",
+  "key": "canvas",
+  "label": "Canvas / cotton",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 22,
+   "fabric": true
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 58,
+  "category": "pouch_media",
+  "key": "jute",
+  "label": "Jute",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 20,
+   "fabric": true
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 59,
+  "category": "pouch_media",
+  "key": "nonwoven",
+  "label": "Non-woven",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 12,
+   "fabric": true
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 60,
+  "category": "pouch_media",
+  "key": "glamkot",
+  "label": "Glamkot board (printed)",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 14,
+   "fabric": false
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 61,
+  "category": "pouch_media",
+  "key": "artcard",
+  "label": "Art card (printed)",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 10,
+   "fabric": false
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 62,
+  "category": "lanyard_media",
+  "key": "polyester",
+  "label": "Polyester (screen-print)",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 9
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 63,
+  "category": "lanyard_media",
+  "key": "satin",
+  "label": "Satin polyester",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 11
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 64,
+  "category": "lanyard_media",
+  "key": "tubular",
+  "label": "Tubular",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 7
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 65,
+  "category": "lanyard_media",
+  "key": "sublimation",
+  "label": "Sublimation (full-colour)",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 13
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 66,
+  "category": "lanyard_media",
+  "key": "eco",
+  "label": "Eco RPET",
+  "version": 1,
+  "values": {
+   "rate_per_pc": 15
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 67,
+  "category": "ncr_ply_rate",
+  "key": "a6",
+  "label": "a6",
+  "version": 1,
+  "values": {
+   "rate_per_ply": 0.7
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 68,
+  "category": "ncr_ply_rate",
+  "key": "a5",
+  "label": "a5",
+  "version": 1,
+  "values": {
+   "rate_per_ply": 1.2
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 69,
+  "category": "ncr_ply_rate",
+  "key": "half",
+  "label": "half",
+  "version": 1,
+  "values": {
+   "rate_per_ply": 1.6
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 70,
+  "category": "ncr_ply_rate",
+  "key": "a4",
+  "label": "a4",
+  "version": 1,
+  "values": {
+   "rate_per_ply": 2.4
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 71,
+  "category": "rigidbox_style",
+  "key": "topbottom",
+  "label": "Top-bottom (2-piece lid+base)",
+  "version": 1,
+  "values": {
+   "lid": true,
+   "area_multiplier": 1
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 72,
+  "category": "rigidbox_style",
+  "key": "traylid",
+  "label": "Tray + lid",
+  "version": 1,
+  "values": {
+   "lid": true,
+   "area_multiplier": 1
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 73,
+  "category": "rigidbox_style",
+  "key": "slider",
+  "label": "Slider / drawer",
+  "version": 1,
+  "values": {
+   "lid": false,
+   "area_multiplier": 1.9
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 74,
+  "category": "rigidbox_style",
+  "key": "magnetic",
+  "label": "Magnetic flap",
+  "version": 1,
+  "values": {
+   "lid": false,
+   "area_multiplier": 1.5
+  },
+  "updated_at": "2026-07-25"
+ },
+ {
+  "id": 75,
+  "category": "rigidbox_style",
+  "key": "shoulder",
+  "label": "Shoulder / neck box",
+  "version": 1,
+  "values": {
+   "lid": true,
+   "area_multiplier": 1
+  },
+  "updated_at": "2026-07-25"
+ }
+]

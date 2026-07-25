@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Print Studio — Instant Quote</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --ink:#111827; --mut:#6b7280; --line:#e5e7eb; --brand:#1f6feb; --brandink:#fff; --ok:#0f7b3f; --warn:#9a3412; --chip:#eef2ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:var(--card); border-bottom:1px solid var(--line); padding:16px 20px; position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:18px; } header .sub { color:var(--mut); font-size:13px; }
+  .wrap { max-width:860px; margin:0 auto; padding:20px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:18px; margin:16px 0; }
+  h2 { font-size:15px; margin:0 0 10px; } h3 { font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--mut); margin:0 0 8px; }
+  label { display:block; font-size:13px; color:var(--mut); margin:10px 0 4px; }
+  textarea, input, select { width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; color:var(--ink); }
+  textarea { min-height:80px; resize:vertical; }
+  .row { display:flex; gap:12px; flex-wrap:wrap; } .row > * { flex:1; min-width:140px; }
+  button { background:var(--brand); color:var(--brandink); border:0; border-radius:8px; padding:11px 18px; font:inherit; font-weight:600; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--brand); border:1px solid var(--brand); }
+  button:disabled { opacity:.5; cursor:default; }
+  .fam { margin:14px 0; } .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { background:var(--chip); border:1px solid #dbe4ff; color:#3452b4; border-radius:999px; padding:6px 12px; font-size:13px; cursor:pointer; }
+  .chip.on { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); gap:10px; }
+  .pcard { border:1px solid var(--line); border-radius:10px; overflow:hidden; cursor:pointer; background:#fff; text-align:center; transition:border-color .15s; }
+  .pcard.on { border-color:var(--brand); box-shadow:0 0 0 1px var(--brand); }
+  .pcard img { width:100%; height:88px; object-fit:cover; display:block; background:#f1f5f9; }
+  .pcard .cap { padding:7px 6px; font-size:12px; line-height:1.3; color:#374151; }
+  .price { font-size:30px; font-weight:700; letter-spacing:-.5px; } .unit { color:var(--mut); font-size:14px; font-weight:500; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } td { padding:5px 0; } td:last-child { text-align:right; font-variant-numeric:tabular-nums; }
+  .kv { display:flex; flex-wrap:wrap; gap:6px 18px; font-size:14px; } .kv span b { color:var(--mut); font-weight:500; }
+  .muted { color:var(--mut); font-size:13px; } .warn { color:var(--warn); } .ok { color:var(--ok); }
+  .badge { display:inline-block; background:#ecfdf5; color:var(--ok); border:1px solid #a7f3d0; border-radius:6px; padding:2px 8px; font-size:12px; font-weight:600; }
+  .share { display:flex; gap:8px; } .share input { font-family:ui-monospace,Menlo,monospace; font-size:13px; }
+  .hide { display:none; }
+  .lead { font-size:14px; } .lead b { font-size:16px; }
+  hr { border:0; border-top:1px solid var(--line); margin:14px 0; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Print Studio <span class="sub">— instant quote</span></h1>
+  <div class="sub">Describe your job in plain words. Our estimator prices it the same way it prices our real shop jobs.</div>
+</header>
+
+<div class="wrap">
+  <!-- ============ MAIN (showcase + intake) ============ -->
+  <div id="main">
+    <div class="card">
+      <h2>1 · What are you printing?</h2>
+      <div id="catalog" class="muted">Loading catalogue…</div>
+    </div>
+
+    <div class="card">
+      <h2>2 · Describe the job</h2>
+      <label>Your brief</label>
+      <textarea id="brief" placeholder="e.g. A5 booklet, 48 pages, 130 gsm art paper, 4 colour both sides, perfect bound, cover 300 gsm matt lam, quantity 1000"></textarea>
+      <div class="row">
+        <div><label>Quantity (optional — overrides the brief)</label><input id="qty" type="number" min="1" placeholder="e.g. 1000" /></div>
+      </div>
+      <div style="margin-top:14px"><button id="estimateBtn" onclick="doIntake()">Get estimate →</button>
+        <span id="intakeMsg" class="muted"></span></div>
+    </div>
+
+    <!-- estimate preview / confirm -->
+    <div id="preview" class="card hide">
+      <h2>3 · Your estimate</h2>
+      <div id="previewBody"></div>
+    </div>
+  </div>
+
+  <!-- ============ SHARED QUOTE VIEW ============ -->
+  <div id="shared" class="hide"></div>
+
+  <p class="muted" style="text-align:center">Prices are itemised by the validated engine and stamped with the rate-card version used. GST included where shown.</p>
+</div>
+
+<script>
+/*__CONFIG__*/
+const $ = (id) => document.getElementById(id);
+const inr = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
+let forcedProduct = null;
+
+async function api(path, opts) { const r = await fetch(path, opts); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }
+function checkoutBase() { return (typeof window.ORDER_CHECKOUT_BASE === 'string' && window.ORDER_CHECKOUT_BASE) || ''; }
+
+// ---------- showcase ----------
+const FAM_LABEL = { book:'Books & booklets', flat:'Cards, flyers & stationery', largeformat:'Large format', perpiece:'Lanyards, pouches & tags', rigid:'Rigid & set-up boxes', calendar:'Calendars', converting:'Boxes, bags & converting' };
+async function loadCatalog() {
+  try {
+    const items = await api('/catalog');
+    const byFam = {};
+    for (const it of items) (byFam[it.family] = byFam[it.family] || []).push(it);
+    const anyPhoto = items.some((it) => it.photo);
+    const html = Object.keys(byFam).map((f) => `
+      <div class="fam"><h3>${esc(FAM_LABEL[f] || f)}</h3>
+      ${anyPhoto
+        ? `<div class="cards">${byFam[f].map((it) => `<div class="pcard" data-key="${esc(it.engine_product_key)}" onclick="pick(this)">${it.photo ? `<img loading="lazy" src="${esc(it.photo)}" alt="${esc(it.label)}" onerror="this.style.display='none'"/>` : ''}<div class="cap">${esc(it.label)}</div></div>`).join('')}</div>`
+        : `<div class="chips">${byFam[f].map((it) => `<span class="chip" data-key="${esc(it.engine_product_key)}" onclick="pick(this)">${esc(it.label)}</span>`).join('')}</div>`}
+      </div>`).join('');
+    $('catalog').innerHTML = html;
+  } catch (e) { $('catalog').innerHTML = '<span class="warn">Could not load catalogue: ' + esc(e.message) + '</span>'; }
+}
+function pick(el) {
+  document.querySelectorAll('.chip, .pcard').forEach((c) => c.classList.remove('on'));
+  el.classList.add('on');
+  forcedProduct = el.dataset.key;
+  $('intakeMsg').textContent = 'Selected: ' + el.textContent + '. Add size, paper, finishing & quantity in your brief.';
+  $('brief').focus();
+}
+
+// ---------- intake / estimate ----------
+async function doIntake() {
+  const brief = $('brief').value.trim();
+  if (!brief) { $('intakeMsg').innerHTML = '<span class="warn">Please describe the job first.</span>'; return; }
+  const qty = parseInt($('qty').value, 10) || undefined;
+  $('estimateBtn').disabled = true; $('intakeMsg').textContent = 'Pricing…';
+  try {
+    const est = await api('/intake', { method:'POST', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ brief, qty, product: forcedProduct || undefined }) });
+    renderPreview(est, brief, qty);
+    $('intakeMsg').textContent = '';
+  } catch (e) { $('intakeMsg').innerHTML = '<span class="warn">' + esc(e.message) + '</span>'; }
+  finally { $('estimateBtn').disabled = false; }
+}
+
+function specRows(spec) {
+  const keys = { size:'Size', gsm:'Paper (gsm)', pages:'Pages', binding:'Binding', lamination:'Finishing' };
+  const rows = Object.keys(keys).filter((k) => spec && spec[k] != null).map((k) => `<span><b>${keys[k]}:</b> ${esc(spec[k])}</span>`);
+  return rows.length ? '<div class="kv">' + rows.join('') + '</div>' : '<div class="muted">No detailed spec detected — the price is by menu/piece rate.</div>';
+}
+
+function renderPreview(est, brief, qty) {
+  const p = est.price;
+  if (est.unpriceable || !p) {
+    $('previewBody').innerHTML = `<p class="warn">We can't price this yet — <b>${esc(est.reason || 'incomplete spec')}</b>.</p>
+      <p class="muted">Add the missing detail to your brief and try again.</p>`;
+    $('preview').classList.remove('hide'); $('preview').scrollIntoView({ behavior:'smooth' }); return;
+  }
+  const menu = p.menuRate ? `<tr><td>Menu rate</td><td>${inr(p.menuRate)}</td></tr>` : '';
+  const breakdown = ['paper','printing','plates','coating','margin','gst'].filter((k) => p[k] > 0)
+    .map((k) => `<tr><td>${k[0].toUpperCase()+k.slice(1)}</td><td>${inr(p[k])}</td></tr>`).join('');
+  $('previewBody').innerHTML = `
+    <div class="kv" style="margin-bottom:6px"><span><b>Product:</b> ${esc(est.product)}</span><span><b>Quantity:</b> ${est.quantity.toLocaleString('en-IN')}</span></div>
+    ${specRows(est.spec)}
+    <hr/>
+    <div class="price">${inr(p.grand)} <span class="unit">${p.unit ? '· ' + inr(p.unit).replace('₹','₹') + ' / pc' : ''}</span></div>
+    <table style="margin-top:8px">${breakdown}${menu}<tr><td><b>Total (incl. GST)</b></td><td><b>${inr(p.grand)}</b></td></tr></table>
+    ${est.leadTimeDays ? `<p class="lead" style="margin-top:12px">Estimated turnaround: <b>${est.leadTimeDays} working day${est.leadTimeDays===1?'':'s'}</b> from order confirmation.</p>` : ''}
+    <p class="muted">Rate card: ${esc(est.ratecardVersion || 'n/a')}</p>
+    <hr/>
+    <h3>Save & share this quote</h3>
+    <div class="row">
+      <div><label>Name</label><input id="cName" placeholder="Your name" /></div>
+      <div><label>Phone</label><input id="cPhone" placeholder="Phone" /></div>
+      <div><label>Email</label><input id="cEmail" placeholder="Email" /></div>
+    </div>
+    <div style="margin-top:12px"><button onclick='saveQuote(${JSON.stringify(brief)}, ${qty || 'null'})'>Save quote & get link</button>
+      <span id="saveMsg" class="muted"></span></div>
+    <div id="saved" class="hide" style="margin-top:14px"></div>`;
+  $('preview').classList.remove('hide'); $('preview').scrollIntoView({ behavior:'smooth' });
+}
+
+async function saveQuote(brief, qty) {
+  $('saveMsg').textContent = 'Saving…';
+  const customer = { name: ($('cName')||{}).value || '', phone: ($('cPhone')||{}).value || '', email: ($('cEmail')||{}).value || '' };
+  try {
+    const q = await api('/quotes', { method:'POST', headers:{ 'content-type':'application/json' }, body: JSON.stringify({ brief, qty: qty || undefined, product: forcedProduct || undefined, customer }) });
+    const url = location.origin + '/#/q/' + q.token;
+    $('saved').innerHTML = `<span class="badge">SAVED</span>
+      <p class="lead" style="margin:10px 0">Total <b>${inr(q.price.grand)}</b>${q.deliveryDate ? ` · delivery by <b>${esc(q.deliveryDate)}</b>` : ''}</p>
+      <label>Shareable link</label>
+      <div class="share"><input id="shareUrl" readonly value="${esc(url)}" onclick="this.select()"/><button class="ghost" onclick="copyShare()">Copy</button></div>`;
+    $('saved').classList.remove('hide'); $('saveMsg').textContent = '';
+  } catch (e) { $('saveMsg').innerHTML = '<span class="warn">' + esc(e.message) + '</span>'; }
+}
+function copyShare() { const i = $('shareUrl'); i.select(); navigator.clipboard && navigator.clipboard.writeText(i.value); }
+
+// ---------- shared quote view (read-only, by token) ----------
+async function renderShared(token) {
+  $('main').classList.add('hide'); $('shared').classList.remove('hide');
+  $('shared').innerHTML = '<div class="card muted">Loading quote…</div>';
+  try {
+    const q = await api('/quotes/' + encodeURIComponent(token));
+    const p = q.price;
+    const breakdown = ['paper','printing','plates','coating','margin','gst'].filter((k) => p[k] > 0)
+      .map((k) => `<tr><td>${k[0].toUpperCase()+k.slice(1)}</td><td>${inr(p[k])}</td></tr>`).join('');
+    const menu = p.menuRate ? `<tr><td>Menu rate</td><td>${inr(p.menuRate)}</td></tr>` : '';
+    $('shared').innerHTML = `<div class="card">
+      <h2>Your quote ${q.status === 'confirmed' ? '<span class="badge">CONFIRMED</span>' : ''}</h2>
+      <div class="kv" style="margin-bottom:6px"><span><b>Product:</b> ${esc(q.product)}</span><span><b>Quantity:</b> ${q.quantity.toLocaleString('en-IN')}</span>${q.customer && q.customer.name ? `<span><b>For:</b> ${esc(q.customer.name)}</span>` : ''}</div>
+      ${specRows(q.spec)}
+      <p class="muted" style="margin-top:8px">Brief: “${esc(q.brief)}”</p>
+      <hr/>
+      <div class="price">${inr(p.grand)} <span class="unit">${p.unit ? '· ' + inr(p.unit) + ' / pc' : ''}</span></div>
+      <table style="margin-top:8px">${breakdown}${menu}<tr><td><b>Total (incl. GST)</b></td><td><b>${inr(p.grand)}</b></td></tr></table>
+      ${q.deliveryDate ? `<p class="lead" style="margin-top:12px">Delivery by <b>${esc(q.deliveryDate)}</b> (${q.leadTimeDays} working days from ${esc(q.asOf)}).</p>` : ''}
+      <p class="muted">Quote ${esc(q.token)} · saved ${esc((q.created_at||'').slice(0,10))} · rate card ${esc(q.ratecardVersion || 'n/a')}</p>
+      <hr/>
+      ${checkoutBase()
+        ? `<a href="${esc(checkoutBase())}/checkout/${esc(q.token)}"><button>Confirm &amp; pay →</button></a> <span class="muted">advance / balance or credit</span>`
+        : (q.status === 'confirmed'
+          ? '<p class="ok">This quote has been confirmed. We\'ll be in touch about advance &amp; scheduling.</p>'
+          : `<button onclick="confirmQuote('${esc(q.token)}')">Confirm this order</button> <span id="cf" class="muted"></span>`)}
+      <p style="margin-top:14px"><a href="#" onclick="location.hash='';return false;">← Start a new quote</a></p>
+    </div>`;
+  } catch (e) { $('shared').innerHTML = '<div class="card warn">Could not load this quote: ' + esc(e.message) + '</div>'; }
+}
+async function confirmQuote(token) {
+  $('cf').textContent = 'Confirming…';
+  try { await api('/quotes/' + encodeURIComponent(token) + '/confirm', { method:'POST' }); renderShared(token); }
+  catch (e) { $('cf').innerHTML = '<span class="warn">' + esc(e.message) + '</span>'; }
+}
+
+// ---------- router ----------
+function route() {
+  const m = location.hash.match(/^#\/q\/([a-z0-9]+)/i);
+  if (m) { renderShared(m[1]); }
+  else {
+    $('shared').classList.add('hide'); $('main').classList.remove('hide');
+    if (!$('catalog').dataset.loaded) { loadCatalog(); $('catalog').dataset.loaded = '1'; }
+    // B1 handoff: a "Price this live" link from the history-match tool prefills the brief.
+    const b = new URLSearchParams(location.search).get('brief');
+    if (b && !$('brief').value) { $('brief').value = b; $('intakeMsg').textContent = 'Prefilled from a past job — edit anything, then get your estimate.'; }
+  }
+}
+window.addEventListener('hashchange', route);
+route();
+</script>
+</body>
+</html>
