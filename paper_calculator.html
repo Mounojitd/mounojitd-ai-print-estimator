@@ -889,6 +889,15 @@
           <div id="auditReport" style="margin-top:10px;overflow-x:auto"></div>
           <div id="learnPanel" style="margin-top:14px"></div>
         </details>
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-weight:600;color:#4a6b1f">📦 Set / bundle — quote several items as one job</summary>
+          <div style="margin-top:8px">
+            <label>One line item per line <span style="color:#6b7480">— <code>brief</code> or <code>name: brief</code>. Each is priced on the real engine; totals + combined lead time roll up.</span></label>
+            <textarea id="setLines" rows="4" placeholder="Annual report: A4 catalogue, cover + 48 pages, 170gsm art, 4 colour both sides, section-sewn, quantity 1000&#10;Slipcase: slipcase 9 x 6 x 2 inch, 250 gsm art card wrap, 4 color, quantity 1000&#10;Bookmark: 2 x 6 inch card, 300 gsm, 4+0, quantity 1000" style="width:100%;font-family:inherit;font-size:12.5px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;resize:vertical;margin-top:4px"></textarea>
+            <button type="button" class="mbtn p" style="margin-top:6px" onclick="priceSet()">📦 Price the set</button>
+            <div id="setReport" style="margin-top:10px;overflow-x:auto"></div>
+          </div>
+        </details>
         <div id="priceChangeBanner"></div>
         <div id="m_price" style="margin-top:10px"></div>
         <div style="margin-top:10px">
@@ -5253,6 +5262,55 @@ function resetParserFields(){
       else { c.checked=DEFAULT_SS[c.value]; }                                                       // reset standard chip
     });
   }
+}
+// ── LEAD TIME (Phase 1.4) — working-days estimate. Heuristic (no recorded NK lead-time data yet); a starting
+// figure the shop can adjust. Driven by product family + quantity + binding, the main lead-time drivers.
+function leadTimeDays(product,qty,bind){
+  const p=String(product||""); const q=Math.max(1,Math.round(qty||0)); let d;
+  if(p==="annual"||p==="catalogue"||p==="brochure_multi") d=7;
+  else if(typeof isSig==="function" && isSig(p)) d=5;                 // booklet/magazine/manual
+  else if(p==="rigidbox"||p==="slipcase") d=9;                       // hand-assembled
+  else if(typeof isDieline==="function" && isDieline(p)) d=8;         // converting / dieline
+  else if(typeof isNCR==="function" && isNCR(p)) d=6;
+  else if(typeof isLanyard==="function" && (isLanyard(p)||isPouch(p))) d=6;
+  else if(p==="calendar_table"||p==="calendar_sheet") d=6;
+  else if(typeof isLF==="function" && isLF(p)) d=2;                   // large format
+  else d=3;                                                          // flat card / leaflet / insert / poster / tag / jacket
+  d += q>20000?3 : q>5000?2 : q>1000?1 : 0;                          // quantity load
+  if(bind==="case") d+=4; else if(["perfect","sewn","sewn_perfect","soft","b2b"].includes(bind)) d+=2;
+  else if(["wireo","spiral","comb"].includes(bind)) d+=1;
+  return Math.max(1,Math.round(d));
+}
+// ── A6 SETS / BUNDLES — price several line items as ONE job; roll up the totals + a combined lead time.
+// Each line is priced on the REAL engine (priceAuditRecord), so a set is just N deterministic estimates summed.
+function priceSet(){
+  const raw=($("setLines")&&$("setLines").value)||"";
+  const lines=raw.split(/\n/).map(s=>s.trim()).filter(s=>s && !s.startsWith("#"));
+  const out=$("setReport"); if(!out) return;
+  if(!lines.length){ out.innerHTML='<div style="color:#c0392b">Add at least one line item.</div>'; return; }
+  const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const items=[]; let grand=0, maxLead=0, anyUnpriced=false;
+  for(const line of lines){
+    let name="", brief=line;
+    const m=line.match(/^([^:|]{1,40}):\s*(.+)$/);                   // optional "name: brief"
+    if(m){ name=m[1].trim(); brief=m[2].trim(); }
+    const rec={brief}; priceAuditRecord(rec);                        // prices on the real engine (resets + re-parses)
+    const bind=$("binding")?$("binding").value:"none";
+    const lead = rec.unpriceable ? 0 : leadTimeDays($("product")?$("product").value:"", rec.qty, bind);
+    if(rec.unpriceable) anyUnpriced=true; else { grand+=rec.est; maxLead=Math.max(maxLead,lead); }
+    items.push({name:name||("Item "+(items.length+1)), qty:rec.qty, est:rec.est, unpriceable:rec.unpriceable, reason:rec.unpriceReason, lead, prod:rec.product});
+  }
+  const priced=items.filter(i=>!i.unpriceable).length;
+  const setLead = maxLead>0 ? maxLead + (priced>1?2:0) : 0;          // longest item + 2 days set collation/integration
+  const rows=items.map((it,i)=>{
+    const price = it.unpriceable ? `<span style="color:#c0392b">— (${(it.reason||"needs size/spec").slice(0,42)})</span>` : inr(it.est);
+    return `<tr><td>${i+1}</td><td>${String(it.name).replace(/</g,"&lt;")}</td><td>${it.prod||"—"}</td><td class="num">${it.qty?it.qty.toLocaleString("en-IN"):"—"}</td><td class="num">${price}</td><td class="num">${it.unpriceable?"—":it.lead+"d"}</td></tr>`;
+  }).join("");
+  out.innerHTML=
+    `<table><thead><tr><th>#</th><th>Item</th><th>Type</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Lead</th></tr></thead>`+
+    `<tbody>${rows}</tbody>`+
+    `<tfoot><tr class="total"><td colspan="4">SET TOTAL${anyUnpriced?" (priced items only)":""}</td><td class="num">${inr(grand)}</td><td class="num">${setLead?setLead+"d":"—"}</td></tr></tfoot></table>`+
+    `<div class="hint" style="margin-top:6px">Combined lead time = longest single item + 2 days set collation. Each item is priced on the real engine (reuses the estimator, resets the single-job fields). Unpriceable items need a size/spec.</div>`;
 }
 function priceAuditRecord(rec){
   const brief=rec.brief;
