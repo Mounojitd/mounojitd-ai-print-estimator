@@ -19,11 +19,26 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { buildIndex, search, productSummary } from './search.mjs';
+import { store as catalog } from '../api/store.mjs';
+import { servePhoto } from '../api/photos.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8799);
 const JOBS = process.env.HISTORY_JOBS || resolve(__dir, 'data', 'jobs.jsonl');
 const QUOTE_APP_URL = process.env.QUOTE_APP_URL || '';
+
+// Map a recorded product type ("Book", "Table Calendar", "Visiting Card") to an engine product key, so a
+// B1 match can show the same product photo as the showcase. Lenient: exact label/key, then a small alias set.
+const PHOTO_ALIAS = { book: 'booklet', brochure: 'brochure_multi', 'table calendar': 'calendar_table', calendar: 'calendar_sheet', 'visiting card': 'card', 'id card': 'card', 'greeting / invite card': 'card', letterhead: 'insert', form: 'insert', box: 'carton_tuck', 'standee / banner / board': 'banner', sticker: 'insert', tag: 'pasted_tag' };
+function keyForProductType(pt) {
+  if (!pt) return null;
+  const t = String(pt).toLowerCase().trim();
+  const tpls = catalog.listTemplates();
+  const byLabel = tpls.find((x) => x.label.toLowerCase() === t || x.engine_product_key === t);
+  if (byLabel) return byLabel.engine_product_key;
+  return PHOTO_ALIAS[t] || null;
+}
+function photoForType(pt) { const k = keyForProductType(pt); return k ? catalog.photoFor(k) : null; }
 
 function loadJobs() {
   if (!existsSync(JOBS)) { console.warn(`history: no jobs file at ${JOBS} — run tools/export_history.py first. Serving 0 specs.`); return []; }
@@ -39,16 +54,18 @@ const server = http.createServer(async (req, res) => {
   try {
     const u = new URL(req.url, 'http://x');
     const path = u.pathname;
+    const seg = path.split('/').filter(Boolean).map(decodeURIComponent);
     if (req.method === 'OPTIONS') return json(res, 204, {});
 
     if (req.method === 'GET' && path === '/health') return json(res, 200, { ok: true, indexedSpecs: docs.length, productTypes: productSummary(docs).length });
+    if (req.method === 'GET' && seg[0] === 'photos' && seg.length === 2) return void servePhoto(res, seg[1]);
     if (req.method === 'GET' && path === '/products') return json(res, 200, productSummary(docs));
 
     if (req.method === 'POST' && path === '/search') {
       let input; try { input = JSON.parse((await body(req)) || '{}'); } catch { return json(res, 400, { error: 'invalid JSON' }); }
       if (!input.query || typeof input.query !== 'string') return json(res, 400, { error: 'query (string) is required' });
       const limit = Math.min(Math.max(Number(input.limit) || 5, 1), 20);
-      const matches = search(index, input.query, { limit });
+      const matches = search(index, input.query, { limit }).map((m) => ({ ...m, photo: photoForType(m.productType) }));
       return json(res, 200, { query: input.query, count: matches.length, recommendation: matches[0] || null, matches });
     }
 
@@ -90,7 +107,8 @@ async function go(){
     const s=m.spec||{}; const kv=[['Size',s.size],['Extent',s.extent],['Paper',s.paper],['Printing',s.printing],['Finishing',s.coating||s.binding],['Typical qty',s.typicalQuantity]]
       .filter(x=>x[1]).map(x=>'<span class=kv><b>'+x[0]+':</b> '+esc(x[1])+'</span>').join(' · ');
     const link=QUOTE_APP?' &nbsp; <a href="'+esc(QUOTE_APP)+'/?brief='+encodeURIComponent(m.suggestedBrief)+'" target=_blank>Price this live →</a>':'';
-    return '<div class=card><span class=pill>'+esc(m.productType||'?')+'</span><span class=mut>match '+m.score+'</span>'+
+    const img=m.photo?'<img src="'+esc(m.photo)+'" alt="'+esc(m.productType||'')+'" onerror="this.style.display=\\'none\\'" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;margin-bottom:8px;background:#f1f5f9"/>':'';
+    return '<div class=card>'+img+'<span class=pill>'+esc(m.productType||'?')+'</span><span class=mut>match '+m.score+'</span>'+
       '<div style="margin-top:8px">'+kv+'</div>'+
       '<div class=brief>'+esc(m.suggestedBrief)+'</div>'+
       '<div style="margin-top:6px" class=mut>Use this as a starting brief'+link+'</div></div>';

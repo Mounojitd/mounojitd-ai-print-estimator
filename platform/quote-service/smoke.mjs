@@ -33,6 +33,7 @@ try {
   const cat = await get('/catalog');
   check('catalog lists products', Array.isArray(cat) && cat.length === 28, `${cat.length} products`);
   check('catalog carries family + engine key', cat.every((c) => c.family && c.engine_product_key), '');
+  check('catalog carries a photo field (null until a real photo is added)', cat.every((c) => 'photo' in c), `${cat.filter((c) => c.photo).length}/28 have a photo`);
 
   // intake → priced preview (not saved), with detected spec
   const pv = await post('/intake', { brief: BRIEF });

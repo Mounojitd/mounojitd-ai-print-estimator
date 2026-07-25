@@ -11,6 +11,7 @@ const paths = {
   templates: resolve(DATA, 'templates.json'),
   rate_cards: resolve(DATA, 'rate_cards.json'),
   rate_card_history: resolve(DATA, 'rate_card_history.json'),
+  product_photos: resolve(DATA, 'product_photos.json'),
 };
 const load = (p, dflt) => (existsSync(p) ? JSON.parse(readFileSync(p, 'utf8')) : dflt);
 const save = (p, v) => writeFileSync(p, JSON.stringify(v, null, 1));
@@ -23,6 +24,12 @@ export const store = {
     return t;
   },
   getTemplate(key) { return load(paths.templates, []).find((x) => x.key === key) || null; },
+
+  // ---- product photos (one representative real photo per engine product key) ----
+  // Map { engine_product_key -> url|null }. A real product photo lifts the showcase + B1 from text to
+  // portfolio. url is whatever is reachable: a served /photos/<file>, a Drive/hosted URL, or a data URI.
+  productPhotos() { return load(paths.product_photos, {}); },
+  photoFor(key) { const p = load(paths.product_photos, {}); return p[key] || null; },
 
   // ---- rate cards ----
   listRateCards({ category } = {}) {

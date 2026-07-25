@@ -20,6 +20,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { store as catalog } from '../api/store.mjs';
+import { servePhoto } from '../api/photos.mjs';
 import { store as quotes, addWorkingDays, nowISO } from './store.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
@@ -60,10 +61,14 @@ const server = http.createServer(async (req, res) => {
       return json(res, 200, { hint: 'customer app missing; use the JSON endpoints' });
     }
 
-    // Showcase — the product catalogue the customer picks from.
+    // Product photos (real product pictures, one per product key) — served from PHOTOS_DIR.
+    if (req.method === 'GET' && seg[0] === 'photos' && seg.length === 2) return void servePhoto(res, seg[1]);
+
+    // Showcase — the product catalogue the customer picks from (with a real photo when we have one).
     if (req.method === 'GET' && path === '/catalog') {
       const family = u.searchParams.get('family') || undefined;
-      return json(res, 200, catalog.listTemplates({ family }).map((t) => ({ key: t.key, label: t.label, family: t.family, engine_product_key: t.engine_product_key })));
+      const photos = catalog.productPhotos();
+      return json(res, 200, catalog.listTemplates({ family }).map((t) => ({ key: t.key, label: t.label, family: t.family, engine_product_key: t.engine_product_key, photo: photos[t.engine_product_key] || null })));
     }
 
     // Intake — turn a plain-language brief into a priced PREVIEW the customer confirms before saving.

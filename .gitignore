@@ -32,3 +32,6 @@ platform/order-service/data/
 
 # B1 history index — anonymised but derived from the confidential DB; keep LOCAL, never commit
 platform/history-service/data/
+
+# real product photo binaries (served locally; may be large) — keep the JSON map, not the bytes
+platform/api/data/photos/
