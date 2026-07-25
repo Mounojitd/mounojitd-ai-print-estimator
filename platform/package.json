@@ -1,0 +1,13 @@
+{
+  "name": "print-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AI-first print discovery + estimation platform — launcher that boots all services and serves the AI homepage.",
+  "scripts": {
+    "start": "node start-all.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.40.0"
+  }
+}

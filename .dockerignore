@@ -1,0 +1,25 @@
+# Keep the image lean AND keep confidential/runtime data OUT of it.
+.git
+.gitignore
+**/node_modules
+node_modules
+
+# CONFIDENTIAL — the 341-job pre-production database and the value-bearing workbook never enter the image.
+db/
+NKK_*.xlsx
+
+# runtime data + local ingests (regenerated in the container / mounted volume)
+.deploy-data/
+platform/api/data/photos/
+platform/api/data/rate_card_history.json
+platform/quote-service/data/
+platform/order-service/data/
+platform/production-service/data/
+platform/vendor-service/data/vendors.json
+platform/vendor-service/data/pos.json
+platform/history-service/data/
+
+# scratch / probes / logs
+_probe/
+_xlsx_probe/
+*.log
