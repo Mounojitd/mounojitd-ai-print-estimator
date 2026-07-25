@@ -16,3 +16,7 @@ db/pre_production/
 
 # Coverage workbook output — contains NK job values (confidential), never publish
 NKK_Products_and_Coverage.xlsx
+
+# Node deps for platform services
+platform/**/node_modules/
+node_modules/
