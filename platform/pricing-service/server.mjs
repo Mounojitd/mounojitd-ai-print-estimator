@@ -104,8 +104,11 @@ async function estimate({ brief, product, qty, margin }) {
     if (pages) spec.pages = pages;
     if (bind && bind !== 'none') spec.binding = selText('binding') || bind;
     if (lam && lam !== 'none') spec.lamination = selText('lam') || lam;
+    // Production traveller (B2): the engine's own step-by-step + QC, so job stages match how it's actually made.
+    const traveller = (!unpriceable && typeof productionSteps === 'function')
+      ? productionSteps(x).map((s) => ({ stage: s[0], qc: s[1] })) : [];
     return {
-      product: prod, quantity: usedQty, spec,
+      product: prod, quantity: usedQty, spec, traveller,
       unpriceable, reason: unpriceable ? (err || x.reason || 'no valid spec') : null,
       leadTimeDays: lead,
       price: unpriceable ? null : {

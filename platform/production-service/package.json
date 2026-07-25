@@ -1,0 +1,12 @@
+{
+  "name": "print-production-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Production + actuals service (Phase B2/B3) — paid order → shop-floor job with the engine's production traveller; capture actuals vs estimate; surface advisory rate-card corrections.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node smoke.mjs"
+  }
+}

@@ -35,3 +35,6 @@ platform/history-service/data/
 
 # real product photo binaries (served locally; may be large) — keep the JSON map, not the bytes
 platform/api/data/photos/
+
+# production jobs + actuals (created at runtime; hold customer + operational detail)
+platform/production-service/data/

@@ -92,8 +92,10 @@ Product breadth (Track A) is effectively complete in the engine, so this plan is
    TF-IDF (embeddings a drop-in); "show me what we did for a school annual report" → recommend a
    configured solution (spec + ready-to-quote brief). Historical prices are never surfaced or reused —
    the live engine prices the recommendation. Delivered as `platform/history-service/`.
-7. **B2/B3 — Production + actuals**: the engine's production traveller becomes DB-backed job
-   travellers; capture actuals vs estimate; feed corrections back into rate cards.
+7. **B2/B3 — Production + actuals** ✅: a paid order becomes a shop-floor job whose stages come from the
+   engine's production traveller; operations advance each stage; actuals are captured and compared to the
+   estimate, and a persistent per-product gap surfaces an *advisory* rate-card correction (human approves in
+   the admin, pricing reloads). Delivered as `platform/production-service/`.
 8. **B4/B5 — Vendors, POs, bought-out** routing.
 
 Rule of thumb (roadmap): never let breadth get more than one step ahead of produce-and-track.

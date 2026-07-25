@@ -95,7 +95,7 @@ const server = http.createServer(async (req, res) => {
         token, created_at: nowISO(), asOf, status: 'draft',
         customer: input.customer && typeof input.customer === 'object' ? { name: input.customer.name || '', phone: input.customer.phone || '', email: input.customer.email || '' } : null,
         brief: input.brief, product: est.product, quantity: est.quantity, margin: input.margin ?? null,
-        spec: est.spec || {}, price: est.price, leadTimeDays: est.leadTimeDays,
+        spec: est.spec || {}, price: est.price, leadTimeDays: est.leadTimeDays, traveller: est.traveller || [],
         deliveryDate: addWorkingDays(asOf, est.leadTimeDays),
         ratecardVersion: est.ratecardVersion || null, engineVersion: null,
       });
