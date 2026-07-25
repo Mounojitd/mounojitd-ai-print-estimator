@@ -279,6 +279,7 @@
           <option value="pouch">Pouch (fabric / printed board)</option>
           <option value="rigidbox">Rigid set-up box (hand-assembled)</option>
           <option value="jacket">Book jacket (dust jacket)</option>
+          <option value="ncr">NCR / carbonless form (per set)</option>
               <option value="calendar_sheet">Single-sheet calendar</option>
               <option value="calendar_table">Table calendar</option>
               <option value="dangler">Dangler / Tent card</option>
@@ -556,6 +557,40 @@
         </div>
         <div class="hint">Per-piece = (board + wrap+print + lining + labour + partition + foil) × qty + block/forme/sample, then margin. Board area seeded from L×W×H; all rates editable — confirm with sir.</div>
       </div>
+      <div id="ncrFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#7c9c3f;background:#f5faec">
+        <div class="ptitle" style="color:#4a6b1f">🧾 NCR / carbonless form — priced per set (no NK anchor — trade rates)</div>
+        <div class="row3">
+          <div class="fld"><label>Parts (plies/set)</label><select id="ncrParts" onchange="showPrice()"><option value="2" selected>2-part (duplicate)</option><option value="3">3-part (triplicate)</option><option value="4">4-part</option></select></div>
+          <div class="fld"><label>Size</label><select id="ncrSize" onchange="ncrPlySeed();showPrice()"><option value="a6">A6</option><option value="a5" selected>A5</option><option value="half">Half A4 (5.5×8.5)</option><option value="a4">A4</option></select></div>
+          <div class="fld"><label>Quantity (sets)</label><input id="ncrQty" type="number" value="1" placeholder="e.g. 1000" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Carbonless ₹ / ply sheet</label><input id="ncrPlyRate" type="number" step="0.1" value="1.2" oninput="showPrice()" /><div class="hint">CB/CFB/CF avg, editable</div></div>
+          <div class="fld"><label>Colours</label><input id="ncrColors" type="number" step="1" value="1" oninput="showPrice()" /></div>
+          <div class="fld"><label>Print ₹ / ply / colour</label><input id="ncrPrintPly" type="number" step="0.05" value="0.30" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Numbering</label><select id="ncrNumber" onchange="showPrice()"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
+          <div class="fld"><label>Numbering ₹ / set</label><input id="ncrNumberRate" type="number" step="0.05" value="0.30" oninput="showPrice()" /></div>
+          <div class="fld"><label>Perforation</label><select id="ncrPerf" onchange="showPrice()"><option value="yes" selected>Yes</option><option value="no">No</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Perf ₹ / set</label><input id="ncrPerfRate" type="number" step="0.05" value="0.15" oninput="showPrice()" /></div>
+          <div class="fld"><label>Collate / pad-gum ₹ / set</label><input id="ncrCollate" type="number" step="0.05" value="0.10" oninput="showPrice()" /></div>
+          <div class="fld"><label>Finishing</label><select id="ncrFinish" onchange="showPrice()"><option value="pad" selected>Padded (gummed pads)</option><option value="book">Booked (bound books)</option><option value="loose">Loose sets</option></select></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Sets per pad / book</label><input id="ncrUnitSize" type="number" step="10" value="50" oninput="showPrice()" /></div>
+          <div class="fld"><label>Pad ₹ each</label><input id="ncrPadRate" type="number" step="0.5" value="4" oninput="showPrice()" /></div>
+          <div class="fld"><label>Book ₹ each</label><input id="ncrBookRate" type="number" step="0.5" value="9" oninput="showPrice()" /><div class="hint">cover + tape + perf</div></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Plates ₹ / colour (once)</label><input id="ncrPlate" type="number" step="10" value="150" oninput="showPrice()" /></div>
+          <div class="fld"><label>Design / setup ₹ (once)</label><input id="ncrDesign" type="number" step="50" value="0" oninput="showPrice()" /></div>
+          <div class="fld"></div>
+        </div>
+        <div class="hint">Per-set = parts × (paper + print) + numbering + perf + collate, then padded/booked + plates, then margin. No recorded NK job to validate — all rates editable, confirm with sir.</div>
+      </div>
       <div id="dielineFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
         <div class="ptitle" id="dlTitle">📐 Dieline / converting — flat blank → die-cut → fold</div>
         <div class="hint" id="dlDimHint" style="margin:-2px 0 6px">Enter the <b>assembled</b> dimensions above (Width=A, Height=B) in the chosen unit; the flat blank is computed automatically.</div>
@@ -772,7 +807,8 @@
           <span><label>Reprint (plates exist)</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="reprint" onchange="showPrice()" /> Yes — plates reused</label><div class="hint">NKK sir: reprint jobs reuse existing plates → cost drops to a handling fee (~10%). Fresh printing still charged.</div></span>
           <span><label>Ganged with other jobs</label><label class="chip" style="margin-top:4px"><input type="checkbox" id="ganged" onchange="gangedEdited=true;showPrice()" /> Yes — shared sheet</label><input id="gangedShare" type="number" step="1" min="1" max="100" value="25" style="margin-top:6px" placeholder="% share" oninput="gangedEdited=true;showPrice()" /><div class="hint">NKK sir: small VCards / tags run ganged with other jobs on one plate + sheet. This job pays only its share (default 25%) of plates + printing + paper. Auto-ticked for cards ≤500 pcs.</div></span>
           <span><label>Target sale ₹ (optional)</label><input id="targetSale" type="number" step="1000" placeholder="e.g. 180000" oninput="applyTargetMargin()" /><div class="hint" id="targetSaleNote">Type a target price → auto-sets margin so grand ≈ target.</div></span>
-          <span><label>Menu rate ₹/pc (optional)</label><input id="flatRatePc" type="number" step="0.10" placeholder="e.g. 3.50" oninput="flatRateEdited=true;showPrice()" /><div class="hint">Auto-populates for cards/letterheads/tags based on sir's rate card. Overwrite anytime.</div></span>
+          <span><label>Menu rate ₹/pc (optional)</label><input id="flatRatePc" type="number" step="0.10" placeholder="e.g. 5.00" oninput="flatRateEdited=true;showPrice()" /><div class="hint">Auto-populates for cards/letterheads/tags based on sir's rate card. Overwrite anytime.</div></span>
+          <span><label>Job minimum ₹ (optional)</label><input id="flatRateMin" type="number" step="10" placeholder="e.g. 500" oninput="flatMinEdited=true;showPrice()" /><div class="hint">Floor for short runs (menu quote = max of rate×qty and this). Cards auto-set ₹500.</div></span>
           <span><label>Overhead % (manual, default 0)</label><input id="overhead" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: overhead removed from estimate — add manually if needed</div></span>
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
           <span><label>Paper discount %</label><input id="paperDiscount" type="number" value="0" step="0.5" oninput="showPrice()" /><div class="hint">NKK sir: vendor discount off paper cost (e.g. 13%)</div></span>
@@ -852,6 +888,15 @@
           <div id="auditStatus" style="font-size:12px;color:#6b7480;margin-top:6px"></div>
           <div id="auditReport" style="margin-top:10px;overflow-x:auto"></div>
           <div id="learnPanel" style="margin-top:14px"></div>
+        </details>
+        <details style="margin-top:8px">
+          <summary style="cursor:pointer;font-weight:600;color:#4a6b1f">📦 Set / bundle — quote several items as one job</summary>
+          <div style="margin-top:8px">
+            <label>One line item per line <span style="color:#6b7480">— <code>brief</code> or <code>name: brief</code>. Each is priced on the real engine; totals + combined lead time roll up.</span></label>
+            <textarea id="setLines" rows="4" placeholder="Annual report: A4 catalogue, cover + 48 pages, 170gsm art, 4 colour both sides, section-sewn, quantity 1000&#10;Slipcase: slipcase 9 x 6 x 2 inch, 250 gsm art card wrap, 4 color, quantity 1000&#10;Bookmark: 2 x 6 inch card, 300 gsm, 4+0, quantity 1000" style="width:100%;font-family:inherit;font-size:12.5px;padding:9px 11px;border:1px solid var(--line);border-radius:10px;resize:vertical;margin-top:4px"></textarea>
+            <button type="button" class="mbtn p" style="margin-top:6px" onclick="priceSet()">📦 Price the set</button>
+            <div id="setReport" style="margin-top:10px;overflow-x:auto"></div>
+          </div>
         </details>
         <div id="priceChangeBanner"></div>
         <div id="m_price" style="margin-top:10px"></div>
@@ -1019,7 +1064,14 @@ const isRigidBox=p=>RIGIDBOX_PRODUCTS.has(p);
 const RIGIDBOX_STYLES={topbottom:{name:"Top-bottom (2-piece lid+base)",lid:true,mult:1},
   traylid:{name:"Tray + lid",lid:true,mult:1},slider:{name:"Slider / drawer",lid:false,mult:1.9},
   magnetic:{name:"Magnetic flap",lid:false,mult:1.5},shoulder:{name:"Shoulder / neck box",lid:true,mult:1}};
-// DIELINE / CONVERTING (A4): non-signature products that print as a flat BLANK, die-cut and fold to a 3D shape.
+// NCR / CARBONLESS FORM — an N-part carbonless set (CB top + CFB middles + CF bottom), printed, usually
+// numbered + perforated, then padded (gummed pads) or booked (bound books of 50/100). Priced per SET, bypassing
+// the sheet engine. NOTE: NK's 341-job DB has NO recorded NCR job, so rates are defensible Indian trade values
+// (carbonless ply ~Rs.1.2 A5 / Rs.2.4 A4, numbering Rs.0.30/set), NOT reconciled to a recorded amount.
+const NCR_PRODUCTS=new Set(["ncr"]);
+const isNCR=p=>NCR_PRODUCTS.has(p);
+// per-ply carbonless paper rate seed by size band (₹/sheet); editable in the panel.
+const NCR_PLY_RATE={a6:0.7,a5:1.2,half:1.6,a4:2.4};
 const DIELINE_PRODUCTS=new Set(["carton_tuck","carton_seal","sleeve","folder","envelope","bag"]);
 const isDieline=p=>DIELINE_PRODUCTS.has(p);
 // blank size (inches) from the assembled dims A,B,C + glue flap g + tuck/flap/pocket f (all inches)
@@ -1091,8 +1143,8 @@ function onProductChange(){
   if($("jkFields")) $("jkFields").style.display=isJacket($("product").value)?"block":"none";
   // Flat embellishment panel: visible for any non-signature, non-dieline, non-slipcase product.
   const _pv=$("product").value;
-  const lan=isLanyard(_pv), pou=isPouch(_pv), rb=isRigidBox(_pv);
-  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan && !pou && !rb;
+  const lan=isLanyard(_pv), pou=isPouch(_pv), rb=isRigidBox(_pv), ncr=isNCR(_pv);
+  const isFlatEmbProd = !isSig(_pv) && !isDieline(_pv) && !isSlipcase(_pv) && _pv!=="calendar_table" && !isLF(_pv) && !lan && !pou && !rb && !ncr;
   if($("flatEmbFields")) $("flatEmbFields").style.display=isFlatEmbProd?"block":"none";
   // LARGE FORMAT: show the sq.ft panel, hide the whole sheet engine (paper / colours / sheet sizes / flat / booklet).
   const lf=isLF(_pv);
@@ -1101,7 +1153,8 @@ function onProductChange(){
   if($("lanFields")) $("lanFields").style.display=lan?"block":"none";
   if($("pouFields")) $("pouFields").style.display=pou?"block":"none";
   if($("rbFields")) $("rbFields").style.display=rb?"block":"none";
-  const hideSheet=lf||lan||pou||rb;
+  if($("ncrFields")) $("ncrFields").style.display=ncr?"block":"none";
+  const hideSheet=lf||lan||pou||rb||ncr;
   ["paperBox","colourBox","sheetSizeBox"].forEach(id=>{ if($(id)) $(id).style.display=hideSheet?"none":""; });   // restore for sheet products
   if(hideSheet){ ["fppFields","flatEmbFields","bookletFields","flatFields"].forEach(id=>{ if($(id)) $(id).style.display="none"; }); }
   if(lf){ if(typeof lfMediaRate==="function") lfMediaRate();
@@ -1110,6 +1163,7 @@ function onProductChange(){
   if(lan && typeof lanyardMediaRate==="function") lanyardMediaRate();
   if(pou && typeof pouchMediaRate==="function") pouchMediaRate();
   if(rb && typeof rigidBoxApplySeeds==="function") rigidBoxApplySeeds();
+  if(ncr && typeof ncrPlySeed==="function") ncrPlySeed();
   applyMarginDefault();
   applyGangedDefault();
   applyMenuRateHint();
@@ -1370,6 +1424,8 @@ function run(){
   if(isLanyard($("product").value)){ renderLanyard(); return; }
   // POUCH: per-piece converted model — no size/sheet needed, just quantity. Render directly.
   if(isPouch($("product").value)){ renderPouch(); return; }
+  // NCR / CARBONLESS: per-set model — just quantity (sets) + parts. Render directly.
+  if(isNCR($("product").value)){ renderNCR(); return; }
   // RIGID BOX: per-piece hand-assembled model — needs L×W×H (width, height, box depth). Render directly.
   if(isRigidBox($("product").value)){
     if(!(num("W",0)>0)||!(num("H",0)>0)||!(num("rbH",0)>0)){ $("W").classList.add("bad"); $("H").classList.add("bad"); if($("rbH"))$("rbH").classList.add("bad"); $("err").textContent="Please enter box length, width and depth (L=width, W=height, H=box depth)."; return; }
@@ -2653,7 +2709,9 @@ const MARGIN_DEFAULT={
   // rigid set-up box — premium hand-assembled packaging; higher margin like slipcase
   rigidbox:40,
   // book jacket — flat printed sheet (cover-like); standard flat margin
-  jacket:30
+  jacket:30,
+  // NCR / carbonless form — commodity converting; standard margin
+  ncr:30
 };
 // ── SIR-GATED TOGGLE 1 (2026-07-21): volume-tiered margin for design-heavy jobs ──────────────────
 // Udyogi catalogue (3000 qty) only supports ~8% margin vs the flat 40% — a big-volume catalogue is
@@ -2717,37 +2775,51 @@ function applyGangedDefault(){
 // MENU-RATE HINT (NKK sir 2026-07-18 batch reconcile): sir has a per-piece rate card for standard
 // commodity jobs (vcards, letterheads, tags). Auto-populate the #flatRatePc field so the user sees
 // the menu-rate quote alongside the cost quote. User typing into the field overrides via a flag.
-let flatRateEdited=false;
+let flatRateEdited=false, flatMinEdited=false;
 function applyMenuRateHint(){
   if(flatRateEdited || !$("flatRatePc")) return;
   const p=$("product")&&$("product").value;
   const qty=Math.round(num("copies2",0)||num("copies",0));
   if(!qty) return;
-  let rate=0;
+  let rate=0, minCharge=0;
   if(p==="card"){
-    // VCard rate card (Sunili/Beekay/Keventer/Pinacle averaged, 90×55mm at 270-350gsm):
-    //   ≤100  → ₹4.00   (vendor menu min)
-    //   ≤200  → ₹3.50
-    //   ≤500  → ₹3.00
-    //   ≤1000 → ₹2.50
-    //   >1000 → ₹2.20
-    if(qty<=100) rate=4.00; else if(qty<=200) rate=3.50;
-    else if(qty<=500) rate=3.00; else if(qty<=1000) rate=2.50; else rate=2.20;
+    // VCard rate card — RE-DERIVED 2026-07-24 from 7 recorded jobs (minchem/keventer/beekay/pinax/vesta):
+    // sir holds a flat ₹5/pc up to ~500, then steps down, with a ₹500 JOB MINIMUM that dominates tiny runs.
+    // Old declining ₹4→₹2.20 curve under-quoted every short run; the ₹5 flat + ₹500 floor reconciles
+    // #21/#31/#33/#35/#36 to ~0% and #18/#30 (17-75 pc) to the floor within ±16%.
+    //   ≤500  → ₹5.00     ≤1000 → ₹3.50     >1000 → ₹2.50      · minimum charge ₹500
+    if(qty<=500) rate=5.00; else if(qty<=1000) rate=3.50; else rate=2.50;
+    minCharge=500;
+    // PREMIUM-FINISH tier (sir 2026-07-24): velvet/soft-touch lam and UV finishes lift a card above the plain
+    // menu rate. Calibrated to Vesta (velvet lam + single-side UV, 2000 pc @ ₹5/pc): base ₹2.50 + velvet ₹1.50
+    // + UV ₹1.00 = ₹5.00 → 0%. Surcharges are additive on top of the qty band, detected from the coating/emb
+    // fields the brief filled. (Nihon @ ₹15/pc stays partly under — it carries a separate multi-design premium.)
+    const lam=$("lam")?$("lam").value:"", embs=[$("flatEmb1"),$("flatEmb2"),$("flatEmb3")].map(e=>e?e.value:"");
+    const hasVelvet = lam==="velvet";
+    const hasUV = /^(uv|mattuv|drip)$/.test(lam) || embs.some(e=>/^(spotuv|raiseduv|drip|mgi_uv)$/.test(e));
+    if(hasVelvet) rate+=1.50;
+    if(hasUV)     rate+=1.00;
   }
   else if(p==="insert"){
-    // Letterhead rate (100gsm maplitho/excel bond, single-side 4c, A4):
-    //   ≤500   → ₹9.00
+    // Letterhead rate — VALIDATED 2026-07-24 against 3 recorded anchors (thin data, no job-minimum: neotia
+    // ₹250 / renovar ₹950 sit below any floor, so letterheads scale cleanly with qty, unlike cards):
+    //   ≤500   → ₹10.00   (Mint 400 pc @ ₹4,000 = ₹10/pc; was ₹9 → −10%, nudged to reconcile)
     //   ≤2000  → ₹8.00
-    //   ≤5000  → ₹7.00
-    //   >5000  → ₹1.32/pc (Egra Medilab 50k @ ₹66k = ₹1.32)
-    if(qty<=500) rate=9.00; else if(qty<=2000) rate=8.00;
+    //   ≤5000  → ₹7.00    (Jupiter 3000 pc @ ₹21,000 = ₹7/pc — exact)
+    //   >5000  → ₹1.50    (Egra Medilab 50k @ ₹76,733 = ₹1.53/pc — exact; Reliance 50k @ ₹0.96 is 80gsm, lighter)
+    if(qty<=500) rate=10.00; else if(qty<=2000) rate=8.00;
     else if(qty<=5000) rate=7.00; else rate=1.50;
   }
   else if(p==="pasted_tag"){
-    // Sunili family — ₹2.10-2.20/pc for 15k pcs at 40×93mm
-    rate=2.10;
+    // Tag rate — DERIVED 2026-07-24 from 9 recorded Sunili jobs (350gsm RFID hang tags, 40×93mm). Was a flat
+    // ₹2.10 which under-quoted short runs by ~half. Two clean anchors: 2000 pc @ ₹8,300 = ₹4.15/pc and 15000
+    // pc @ ₹31,500 = ₹2.10/pc (8 jobs). Bands reconcile both to within ±5%; the ≤10000 middle is INTERPOLATED
+    // (no recorded qty between 2k and 15k) — conservative, editable.
+    //   ≤2000 → ₹4.00     ≤10000 → ₹3.00 (interpolated)     >10000 → ₹2.10
+    if(qty<=2000) rate=4.00; else if(qty<=10000) rate=3.00; else rate=2.10;
   }
   if(rate>0){ $("flatRatePc").value=rate.toFixed(2); }
+  if($("flatRateMin") && !flatMinEdited) $("flatRateMin").value = minCharge>0 ? String(minCharge) : "";
 }
 function setBinding(v){ const x=BINDING[v]||BINDING.none;
   const pp=LASTINP?LASTINP.pages:Math.round(num("pages",0)), qty=LASTINP?LASTINP.copies:Math.round(num("copies",1));
@@ -3598,7 +3670,61 @@ function renderRigidBox(){
     `<div class="hint" style="margin-top:8px">Per-piece rigid-box build-up — hand-assembled, no plates/sheets. Rates editable, confirm with sir.</div>`;
   ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
 }
+// NCR / CARBONLESS quote — per-SET (N plies) + numbering + perforation, then padded/booked, then margin.
+function ncrPlySeed(){ const s=$("ncrSize")?$("ncrSize").value:"a5"; const r=(NCR_PLY_RATE[s]!=null?NCR_PLY_RATE[s]:1.2); if($("ncrPlyRate")) $("ncrPlyRate").value=r; }
+function ncrQuote(){
+  const sets=Math.max(1,Math.round(num("ncrQty",1)));           // quantity is number of SETS
+  const parts=Math.max(2,Math.round(num("ncrParts",2)));        // plies per set (2/3/4)
+  const colors=Math.max(1,Math.round(num("ncrColors",1)));
+  const plyR=Math.max(0,num("ncrPlyRate",1.2));                 // carbonless paper ₹/ply sheet
+  const printPly=Math.max(0,num("ncrPrintPly",0.30))*colors;   // print ₹/ply per colour
+  const numbering = ($("ncrNumber")&&$("ncrNumber").value!=="no") ? num("ncrNumberRate",0.30) : 0;
+  const perf = ($("ncrPerf")&&$("ncrPerf").value!=="no") ? num("ncrPerfRate",0.15) : 0;
+  const collate = (parts>1) ? num("ncrCollate",0.10) : 0;       // gather + glue the padding edge per set
+  const perSet = parts*(plyR+printPly) + numbering + perf + collate;
+  // finishing: padded (gummed pads of N) or booked (bound books of N with a board cover + tape + perf)
+  const fin=$("ncrFinish")?$("ncrFinish").value:"pad";
+  const unitPer=Math.max(1,Math.round(num("ncrUnitSize",50)));  // sets per pad/book
+  const units=Math.ceil(sets/unitPer);
+  const finRate = fin==="book" ? num("ncrBookRate",9) : fin==="pad" ? num("ncrPadRate",4) : 0;
+  const finTotal = finRate*units;
+  const plates = colors*num("ncrPlate",150);                    // one-time plates (per colour; plies share the plate)
+  const design = num("ncrDesign",0);
+  const run = perSet*sets, base = run + finTotal + plates + design;
+  const overhead=base*num("overhead",0)/100, prod=base+overhead;
+  const mPct=Math.min(Math.max(num("margin",30),0),99), pretax=prod/(1-mPct/100), margin=pretax-prod;
+  const gstPct=num("gst",0), gst=pretax*gstPct/100, grand=pretax+gst;
+  const q={grand,prod,margin,pretax,gst,paper:Math.round(parts*plyR*sets),printing:Math.round(parts*printPly*sets),plates:Math.round(plates),packing:0,freight:0,
+    unit:grand/sets, sets, parts, colors, fin, units, unitPer,
+    plyCost:Math.round(parts*plyR*sets), numbering:Math.round(numbering*sets), perf:Math.round(perf*sets),
+    collate:Math.round(collate*sets), finTotal:Math.round(finTotal), design:Math.round(design), perSet:+perSet.toFixed(2)};
+  return {p:{margin:mPct,gst:gstPct,books:sets}, q, text:{}, cover:null, coverPlan:null, ncr:true};
+}
+function renderNCR(){
+  LASTINP={product:$("product").value, copies:Math.max(1,Math.round(num("ncrQty",1))), isSig:false, ncr:true};
+  CHOSEN=null; RESULT={ncr:true};
+  const x=ncrQuote(), q=x.q, inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const finTxt = q.fin==="book"?`booked (${q.units} books of ${q.unitPer})`:q.fin==="pad"?`padded (${q.units} pads of ${q.unitPer})`:"loose sets";
+  if($("placeholder")) $("placeholder").style.display="none"; if($("results")) $("results").style.display="block";
+  if($("opensize")) $("opensize").innerHTML=`NCR carbonless: <b>${q.parts}-part</b> · ${q.colors}-col · <b>${q.sets.toLocaleString("en-IN")} sets</b> · ${finTxt} · ₹${q.perSet.toFixed(2)}/set`;
+  const rows=[[`Carbonless paper (${q.parts} plies × ${q.sets.toLocaleString("en-IN")})`,q.plyCost],[`Printing (${q.colors}-col × ${q.parts} plies)`,q.printing]];
+  if(q.numbering) rows.push([`Numbering × ${q.sets.toLocaleString("en-IN")}`,q.numbering]);
+  if(q.perf) rows.push([`Perforation × ${q.sets.toLocaleString("en-IN")}`,q.perf]);
+  if(q.collate) rows.push([`Collate / pad-gum × ${q.sets.toLocaleString("en-IN")}`,q.collate]);
+  if(q.finTotal) rows.push([q.fin==="book"?`Booking (${q.units} books)`:`Padding (${q.units} pads)`,q.finTotal]);
+  if(q.plates) rows.push([`Plates (${q.colors}-col, one-time)`,q.plates]);
+  if(q.design) rows.push(["Design / setup (once)",q.design]);
+  if(q.margin) rows.push([`Margin (${x.p.margin}%)`,q.margin]);
+  if(q.gst) rows.push([`GST (${x.p.gst}%)`,q.gst]);
+  const body=rows.map(r=>`<tr><td>${r[0]}</td><td class="num">${inr(r[1])}</td></tr>`).join("");
+  if($("m_price")) $("m_price").innerHTML=
+    `<div class="rh"><div class="rh-lbl">Total · ${q.sets.toLocaleString("en-IN")} sets · ₹${(q.unit).toFixed(2)}/set</div><div class="rh-big">${inr(q.grand)}</div><div class="rh-sub">${q.parts}-part carbonless · ${finTxt}</div></div>`+
+    `<table style="margin-top:10px">${body}<tr class="total"><td>Grand total</td><td class="num">${inr(q.grand)}</td></tr></table>`+
+    `<div class="hint" style="margin-top:8px">Per-set carbonless model — no recorded NK anchor; rates are trade defaults, confirm with sir.</div>`;
+  ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
+}
 function combinedPrice(){
+  if(typeof isNCR==="function" && isNCR($("product")?$("product").value:"")) return ncrQuote();
   if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")) return rigidBoxQuote();
   if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")) return pouchQuote();
   if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")) return lanyardQuote();
@@ -3946,7 +4072,7 @@ function parseSpec(raw){
     [/\bsilver\s*(?:print(?:ing)?|ink|foil|block(?:ing)?|stamp(?:ing)?)|(?:print(?:ing)?|ink|foil|block(?:ing)?)\s*(?:in\s*)?silver\b/,"screen_silver","Silver printing"],
     [/screen\s*print(?:ing)?/,"screen_other","Screen printing — other"],
     [/metal\s*stamp(?:ing)?|steel\s*plate/,"metal_stamp","Metal stamping"],
-    [/spot\s*uv/,"spotuv","Spot UV"],[/raised\s*uv|textured\s*uv/,"raiseduv","Raised UV"],[/\bfoil(?:ing|ed|s)?\b/,"foil","Foil"],
+    [/spot\s*uv|(?:single|one|1)\s*side\s*uv|selective\s*uv/,"spotuv","Spot UV"],[/raised\s*uv|textured\s*uv/,"raiseduv","Raised UV"],[/\bfoil(?:ing|ed|s)?\b/,"foil","Foil"],
     [/\bemboss/,"emboss","Emboss"],[/\bdeboss/,"deboss","Deboss"],[/\btexture\b/,"texture","Texture effect"]];
   const embs=[]; for(const [re,v,lbl] of EMB){
     if(!re.test(t)||embs.includes(v)) continue;
@@ -3983,12 +4109,13 @@ function parseSpec(raw){
     [/catalogue|catalog/,"catalogue"],[/magazine/,"magazine"],[/\bmanual\b/,"manual"],[/annual/,"annual"],
     [/\bhang\s*tag\b|(?:pasted|paste[d]?)\s*tag|\btag\b(?!\s*line)/,"pasted_tag"],
     [/floor\s*plan|site\s*plan/,"poster"],
+    [/\bncr\b|carbon\s*less|carbonless|multi\s*[- ]?part|multipart|\b\d\s*[- ]?part\b|duplicate\s*(?:book|form|slip)|triplicate|bill\s*book|invoice\s*book|receipt\s*book|money\s*receipt|cash\s*memo|\bchallan\b|voucher\s*book/,"ncr"],
     [/letter\s*head|note\s*pad|note\s*head|writing\s*pad|\bform\b/,"insert"],
     [/certificate|marks\s*sheet|diploma/,"card"],
     [/note\s*book|notebook|\bdiary\b/,"booklet"],
     [/wall\s*calendar/,"calendar_sheet"],[/table\s*calendar|desk\s*calendar/,"calendar_table"],[/calendar/,"calendar_sheet"],
     [/\bsticker\b|\blabel\b/,"insert"],
-    [/leaflet|flyer/,"leaflet"],
+    [/leaflet|flyer|pamphlet|hand\s*bill/,"leaflet"],
     [/dust\s*jacket|book\s*jacket|\bjacket\b|book\s*wrapper/,"jacket"],
     [/lanyard|neck\s*strap|badge\s*(?:strap|ribbon)/,"lanyard"],
     [/pouch|drawstring\s*bag|potli/,"pouch"],
@@ -4011,6 +4138,11 @@ function parseSpec(raw){
   // "Folded card" / "greeting card with a fold" is a leaflet, not a visiting card (sir 2026-07-21).
   // The generic /\bcard\b/ rule wins on the LITERAL word 'card' in "Folded card" — downgrade to leaflet.
   if(f.product==="card" && foldHit && noBookBind) f.product="leaflet";
+  // PANEL-FOLDED BROCHURE: a brochure with an explicit tri/gate/z/bi/double fold and NO page count is a folded
+  // FLAT sheet (multi-panel leaflet), not a bound book — downgrade booklet→leaflet. Real multi-page brochures
+  // keep a page count or a bind keyword, so this won't touch them (Tega/Metravi etc. stay booklet/catalogue).
+  const panelFold=/\b(?:tri|z|c|gate|double|half|cross|3|4|6)\s*[- ]?fold(?:ing|ed)?\b|\b(?:tri|bi)fold\b/.test(t);
+  if(f.product==="booklet" && panelFold && noBookBind && f.pages==null) f.product="leaflet";
   // REPRINT (NKK sir 2026-07-17 Keventer): 'reprint' / 'reprinting' → plates already exist.
   if(/\brepri?nt(?:ing)?\b/.test(t)){ f.reprint=true; notes.push("reprint — plates reused (10% fee)"); }
   // Pasted-tag / flat products: clear the b2b binding (it's the product, not a book-binding), and
@@ -4079,7 +4211,20 @@ function applyVoiceSpec(raw){
     notes.push("size 8.27×11.69 in (A4 portrait assumed — no trim size in brief)");
   }
   setV("pages",f.pages); setV("copies",f.copies); setV("copies2",f.copies);
-  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); if(isRigidBox(f.product)) setV("rbQty",f.copies); }   // per-piece products read their own qty field
+  if(f.copies!=null){ if(isLF(f.product)) setV("lfQty",f.copies); if(isLanyard(f.product)) setV("lanQty",f.copies); if(isPouch(f.product)) setV("pouQty",f.copies); if(isRigidBox(f.product)) setV("rbQty",f.copies); if(isNCR(f.product)) setV("ncrQty",f.copies); }   // per-piece products read their own qty field
+  // NCR: pull parts (2/3/4-part, duplicate/triplicate), size, and book-vs-pad off the brief.
+  if(isNCR(f.product)){
+    const rl=String(raw||"").toLowerCase();
+    let parts=null;
+    if(/triplicate|3\s*[- ]?part|three\s*part/.test(rl)) parts=3;
+    else if(/4\s*[- ]?part|four\s*part|quadruplicate/.test(rl)) parts=4;
+    else if(/duplicate|2\s*[- ]?part|two\s*part/.test(rl)) parts=2;
+    else { const m=rl.match(/(\d)\s*[- ]?part/); if(m) parts=Math.min(4,Math.max(2,+m[1])); }
+    if(parts && $("ncrParts")) $("ncrParts").value=String(parts);
+    if($("ncrSize")){ if(/\ba4\b/.test(rl)) $("ncrSize").value="a4"; else if(/\ba6\b/.test(rl)) $("ncrSize").value="a6"; else if(/\ba5\b/.test(rl)) $("ncrSize").value="a5"; if(typeof ncrPlySeed==="function") ncrPlySeed(); }
+    if($("ncrFinish")){ if(/\b(book|bound|booked)\b/.test(rl)) $("ncrFinish").value="book"; else if(/\b(pad|padded|gummed)\b/.test(rl)) $("ncrFinish").value="pad"; }
+    if($("ncrColors") && f.cf!=null) $("ncrColors").value=Math.max(1,f.cf);
+  }
   // BOOK JACKET: a parsed size is the BOOK cover, not the flat blank. Route it into the jacket geometry panel
   // (cover W×H + a spine seeded from page count + default 3" flaps); jacketApplyGeometry() then fills the real
   // flat blank into W/H. Single-side print (cf,0) and foil are handled by the shared parser + emb panel.
@@ -4180,6 +4325,9 @@ function applyVoiceSpec(raw){
     }
   }
   if(f.binding){ setV("binding",f.binding); bindingEdited=true; if(typeof setBinding==="function") setBinding(f.binding); }
+  // Populate the menu-rate hint AFTER quantity is set (onProductChange ran it earlier with qty=0 and bailed),
+  // so a voice/typed brief shows sir's per-piece rate + job minimum alongside the cost quote.
+  if(typeof applyMenuRateHint==="function") applyMenuRateHint();
   if(typeof run==="function") run();
   const box=$("voiceParsed");
   if(box){ box.innerHTML = notes.length
@@ -4377,11 +4525,13 @@ function packFreightWhy(q,fallbackWt){
 function menuRateHTML(costGrand, qty){
   const r=parseFloat(($("flatRatePc")||{}).value);
   if(!(r>0)||!(qty>0)) return "";
-  const menu=r*qty, delta=menu-costGrand, dpct=costGrand>0?((menu-costGrand)/costGrand*100):0;
+  const minCharge=parseFloat(($("flatRateMin")||{}).value)||0;   // job-minimum floor (sir's short-run min charge)
+  const raw=r*qty, floored=minCharge>0 && minCharge>raw;
+  const menu=Math.max(raw, minCharge), delta=menu-costGrand, dpct=costGrand>0?((menu-costGrand)/costGrand*100):0;
   const color=Math.abs(dpct)<5?"#1c7a52":(dpct>0?"#a9761a":"#c0392b");
   const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
   return `<div style="margin-top:14px;padding:12px 14px;border:1.5px dashed #7c3aed;border-radius:10px;background:#f7f2ff">
-    <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#5b21b6;font-weight:700">Menu rate quote (₹${r.toFixed(2)}/pc × ${qty.toLocaleString("en-IN")} pcs)</div>
+    <div style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#5b21b6;font-weight:700">Menu rate quote (₹${r.toFixed(2)}/pc × ${qty.toLocaleString("en-IN")} pcs${floored?` → job min ₹${minCharge.toLocaleString("en-IN")}`:""})</div>
     <div style="font-size:22px;font-weight:800;color:#3a1276;margin:2px 0">${inr(menu)}</div>
     <div style="font-size:12.5px;color:${color}">vs cost quote ${inr(costGrand)} → <b>${dpct>=0?"+":""}${dpct.toFixed(1)}%</b> (${delta>=0?"+":""}${inr(Math.abs(delta))})</div>
   </div>`;
@@ -4390,6 +4540,7 @@ function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
   try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
   catch(e){ $("m_price").innerHTML=html; } }
 function showPrice(){
+  if(typeof isNCR==="function" && isNCR($("product")?$("product").value:"")){ renderNCR(); return; }   // NCR has no CHOSEN
   if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")){ if(num("W",0)>0&&num("H",0)>0&&num("rbH",0)>0) renderRigidBox(); return; }   // rigid box has no CHOSEN
   if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")){ renderPouch(); return; }   // pouch has no CHOSEN
   if(typeof isLanyard==="function" && isLanyard($("product")?$("product").value:"")){ renderLanyard(); return; }   // lanyard has no CHOSEN
@@ -5032,6 +5183,8 @@ function resetParserFields(){
   if($("fppScore")) $("fppScore").value=0;
   if($("ptagPaste")) $("ptagPaste").value=0;
   if($("flatRatePc")) $("flatRatePc").value="";
+  if($("flatRateMin")) $("flatRateMin").value="";
+  flatRateEdited=false; flatMinEdited=false;
   if($("extentFlat")) $("extentFlat").value=1;
   // NKK sir 2026-07-23: reset every SPEC field a brief might leave unset back to its fresh-page default,
   // so a row that omits (say) colours or paper type can't silently inherit the PREVIOUS row's value.
@@ -5071,6 +5224,14 @@ function resetParserFields(){
   if($("pouDecor")) $("pouDecor").value="foil";
   if($("pouSetup")) $("pouSetup").value=0;
   if($("pouMedia")){ $("pouMedia").value="velvet"; if(typeof pouchMediaRate==="function") pouchMediaRate(); }
+  // NCR fields — reset so a prior form's parts/qty/finish can't leak into the next.
+  if($("ncrQty")) $("ncrQty").value=1;
+  if($("ncrParts")) $("ncrParts").value="2";
+  if($("ncrColors")) $("ncrColors").value=1;
+  if($("ncrNumber")) $("ncrNumber").value="yes";
+  if($("ncrPerf")) $("ncrPerf").value="yes";
+  if($("ncrFinish")) $("ncrFinish").value="pad";
+  if($("ncrSize")){ $("ncrSize").value="a5"; if(typeof ncrPlySeed==="function") ncrPlySeed(); }
   // Book-jacket geometry — reset so a prior jacket's cover/spine/flap can't leak into the next.
   if($("jkCoverW")) $("jkCoverW").value=0;
   if($("jkCoverH")) $("jkCoverH").value=0;
@@ -5102,6 +5263,55 @@ function resetParserFields(){
     });
   }
 }
+// ── LEAD TIME (Phase 1.4) — working-days estimate. Heuristic (no recorded NK lead-time data yet); a starting
+// figure the shop can adjust. Driven by product family + quantity + binding, the main lead-time drivers.
+function leadTimeDays(product,qty,bind){
+  const p=String(product||""); const q=Math.max(1,Math.round(qty||0)); let d;
+  if(p==="annual"||p==="catalogue"||p==="brochure_multi") d=7;
+  else if(typeof isSig==="function" && isSig(p)) d=5;                 // booklet/magazine/manual
+  else if(p==="rigidbox"||p==="slipcase") d=9;                       // hand-assembled
+  else if(typeof isDieline==="function" && isDieline(p)) d=8;         // converting / dieline
+  else if(typeof isNCR==="function" && isNCR(p)) d=6;
+  else if(typeof isLanyard==="function" && (isLanyard(p)||isPouch(p))) d=6;
+  else if(p==="calendar_table"||p==="calendar_sheet") d=6;
+  else if(typeof isLF==="function" && isLF(p)) d=2;                   // large format
+  else d=3;                                                          // flat card / leaflet / insert / poster / tag / jacket
+  d += q>20000?3 : q>5000?2 : q>1000?1 : 0;                          // quantity load
+  if(bind==="case") d+=4; else if(["perfect","sewn","sewn_perfect","soft","b2b"].includes(bind)) d+=2;
+  else if(["wireo","spiral","comb"].includes(bind)) d+=1;
+  return Math.max(1,Math.round(d));
+}
+// ── A6 SETS / BUNDLES — price several line items as ONE job; roll up the totals + a combined lead time.
+// Each line is priced on the REAL engine (priceAuditRecord), so a set is just N deterministic estimates summed.
+function priceSet(){
+  const raw=($("setLines")&&$("setLines").value)||"";
+  const lines=raw.split(/\n/).map(s=>s.trim()).filter(s=>s && !s.startsWith("#"));
+  const out=$("setReport"); if(!out) return;
+  if(!lines.length){ out.innerHTML='<div style="color:#c0392b">Add at least one line item.</div>'; return; }
+  const inr=n=>"₹"+Math.round(n).toLocaleString("en-IN");
+  const items=[]; let grand=0, maxLead=0, anyUnpriced=false;
+  for(const line of lines){
+    let name="", brief=line;
+    const m=line.match(/^([^:|]{1,40}):\s*(.+)$/);                   // optional "name: brief"
+    if(m){ name=m[1].trim(); brief=m[2].trim(); }
+    const rec={brief}; priceAuditRecord(rec);                        // prices on the real engine (resets + re-parses)
+    const bind=$("binding")?$("binding").value:"none";
+    const lead = rec.unpriceable ? 0 : leadTimeDays($("product")?$("product").value:"", rec.qty, bind);
+    if(rec.unpriceable) anyUnpriced=true; else { grand+=rec.est; maxLead=Math.max(maxLead,lead); }
+    items.push({name:name||("Item "+(items.length+1)), qty:rec.qty, est:rec.est, unpriceable:rec.unpriceable, reason:rec.unpriceReason, lead, prod:rec.product});
+  }
+  const priced=items.filter(i=>!i.unpriceable).length;
+  const setLead = maxLead>0 ? maxLead + (priced>1?2:0) : 0;          // longest item + 2 days set collation/integration
+  const rows=items.map((it,i)=>{
+    const price = it.unpriceable ? `<span style="color:#c0392b">— (${(it.reason||"needs size/spec").slice(0,42)})</span>` : inr(it.est);
+    return `<tr><td>${i+1}</td><td>${String(it.name).replace(/</g,"&lt;")}</td><td>${it.prod||"—"}</td><td class="num">${it.qty?it.qty.toLocaleString("en-IN"):"—"}</td><td class="num">${price}</td><td class="num">${it.unpriceable?"—":it.lead+"d"}</td></tr>`;
+  }).join("");
+  out.innerHTML=
+    `<table><thead><tr><th>#</th><th>Item</th><th>Type</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Lead</th></tr></thead>`+
+    `<tbody>${rows}</tbody>`+
+    `<tfoot><tr class="total"><td colspan="4">SET TOTAL${anyUnpriced?" (priced items only)":""}</td><td class="num">${inr(grand)}</td><td class="num">${setLead?setLead+"d":"—"}</td></tr></tfoot></table>`+
+    `<div class="hint" style="margin-top:6px">Combined lead time = longest single item + 2 days set collation. Each item is priced on the real engine (reuses the estimator, resets the single-job fields). Unpriceable items need a size/spec.</div>`;
+}
 function priceAuditRecord(rec){
   const brief=rec.brief;
   resetParserFields();
@@ -5128,6 +5338,11 @@ function priceAuditRecord(rec){
   rec.frt   = Math.round(q.freight||0);
   rec.mgn   = Math.round(q.margin||0);
   rec.gapPct = rec.nk>0 ? Math.round((rec.est-rec.nk)/rec.nk*100) : "";
+  // MENU-RATE quote (sir's per-piece rate card + job minimum) — the APPLICABLE sell price for commodity
+  // short runs (cards/letterheads/tags), which sir prices off the rate card, not the plate-loaded cost quote.
+  const _mr=parseFloat(($("flatRatePc")||{}).value)||0, _mn=parseFloat(($("flatRateMin")||{}).value)||0;
+  rec.menu = (_mr>0 && rec.qty>0) ? Math.round(Math.max(_mr*rec.qty, _mn)) : 0;
+  rec.menuGapPct = (rec.menu>0 && rec.nk>0) ? Math.round((rec.menu-rec.nk)/rec.nk*100) : null;
   rec.product = $("product")?$("product").value:"";
   rec.margin  = $("margin")?$("margin").value:"";
   rec.ganged  = $("ganged")&&$("ganged").checked?"Y":"";
@@ -5162,6 +5377,7 @@ const DX_LABEL={
   BASIS_PERPIECE:"Per-lot / per-piece mismatch",
   NO_AMOUNT:"No recorded amount to compare",
   ALIGNED:"Aligned with recorded price",
+  MENU_ALIGNED:"Aligned with sir's menu rate",
   SHORT_RUN_LOADING:"Short-run press-cost loading",
   EMBELLISH_MISSING:"Embellishment in spec not costed",
   MULTI_ITEM:"Multi-item job — one component priced",
@@ -5190,12 +5406,22 @@ function diagnoseRecord(rec){
   if(nk<=0)            return set("NO_AMOUNT","high","n/a","no recorded price on this record");
   // ---- 2) aligned ----
   if(gap!=null && Math.abs(gap)<15) return set("ALIGNED","high","aligned",`gap ${gap>=0?"+":""}${gap}% within ±15%`);
+  // ---- 2b) aligned to sir's MENU RATE (commodity short runs) ----
+  // For cards/letterheads/tags sir quotes off his per-piece rate card, not the plate-loaded cost quote. When the
+  // menu-rate quote reconciles to the recorded ₹ (and the cost quote didn't), the row is NOT a mispricing — the
+  // model just used the wrong basis. Classify as menu-aligned so it stops showing as a false under/over-quote.
+  const menuGap=(rec.menuGapPct==null)?null:Number(rec.menuGapPct);
+  if(menuGap!=null && Math.abs(menuGap)<15){
+    const dir = gap==null?"n/a":(gap<0?"under":"over");
+    return set("MENU_ALIGNED","high",dir,`menu rate ₹${rec.menu} vs recorded ₹${nk} = ${menuGap>=0?"+":""}${menuGap}% (cost quote ${gap>=0?"+":""}${gap}% used wrong basis)`);
+  }
   // ---- component-derived signals ----
   const plate=Number(rec.plate)||0, emb=Number(rec.emb)||0;
   const plateShare=est>0?plate/est:0;                       // fixed press cost (plates + make-ready) as a share of total
-  const isConverting=/^(carton_|sleeve$|folder$)/.test(rec.product) || /\b(box|carton|tuck|mono ?carton|die ?cut)\b/.test(brief);
+  const isConverting=/^(carton_|sleeve$|folder$|envelope$|bag$)/.test(rec.product) || /\b(box|carton|tuck|mono ?carton|die ?cut|envelope|paper ?bag|carry ?bag)\b/.test(brief);
   const wantsEmb=/\b(gold|foil|silver|emboss|deboss|spot ?uv|spot-uv|metallic|foiling|blocking)\b/.test(brief);
-  const isMultiItem=(/\bcard\b/.test(brief)&&/\benvelope\b/.test(brief)) || /\b(\w+)\s+and\s+(\w+)\b.*\b(printing|color|colour)\b.*,.*\b(printing|color|colour)\b/.test(brief) || /\benvelope\b.*\bcard\b/.test(brief);
+  // multi-item = a bundled card+envelope OR an explicit "N types / N designs / N variants" (e.g. "leaflet 2 types")
+  const isMultiItem=(/\bcard\b/.test(brief)&&/\benvelope\b/.test(brief)) || /\b(\w+)\s+and\s+(\w+)\b.*\b(printing|color|colour)\b.*,.*\b(printing|color|colour)\b/.test(brief) || /\benvelope\b.*\bcard\b/.test(brief) || /\b([2-9])\s*(?:types?|designs?|variants?|kinds?|sets?|versions?)\b/.test(brief) || /\b(?:two|three|four|five)\s*(?:types?|designs?|variants?)\b/.test(brief);
   // ---- 3) under-quote branch (est below recorded) ----
   if(gap!=null && gap<=-15){
     if(isConverting)  return set("CONVERTING_UNDER","med","under",`product=${rec.product}; die/assembly not fully modeled (gap ${gap}%)`);
@@ -5623,6 +5849,42 @@ function printQuotation(){
     <div class="sign"><span>Customer acceptance</span><span>Authorised signatory</span></div>`;
   openPrintDocument(m.no+" quotation",body);
 }
+// ── PRODUCTION TRAVELLER (B2) — ordered shop-floor stages for THIS job, each with a QC parameter to check
+// before the stage passes. Stages are conditional on the product/process so the sheet only lists real steps.
+function productionSteps(x){
+  const p=$("product")?$("product").value:"", q=x.q||{}, bind=$("binding")?$("binding").value:"none";
+  const sig=typeof isSig==="function"&&isSig(p), dln=typeof isDieline==="function"&&isDieline(p);
+  const lf=typeof isLF==="function"&&isLF(p);
+  const perpc=(typeof isLanyard==="function"&&(isLanyard(p)||isPouch(p)))||p==="rigidbox"||(typeof isNCR==="function"&&isNCR(p));
+  const hasCoat=(q.lam||0)>0, hasEmb=(x.embTotal||0)>0, hasBind=bind&&bind!=="none";
+  const bindName=($("binding")&&$("binding").selectedOptions[0])?$("binding").selectedOptions[0].text:"Binding";
+  const S=[], add=(s,qc)=>S.push([s,qc]);
+  if(lf){ add("File / artwork check","Size, resolution ≥ output, bleed present");
+    add("Large-format print","Colour vs proof, no banding, media tension");
+    add("Finishing (hem / eyelet / roller)","Eyelet spacing even, hem straight, stand fits");
+    add("QC & dispatch","Count, no defects, delivery note"); return S; }
+  if(perpc){ add("Material / component check","Correct material, colour, count");
+    add("Printing / decoration","Position, colour match, adhesion");
+    add("Make / assembly","Stitch/paste/eyelet firm, square, clean");
+    add("QC & pack","Count, finish, no defects, label"); return S; }
+  add("Pre-press / plate-making","Registration + colour bars on plate; plate count = formes");
+  add("Paper cutting","Sheet size ±1 mm, grain direction, count incl. wastage");
+  add("Printing","Colour match to proof, registration, ink density, no set-off");
+  if(hasCoat) add("Coating / lamination","Full coverage, no bubble/wrinkle, adhesion");
+  if(hasEmb) add("Foil / embellishment","Position, adhesion, no smudge");
+  if(dln){ add("Die-cutting","Cut to forme, no nicks, crease aligned"); add("Gluing / assembly","Square, seams sealed, no glue squeeze-out"); }
+  else if(sig){ add("Folding","Fold accuracy, correct page sequence"); add(bindName,"Spine glue/stitch firm, sequence, cover aligned"); }
+  else if(hasBind && ["wireo","spiral","comb","pad"].includes(bind)) add(bindName,"As spec, square, firm");   // flat mechanical/pad only (notebooks/pads); a stale 'perfect' on a card is not a bind stage
+  add("Trimming","Finished size ±0.5 mm, square, clean edge");
+  add("Packing","Count per carton, condition, label");
+  add("Dispatch","Quantity, delivery note, address");
+  return S;
+}
+function productionTravellerHTML(x){
+  const steps=productionSteps(x);
+  const rows=steps.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s[0])}</td><td>${esc(s[1])}</td><td style="min-width:70px"></td><td style="min-width:44px"></td><td style="min-width:56px"></td></tr>`).join("");
+  return `<table><thead><tr><th>#</th><th>Stage</th><th>QC parameter — check before pass</th><th>Measured / OK</th><th>By</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 function printJobSheet(){
   if(!CHOSEN||!LASTINP||!printablePlanReady())return;
   const x=combinedPrice(),p=x.p,q=x.q,m=quoteMeta();
@@ -5634,6 +5896,7 @@ function printJobSheet(){
     <div><h2>Internal costing</h2><table>${costs.map((x,i)=>`<tr class="${i===costs.length-1?"total":""}"><td>${esc(x[0])}</td><td class="num">${money(x[1])}</td></tr>`).join("")}</table></div></div>
     <h2>Paper details</h2>${paperDetailsHTML(x)}
     <h2>Layout / cut sheet</h2>${sheetPicture(CHOSEN)}
+    <h2>Production traveller — step-by-step + QC ${(function(){var d=leadTimeDays($("product")?$("product").value:"",(LASTINP&&LASTINP.copies)||0,$("binding")?$("binding").value:"none");return `<span style="font-weight:normal;color:#555">(est. lead ${d} working day${d>1?"s":""})</span>`;})()}</h2>${productionTravellerHTML(x)}
     ${m.notes?`<h2>Instructions</h2><div class="box">${esc(m.notes)}</div>`:""}
     <div class="sign"><span>Pre-press checked</span><span>Production approved</span><span>Dispatch checked</span></div>`;
   openPrintDocument(m.no+" job sheet",body);
