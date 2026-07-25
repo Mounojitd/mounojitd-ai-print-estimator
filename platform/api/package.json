@@ -1,0 +1,12 @@
+{
+  "name": "print-catalog-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Catalog + rate-card API (Phase 0.4b) — rate cards as versioned data, with an admin panel. JSON dev store; Postgres in prod (schema.sql).",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node smoke.mjs"
+  }
+}
