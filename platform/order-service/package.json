@@ -1,0 +1,12 @@
+{
+  "name": "print-order-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Order & payment service (Phase 1.7) — turns a confirmed quote into an order with an advance/balance or credit schedule, and takes payment through a pluggable gateway (mock provider ships for dev).",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node smoke.mjs"
+  }
+}

@@ -73,12 +73,14 @@
 </div>
 
 <script>
+/*__CONFIG__*/
 const $ = (id) => document.getElementById(id);
 const inr = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
 let forcedProduct = null;
 
 async function api(path, opts) { const r = await fetch(path, opts); const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status)); return j; }
+function checkoutBase() { return (typeof window.ORDER_CHECKOUT_BASE === 'string' && window.ORDER_CHECKOUT_BASE) || ''; }
 
 // ---------- showcase ----------
 const FAM_LABEL = { book:'Books & booklets', flat:'Cards, flyers & stationery', largeformat:'Large format', perpiece:'Lanyards, pouches & tags', rigid:'Rigid & set-up boxes', calendar:'Calendars', converting:'Boxes, bags & converting' };
@@ -188,9 +190,11 @@ async function renderShared(token) {
       ${q.deliveryDate ? `<p class="lead" style="margin-top:12px">Delivery by <b>${esc(q.deliveryDate)}</b> (${q.leadTimeDays} working days from ${esc(q.asOf)}).</p>` : ''}
       <p class="muted">Quote ${esc(q.token)} · saved ${esc((q.created_at||'').slice(0,10))} · rate card ${esc(q.ratecardVersion || 'n/a')}</p>
       <hr/>
-      ${q.status === 'confirmed'
-        ? '<p class="ok">This quote has been confirmed. We\'ll be in touch about advance & scheduling.</p>'
-        : `<button onclick="confirmQuote('${esc(q.token)}')">Confirm this order</button> <span id="cf" class="muted"></span>`}
+      ${checkoutBase()
+        ? `<a href="${esc(checkoutBase())}/checkout/${esc(q.token)}"><button>Confirm &amp; pay →</button></a> <span class="muted">advance / balance or credit</span>`
+        : (q.status === 'confirmed'
+          ? '<p class="ok">This quote has been confirmed. We\'ll be in touch about advance &amp; scheduling.</p>'
+          : `<button onclick="confirmQuote('${esc(q.token)}')">Confirm this order</button> <span id="cf" class="muted"></span>`)}
       <p style="margin-top:14px"><a href="#" onclick="location.hash='';return false;">← Start a new quote</a></p>
     </div>`;
   } catch (e) { $('shared').innerHTML = '<div class="card warn">Could not load this quote: ' + esc(e.message) + '</div>'; }

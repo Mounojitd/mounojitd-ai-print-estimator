@@ -25,6 +25,7 @@ import { store as quotes, addWorkingDays, nowISO } from './store.mjs';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8795);
 const PRICING_URL = process.env.PRICING_URL || 'http://127.0.0.1:8787';
+const ORDER_CHECKOUT_BASE = process.env.ORDER_CHECKOUT_URL || '';   // P1.7: if set, "Confirm order" → order-service checkout
 const APP = resolve(__dir, 'public', 'index.html');
 
 const json = (res, code, obj) => { const b = JSON.stringify(obj); res.writeHead(code, { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type' }); res.end(b); };
@@ -52,7 +53,10 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && path === '/health') return json(res, 200, { ok: true, pricingUrl: PRICING_URL, catalog: catalog.listTemplates().length, quotes: quotes.list({ limit: 1e9 }).length });
 
     if (req.method === 'GET' && path === '/') {
-      if (existsSync(APP)) { res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(readFileSync(APP)); }
+      if (existsSync(APP)) {
+        const app = readFileSync(APP, 'utf8').replace('/*__CONFIG__*/', `window.ORDER_CHECKOUT_BASE=${JSON.stringify(ORDER_CHECKOUT_BASE)};`);
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(app);
+      }
       return json(res, 200, { hint: 'customer app missing; use the JSON endpoints' });
     }
 

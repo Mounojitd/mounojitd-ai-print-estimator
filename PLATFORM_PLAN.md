@@ -84,7 +84,10 @@ Product breadth (Track A) is effectively complete in the engine, so this plan is
    (calls the pricing service) → quote saved + shareable by token with a delivery date. Delivered as
    `platform/quote-service/` (customer web app + `/intake`, `/quotes`, `/quotes/:token`). Intake uses
    the engine's validated parser today; the LLM intake is a drop-in behind the same `/intake` seam.
-5. **P1.7 — Order & payment**: pluggable gateway; advance/balance.
+5. **P1.7 — Order & payment** ✅: confirmed quote → order with an advance/balance (or credit) schedule
+   → payment through a pluggable gateway (mock provider ships; real ones are a drop-in behind the same
+   interface). Checkout honours the quoted total (no re-price); order status is derived from payments.
+   Delivered as `platform/order-service/`.
 6. **B1 — History match**: ingest past jobs (private DB stays server-side) + embeddings; "show
    me what we did for a school annual report" → recommend a configured solution.
 7. **B2/B3 — Production + actuals**: the engine's production traveller becomes DB-backed job

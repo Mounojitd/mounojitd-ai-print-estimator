@@ -26,3 +26,6 @@ platform/api/data/rate_card_history.json
 
 # saved customer quotes (created at runtime; may hold customer contact details)
 platform/quote-service/data/
+
+# orders + payments (created at runtime; hold customer + payment detail)
+platform/order-service/data/
