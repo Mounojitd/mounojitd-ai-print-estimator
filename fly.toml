@@ -1,0 +1,40 @@
+# Fly.io deployment for the AI Print platform.
+# The app name must be globally unique — change it, or pass `fly launch --name <name>`.
+# Deploy from the REPO ROOT (so the engine HTML is in the build context):
+#     fly apps create andreal-print-platform
+#     fly volumes create print_data --size 1 --region bom --app andreal-print-platform
+#     fly deploy
+app = "andreal-print-platform"
+primary_region = "bom"            # Mumbai — closest Fly region to India; change if you prefer
+
+[build]
+  dockerfile = "platform/Dockerfile"
+
+[env]
+  PORT = "8080"
+  DATA_ROOT = "/data"
+  # START_FULL = "1"              # uncomment to also boot order/production/vendor on internal ports
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"     # scale to zero when idle (cheapest); first hit cold-starts Chromium (~10s)
+  auto_start_machines = true
+  min_machines_running = 0        # set to 1 for always-on (no cold start, small always-on cost)
+
+  [[http_service.checks]]
+    method = "GET"
+    path = "/health"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "45s"          # allow the headless engine to warm up before health passes
+
+# Chromium needs real memory — 256MB (the default) will OOM. 2 GB is comfortable.
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "2gb"
+
+# Persist saved quotes across deploys/restarts.
+[mounts]
+  source = "print_data"
+  destination = "/data"

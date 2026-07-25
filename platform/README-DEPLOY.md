@@ -41,11 +41,31 @@ PORT=8080 node start-all.mjs
 | `HISTORY_JOBS` | the committed **synthetic** fixture | path to anonymised job specs for B1 samples; point at your own to use real ones |
 | `START_FULL` | unset | `1` also boots order/production/vendor (internal ports — see below) |
 
-## Hosting options
+## Deploy to Fly.io (config included — `fly.toml` at the repo root)
 
-Any Docker host with **~2 GB RAM** (Chromium needs it): a small **VM** (`docker run -p 80:8080 …`),
-**Render** / **Railway** / **Fly.io** (point them at `platform/Dockerfile`, build context = repo root),
-or your own Kubernetes. Set the platform's `PORT` to whatever the host injects.
+```bash
+# 1. one-time: install flyctl + log in
+curl -L https://fly.io/install.sh | sh          # (or: brew install flyctl)
+fly auth login
+
+# 2. from the REPO ROOT (fly.toml + the engine HTML are here)
+fly apps create andreal-print-platform          # pick a unique name; edit `app =` in fly.toml to match
+fly volumes create print_data --size 1 --region bom --app andreal-print-platform
+fly deploy                                       # builds platform/Dockerfile, ~a few min (Chromium)
+
+fly open                                          # opens https://<app>.fly.dev  → the AI homepage
+fly logs                                          # watch it boot ("AI Print platform up")
+```
+
+`fly.toml` is preset: Mumbai region (`bom`), **2 GB RAM** (Chromium OOMs on the 256 MB default), a `/health`
+check with a warm-up grace period, and a `/data` volume so saved quotes persist. It **scales to zero when
+idle** (cheapest) — the first visit cold-starts in ~10 s; set `min_machines_running = 1` for always-on.
+
+## Other hosts
+
+Any Docker host with **~2 GB RAM**: a small **VM** (`docker run -p 80:8080 …`), **Render** / **Railway**
+(point them at `platform/Dockerfile`, build context = repo root), or Kubernetes. Set `PORT` to whatever the
+host injects.
 
 ## What's exposed, and what's next
 
