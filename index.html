@@ -5849,6 +5849,42 @@ function printQuotation(){
     <div class="sign"><span>Customer acceptance</span><span>Authorised signatory</span></div>`;
   openPrintDocument(m.no+" quotation",body);
 }
+// ── PRODUCTION TRAVELLER (B2) — ordered shop-floor stages for THIS job, each with a QC parameter to check
+// before the stage passes. Stages are conditional on the product/process so the sheet only lists real steps.
+function productionSteps(x){
+  const p=$("product")?$("product").value:"", q=x.q||{}, bind=$("binding")?$("binding").value:"none";
+  const sig=typeof isSig==="function"&&isSig(p), dln=typeof isDieline==="function"&&isDieline(p);
+  const lf=typeof isLF==="function"&&isLF(p);
+  const perpc=(typeof isLanyard==="function"&&(isLanyard(p)||isPouch(p)))||p==="rigidbox"||(typeof isNCR==="function"&&isNCR(p));
+  const hasCoat=(q.lam||0)>0, hasEmb=(x.embTotal||0)>0, hasBind=bind&&bind!=="none";
+  const bindName=($("binding")&&$("binding").selectedOptions[0])?$("binding").selectedOptions[0].text:"Binding";
+  const S=[], add=(s,qc)=>S.push([s,qc]);
+  if(lf){ add("File / artwork check","Size, resolution ≥ output, bleed present");
+    add("Large-format print","Colour vs proof, no banding, media tension");
+    add("Finishing (hem / eyelet / roller)","Eyelet spacing even, hem straight, stand fits");
+    add("QC & dispatch","Count, no defects, delivery note"); return S; }
+  if(perpc){ add("Material / component check","Correct material, colour, count");
+    add("Printing / decoration","Position, colour match, adhesion");
+    add("Make / assembly","Stitch/paste/eyelet firm, square, clean");
+    add("QC & pack","Count, finish, no defects, label"); return S; }
+  add("Pre-press / plate-making","Registration + colour bars on plate; plate count = formes");
+  add("Paper cutting","Sheet size ±1 mm, grain direction, count incl. wastage");
+  add("Printing","Colour match to proof, registration, ink density, no set-off");
+  if(hasCoat) add("Coating / lamination","Full coverage, no bubble/wrinkle, adhesion");
+  if(hasEmb) add("Foil / embellishment","Position, adhesion, no smudge");
+  if(dln){ add("Die-cutting","Cut to forme, no nicks, crease aligned"); add("Gluing / assembly","Square, seams sealed, no glue squeeze-out"); }
+  else if(sig){ add("Folding","Fold accuracy, correct page sequence"); add(bindName,"Spine glue/stitch firm, sequence, cover aligned"); }
+  else if(hasBind && ["wireo","spiral","comb","pad"].includes(bind)) add(bindName,"As spec, square, firm");   // flat mechanical/pad only (notebooks/pads); a stale 'perfect' on a card is not a bind stage
+  add("Trimming","Finished size ±0.5 mm, square, clean edge");
+  add("Packing","Count per carton, condition, label");
+  add("Dispatch","Quantity, delivery note, address");
+  return S;
+}
+function productionTravellerHTML(x){
+  const steps=productionSteps(x);
+  const rows=steps.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s[0])}</td><td>${esc(s[1])}</td><td style="min-width:70px"></td><td style="min-width:44px"></td><td style="min-width:56px"></td></tr>`).join("");
+  return `<table><thead><tr><th>#</th><th>Stage</th><th>QC parameter — check before pass</th><th>Measured / OK</th><th>By</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 function printJobSheet(){
   if(!CHOSEN||!LASTINP||!printablePlanReady())return;
   const x=combinedPrice(),p=x.p,q=x.q,m=quoteMeta();
@@ -5860,6 +5896,7 @@ function printJobSheet(){
     <div><h2>Internal costing</h2><table>${costs.map((x,i)=>`<tr class="${i===costs.length-1?"total":""}"><td>${esc(x[0])}</td><td class="num">${money(x[1])}</td></tr>`).join("")}</table></div></div>
     <h2>Paper details</h2>${paperDetailsHTML(x)}
     <h2>Layout / cut sheet</h2>${sheetPicture(CHOSEN)}
+    <h2>Production traveller — step-by-step + QC ${(function(){var d=leadTimeDays($("product")?$("product").value:"",(LASTINP&&LASTINP.copies)||0,$("binding")?$("binding").value:"none");return `<span style="font-weight:normal;color:#555">(est. lead ${d} working day${d>1?"s":""})</span>`;})()}</h2>${productionTravellerHTML(x)}
     ${m.notes?`<h2>Instructions</h2><div class="box">${esc(m.notes)}</div>`:""}
     <div class="sign"><span>Pre-press checked</span><span>Production approved</span><span>Dispatch checked</span></div>`;
   openPrintDocument(m.no+" job sheet",body);
