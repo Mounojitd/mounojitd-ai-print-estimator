@@ -366,9 +366,12 @@
           <!-- Editable gold/silver screen-printing rate (NKK sir): screen ink is setup-heavy + coverage-dependent, so
                the built-in area rate under-quotes short premium runs. Enter the real ₹/copy here to override it. -->
           <div class="row3">
-            <div class="fld"><label>Screen ink ₹ / copy / side</label><input id="scrRate" type="number" step="1" value="0" placeholder="0 = built-in" oninput="showPrice()" /><div class="hint">gold/silver screen override; 0 uses the default rate</div></div>
+            <div class="fld"><label>Screen ink ₹ / copy / side</label><input id="scrRate" type="number" step="1" value="0" placeholder="0 = built-in" oninput="showPrice()" /><div class="hint">running cost per impression; 0 (with 0 setup) uses the default</div></div>
+            <div class="fld"><label>Screen setup ₹ (one-time)</label><input id="scrSetup" type="number" step="500" value="0" oninput="showPrice()" /><div class="hint">screens / registration — amortises over qty</div></div>
             <div class="fld"><label>Screen sides</label><input id="scrSides" type="number" step="1" min="1" max="2" value="2" oninput="showPrice()" /><div class="hint">cover only = 1, cover + back = 2</div></div>
-            <div class="fld"><label>Screen job min ₹</label><input id="scrMin" type="number" step="500" value="8000" oninput="showPrice()" /></div>
+          </div>
+          <div class="row3">
+            <div class="fld"><label>Screen job min ₹</label><input id="scrMin" type="number" step="500" value="8000" oninput="showPrice()" /><div class="hint">floor: cost = max(setup + rate×qty×sides, min)</div></div>
           </div>
         </div>
         <div id="hardcaseFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
@@ -691,9 +694,12 @@
         </div>
         <!-- Editable gold/silver screen rate for flat products — same override as the cover panel. -->
         <div class="row3">
-          <div class="fld"><label>Screen ink ₹ / copy / side</label><input id="flatScrRate" type="number" step="1" value="0" placeholder="0 = built-in" oninput="showPrice()" /><div class="hint">gold/silver screen override; 0 uses the default rate</div></div>
+          <div class="fld"><label>Screen ink ₹ / copy / side</label><input id="flatScrRate" type="number" step="1" value="0" placeholder="0 = built-in" oninput="showPrice()" /><div class="hint">running cost per impression; 0 (with 0 setup) uses the default</div></div>
+          <div class="fld"><label>Screen setup ₹ (one-time)</label><input id="flatScrSetup" type="number" step="500" value="0" oninput="showPrice()" /><div class="hint">screens / registration — amortises over qty</div></div>
           <div class="fld"><label>Screen sides</label><input id="flatScrSides" type="number" step="1" min="1" max="2" value="1" oninput="showPrice()" /><div class="hint">one side = 1, both sides = 2</div></div>
-          <div class="fld"><label>Screen job min ₹</label><input id="flatScrMin" type="number" step="500" value="8000" oninput="showPrice()" /></div>
+        </div>
+        <div class="row3">
+          <div class="fld"><label>Screen job min ₹</label><input id="flatScrMin" type="number" step="500" value="8000" oninput="showPrice()" /><div class="hint">floor: cost = max(setup + rate×qty×sides, min)</div></div>
         </div>
       </div>
       <div id="jkFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#3f7c9c;background:#eef6fa">
@@ -2659,13 +2665,14 @@ function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cove
   // under-quotes setup-heavy short premium runs. Fields differ for flat vs cover jobs; 0 = use the default.
   const isFlat = LASTINP && !LASTINP.separateCover && !LASTINP.isSig;
   const fld = suffix => { const el=$(isFlat?"flatScr"+suffix:"scr"+suffix); return el?parseFloat(el.value)||0:0; };
-  const scrRate=fld("Rate"), scrSides=fld("Sides")||1, scrMin=fld("Min");
+  const scrRate=fld("Rate"), scrSides=fld("Sides")||1, scrMin=fld("Min"), scrSetup=fld("Setup");
   const qty = (LASTINP&&LASTINP.copies)||parseInt(String((($("copies2")||$("copies")||{}).value)||"").replace(/[^0-9]/g,""),10)||0;
   return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none;
     const isScreen = /^screen_/.test(v);
-    if(isScreen && scrRate>0 && qty>0){                   // per-copy override for screen ink
-      const cost=Math.max(scrRate*qty*scrSides, scrMin>0?scrMin:e.min);
-      return {name:`${e.name} (₹${scrRate}/copy × ${scrSides} side${scrSides>1?"s":""})`, cost};
+    if(isScreen && (scrRate>0||scrSetup>0) && qty>0){     // override: one-time setup + per-copy ink (amortises over qty)
+      const cost=Math.max(scrSetup + scrRate*qty*scrSides, scrMin>0?scrMin:e.min);
+      const parts=[]; if(scrSetup>0)parts.push(`₹${scrSetup} setup`); if(scrRate>0)parts.push(`₹${scrRate}/copy × ${scrSides} side${scrSides>1?"s":""}`);
+      return {name:`${e.name} (${parts.join(" + ")})`, cost};
     }
     const s = isScreen ? sides : 1;                       // only screen embellishments are side-scaled
     const minScaled = e.min*(1+(s-1)*SCREEN_SIDE_MIN_SCALE);
