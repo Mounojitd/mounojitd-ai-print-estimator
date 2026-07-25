@@ -209,7 +209,13 @@ async function confirmQuote(token) {
 function route() {
   const m = location.hash.match(/^#\/q\/([a-z0-9]+)/i);
   if (m) { renderShared(m[1]); }
-  else { $('shared').classList.add('hide'); $('main').classList.remove('hide'); if (!$('catalog').dataset.loaded) { loadCatalog(); $('catalog').dataset.loaded = '1'; } }
+  else {
+    $('shared').classList.add('hide'); $('main').classList.remove('hide');
+    if (!$('catalog').dataset.loaded) { loadCatalog(); $('catalog').dataset.loaded = '1'; }
+    // B1 handoff: a "Price this live" link from the history-match tool prefills the brief.
+    const b = new URLSearchParams(location.search).get('brief');
+    if (b && !$('brief').value) { $('brief').value = b; $('intakeMsg').textContent = 'Prefilled from a past job — edit anything, then get your estimate.'; }
+  }
 }
 window.addEventListener('hashchange', route);
 route();

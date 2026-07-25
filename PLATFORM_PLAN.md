@@ -88,8 +88,10 @@ Product breadth (Track A) is effectively complete in the engine, so this plan is
    → payment through a pluggable gateway (mock provider ships; real ones are a drop-in behind the same
    interface). Checkout honours the quoted total (no re-price); order status is derived from payments.
    Delivered as `platform/order-service/`.
-6. **B1 — History match**: ingest past jobs (private DB stays server-side) + embeddings; "show
-   me what we did for a school annual report" → recommend a configured solution.
+6. **B1 — History match** ✅: ingest past jobs (private DB stays server-side, anonymised) + lexical
+   TF-IDF (embeddings a drop-in); "show me what we did for a school annual report" → recommend a
+   configured solution (spec + ready-to-quote brief). Historical prices are never surfaced or reused —
+   the live engine prices the recommendation. Delivered as `platform/history-service/`.
 7. **B2/B3 — Production + actuals**: the engine's production traveller becomes DB-backed job
    travellers; capture actuals vs estimate; feed corrections back into rate cards.
 8. **B4/B5 — Vendors, POs, bought-out** routing.

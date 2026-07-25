@@ -1,0 +1,13 @@
+{
+  "name": "print-history-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "History-match service (Phase B1) — 'show me what we did for X' → recommend a configured solution from past jobs. Server-side only; anonymised (no amounts/clients); recommends the spec, the live engine prices it.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node smoke.mjs",
+    "ingest": "python3 tools/export_history.py"
+  }
+}

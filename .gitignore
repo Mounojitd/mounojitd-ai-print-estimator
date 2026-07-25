@@ -29,3 +29,6 @@ platform/quote-service/data/
 
 # orders + payments (created at runtime; hold customer + payment detail)
 platform/order-service/data/
+
+# B1 history index — anonymised but derived from the confidential DB; keep LOCAL, never commit
+platform/history-service/data/
