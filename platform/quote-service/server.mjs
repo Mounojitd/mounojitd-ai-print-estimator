@@ -22,12 +22,26 @@ import { dirname, resolve } from 'node:path';
 import { store as catalog } from '../api/store.mjs';
 import { servePhoto } from '../api/photos.mjs';
 import { store as quotes, addWorkingDays, nowISO } from './store.mjs';
+import { classifyIntent, friendlyMissing, CUSTOM_PARAMS } from './discover.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8795);
 const PRICING_URL = process.env.PRICING_URL || 'http://127.0.0.1:8787';
+const HISTORY_URL = process.env.HISTORY_URL || '';                 // optional: real work samples for discovery (B1)
 const ORDER_CHECKOUT_BASE = process.env.ORDER_CHECKOUT_URL || '';   // P1.7: if set, "Confirm order" → order-service checkout
 const APP = resolve(__dir, 'public', 'index.html');
+const DISCOVER_APP = resolve(__dir, 'public', 'discover.html');    // the AI-first homepage
+
+// Real past-work samples for a category (from the history-match service, B1). Anonymised; empty if unavailable.
+async function fetchSamples(query, limit = 4) {
+  if (!HISTORY_URL || !query) return [];
+  try {
+    const r = await fetch(`${HISTORY_URL}/search`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query, limit }) });
+    if (!r.ok) return [];
+    const j = await r.json();
+    return (j.matches || []).map((m) => ({ productType: m.productType, spec: m.spec, suggestedBrief: m.suggestedBrief, photo: m.photo || null }));
+  } catch { return []; }
+}
 
 const json = (res, code, obj) => { const b = JSON.stringify(obj); res.writeHead(code, { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'access-control-allow-methods': 'GET,POST,OPTIONS', 'access-control-allow-headers': 'content-type' }); res.end(b); };
 const body = (req) => new Promise((ok, no) => { let d = ''; req.on('data', (c) => { d += c; if (d.length > 1e6) req.destroy(); }); req.on('end', () => ok(d)); req.on('error', no); });
@@ -53,12 +67,50 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && path === '/health') return json(res, 200, { ok: true, pricingUrl: PRICING_URL, catalog: catalog.listTemplates().length, quotes: quotes.list({ limit: 1e9 }).length });
 
-    if (req.method === 'GET' && path === '/') {
-      if (existsSync(APP)) {
-        const app = readFileSync(APP, 'utf8').replace('/*__CONFIG__*/', `window.ORDER_CHECKOUT_BASE=${JSON.stringify(ORDER_CHECKOUT_BASE)};`);
-        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(app);
+    // Homepage = the AI-first discovery app; the classic form app stays at /classic.
+    if (req.method === 'GET' && (path === '/' || path === '/classic')) {
+      const file = (path === '/' && existsSync(DISCOVER_APP)) ? DISCOVER_APP : APP;
+      if (existsSync(file)) {
+        const html = readFileSync(file, 'utf8').replace('/*__CONFIG__*/', `window.ORDER_CHECKOUT_BASE=${JSON.stringify(ORDER_CHECKOUT_BASE)};window.HAS_HISTORY=${JSON.stringify(!!HISTORY_URL)};`);
+        res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(html);
       }
       return json(res, 200, { hint: 'customer app missing; use the JSON endpoints' });
+    }
+
+    // AI discovery — one conversational turn. Client sends the running {brief} + latest {message}; server
+    // classifies the product, asks the engine to price, and either returns the estimate or asks ONLY for the
+    // fields the engine says are missing. Stateless: the client keeps the accumulating brief.
+    if (req.method === 'POST' && path === '/discover') {
+      let input; try { input = JSON.parse((await body(req)) || '{}'); } catch { return json(res, 400, { error: 'invalid JSON' }); }
+      const message = String(input.message || '').trim();
+      const prevBrief = String(input.brief || '').trim();
+      if (!message && !prevBrief) return json(res, 400, { error: 'message is required' });
+      const brief = [prevBrief, message].filter(Boolean).join(', ');
+
+      let intent = input.product ? { key: input.product, label: null } : classifyIntent(brief);
+      if (intent && intent.wantsUpload) {
+        return json(res, 200, { mode: 'upload', brief, reply: "Happy to match an existing design — image upload is coming in the next phase. For now, tell me the product and I'll find close samples and price it (e.g. “brochure, A4, 8 pages, 1000 qty”).", samples: [], estimate: null });
+      }
+      if (!intent) {
+        return json(res, 200, { mode: 'custom', brief, reply: `No problem — let's build it custom. Tell me what you need and I'll ask only for what's missing: ${CUSTOM_PARAMS.slice(0, 5).join(', ')}…`, missing: CUSTOM_PARAMS, samples: [], estimate: null });
+      }
+
+      let est; try { est = await price({ brief, product: intent.key }); } catch (e) { return json(res, e.code || 502, { error: String(e.message || e) }); }
+      const label = intent.label || est.product;
+      const firstTurn = !prevBrief;   // fetch samples once, when we first identify the product
+      const samples = firstTurn ? await fetchSamples(label || est.product, 4) : [];
+
+      if (est.unpriceable) {
+        const missing = friendlyMissing(est.reason);
+        const ask = missing.length ? `To price your ${label}, I just need ${missing.join(', ')}. What ${missing[0]}?` : `Tell me a bit more about your ${label} — ${est.reason || 'a few details'}.`;
+        return json(res, 200, { mode: 'discover', brief, product: est.product, label, reply: ask, missing, samples, estimate: null });
+      }
+      const p = est.price;
+      return json(res, 200, {
+        mode: 'discover', brief, product: est.product, label, samples,
+        reply: `Here's an instant estimate for your ${label} — ${est.quantity ? est.quantity.toLocaleString('en-IN') + ' pcs' : ''}. You can save it, tweak the spec, or customise further.`,
+        estimate: { quantity: est.quantity, spec: est.spec, leadTimeDays: est.leadTimeDays, price: p, ratecardVersion: est.ratecardVersion },
+      });
     }
 
     // Product photos (real product pictures, one per product key) — served from PHOTOS_DIR.
