@@ -23,3 +23,6 @@ node_modules/
 
 # runtime rate-card change log (created by the API at runtime)
 platform/api/data/rate_card_history.json
+
+# saved customer quotes (created at runtime; may hold customer contact details)
+platform/quote-service/data/

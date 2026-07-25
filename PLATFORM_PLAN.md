@@ -80,8 +80,10 @@ Product breadth (Track A) is effectively complete in the engine, so this plan is
 3. **P0.4c — Wire the engine to the rate cards** ✅: pricing service loads the rate cards at
    startup / `POST /reload` and mutates the engine's rate globals; an admin edit now moves future
    quotes; every estimate is stamped with a `ratecardVersion` fingerprint. Closes the code→data loop.
-4. **P1 — Customer slice**: showcase → AI intake (LLM) → spec confirm → estimate (calls the
-   service) → quote saved + shareable with delivery date.
+4. **P1 — Customer slice** ✅: showcase → intake (plain-language brief) → spec confirm → estimate
+   (calls the pricing service) → quote saved + shareable by token with a delivery date. Delivered as
+   `platform/quote-service/` (customer web app + `/intake`, `/quotes`, `/quotes/:token`). Intake uses
+   the engine's validated parser today; the LLM intake is a drop-in behind the same `/intake` seam.
 5. **P1.7 — Order & payment**: pluggable gateway; advance/balance.
 6. **B1 — History match**: ingest past jobs (private DB stays server-side) + embeddings; "show
    me what we did for a school annual report" → recommend a configured solution.

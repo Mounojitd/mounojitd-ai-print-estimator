@@ -1,0 +1,12 @@
+{
+  "name": "print-quote-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Quote service (Phase 1) — the customer slice: showcase → intake → spec confirm → estimate → saved shareable quote with delivery date. Prices via the pricing-service; catalogue via the catalog store.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node smoke.mjs"
+  }
+}

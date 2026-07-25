@@ -93,8 +93,19 @@ async function estimate({ brief, product, qty, margin }) {
     const lead = (typeof leadTimeDays === 'function') ? leadTimeDays(prod, usedQty, bind) : null;
     const mr = parseFloat(($('flatRatePc') || {}).value) || 0, mn = parseFloat(($('flatRateMin') || {}).value) || 0;
     const unpriceable = !!x.unpriceable || !!err;
+    // Human-readable echo of what the engine detected, so the customer can CONFIRM the spec before ordering.
+    const val = (id) => { const el = $(id); return el ? String(el.value).trim() : ''; };
+    const num = (id) => { const v = parseFloat(val(id)); return isFinite(v) && v > 0 ? v : null; };
+    const selText = (id) => { const el = $(id); return el && el.selectedIndex >= 0 && el.options[el.selectedIndex] ? el.options[el.selectedIndex].text.trim() : ''; };
+    const w = num('W'), h = num('H'), lam = val('lam'), pages = num('pages');
+    const spec = {};
+    if (w && h) spec.size = `${w} × ${h} in`;
+    if (num('gsm')) spec.gsm = num('gsm');
+    if (pages) spec.pages = pages;
+    if (bind && bind !== 'none') spec.binding = selText('binding') || bind;
+    if (lam && lam !== 'none') spec.lamination = selText('lam') || lam;
     return {
-      product: prod, quantity: usedQty,
+      product: prod, quantity: usedQty, spec,
       unpriceable, reason: unpriceable ? (err || x.reason || 'no valid spec') : null,
       leadTimeDays: lead,
       price: unpriceable ? null : {
