@@ -1,0 +1,54 @@
+name: Deploy to Fly.io
+
+# Deploys the AI Print platform to Fly.io using Fly's REMOTE builder (no Docker needed anywhere).
+# One-time setup: add a repo secret FLY_API_TOKEN (see platform/README-DEPLOY.md → "Auto-deploy via GitHub").
+# Runs on every push to main that touches the app, and can be triggered by hand (Actions → Run workflow).
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'platform/**'
+      - 'paper_calculator.html'
+      - 'fly.toml'
+      - '.github/workflows/fly-deploy.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: fly-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      FLY_APP: andreal-print-platform      # must match `app =` in fly.toml; change both if the name is taken
+      FLY_REGION: bom
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Guard — token present
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::FLY_API_TOKEN secret is missing. Add it in GitHub → Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Ensure app exists
+        run: flyctl apps create "$FLY_APP" --org personal || echo "app already exists — continuing"
+
+      - name: Ensure data volume exists
+        run: |
+          if flyctl volumes list -a "$FLY_APP" 2>/dev/null | grep -q print_data; then
+            echo "volume print_data already exists"
+          else
+            flyctl volumes create print_data --region "$FLY_REGION" --size 1 -a "$FLY_APP" --yes
+          fi
+
+      - name: Deploy
+        run: flyctl deploy --remote-only -a "$FLY_APP"
+
+      - name: Show URL
+        run: echo "Deployed → https://$FLY_APP.fly.dev"
