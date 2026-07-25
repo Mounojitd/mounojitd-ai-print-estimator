@@ -2506,9 +2506,23 @@ function machinesFor(sw,sh,need){ return MACHINES.filter(m=>machineFit(m,sw,sh)=
 // press-dependent cost (printing + plates) for the current job on a given press — for comparison
 function pressPrintCost(machine){ try{ const q=priceJob(CHOSEN,currentPriceParams(),machine); return q.printing+q.plates; }catch(e){ return Infinity; } }
 let MANUAL_PICK=null;                            // remembered manual press (survives auto-reruns)
+// Link a press to ITS OWN rate card (NKK sir: the machine drives the one-time + printing cost). Name-matched
+// to an existing PRINT_SOURCES entry only — no guessed rates. Presses without a dedicated card keep the
+// current rate source (returns null). When more vendor rate cards land, extend this map, not the rates.
+function machineRateSrc(m){
+  if(!m) return null; const n=(m.name||"").toLowerCase();
+  if(/heidelberg-?\s*102/.test(n)) return "nabamudran";
+  if(/l-?\s*40/.test(n))           return "komori_l40";
+  if(/l-?\s*32/.test(n))           return "komori_l32";
+  return null;
+}
 function selectMachine(name){
   SELECTED_MACHINE=MACHINES.find(m=>m.name===name)||SELECTED_MACHINE;
   if(MACHINE_MODE==="manual") MANUAL_PICK=SELECTED_MACHINE;
+  // Manual pick = a deliberate vendor choice → apply that press's own rate card (if it has one). User can
+  // still override the rate source afterward; auto mode is unchanged (keeps the agreement/band rate).
+  if(MACHINE_MODE==="manual"){ const rs=machineRateSrc(SELECTED_MACHINE), sel=$("printSrc");
+    if(rs && sel && [...sel.options].some(o=>o.value===rs)) sel.value=rs; }
   const base=CHOSEN_BASE||CHOSEN, eff=applyMachineCut(base,SELECTED_MACHINE); CHOSEN=eff;
   if(MACHINE_MODE==="manual"&&base) renderMachine(base);
   if(eff){ $("m_size").textContent=`${eff.sw} × ${eff.sh} in`; $("m_sub").innerHTML=sheetSummary(eff);
