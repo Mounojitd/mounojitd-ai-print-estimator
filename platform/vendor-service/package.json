@@ -1,0 +1,13 @@
+{
+  "name": "print-vendor-service",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vendor + purchase-order service (Phase B4/B5) — vendor master, bought-out routing of a job's traveller stages, and purchase orders with a draft→issued→received→closed lifecycle.",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs",
+    "smoke": "node smoke.mjs",
+    "import-vendors": "python3 tools/import_vendors.py"
+  }
+}

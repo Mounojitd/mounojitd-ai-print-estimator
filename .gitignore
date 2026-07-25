@@ -38,3 +38,7 @@ platform/api/data/photos/
 
 # production jobs + actuals (created at runtime; hold customer + operational detail)
 platform/production-service/data/
+
+# vendor runtime store: the REAL vendor master (names/contacts/GST) + POs stay LOCAL. Seed + rules are committed.
+platform/vendor-service/data/vendors.json
+platform/vendor-service/data/pos.json

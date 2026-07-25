@@ -1,0 +1,9 @@
+[
+  { "id": "VEN-SEED-01", "name": "Sample Paper & Board Co.", "type": "Paper Supplier", "capabilities": ["paper", "board", "material", "cutting"], "contact": { "person": "—", "phone": "", "email": "" }, "paymentTerms": "COD", "discountPct": 20, "active": true },
+  { "id": "VEN-SEED-02", "name": "Sample Postpress Works", "type": "Postpress Vendor", "capabilities": ["lamination", "coating", "foil", "diecut", "gluing", "binding"], "contact": { "person": "—", "phone": "", "email": "" }, "paymentTerms": "7 day", "discountPct": 0, "active": true },
+  { "id": "VEN-SEED-03", "name": "Sample Bindery", "type": "Postpress Vendor", "capabilities": ["binding", "folding", "gluing"], "contact": { "person": "—", "phone": "", "email": "" }, "paymentTerms": "7 day", "discountPct": 0, "active": true },
+  { "id": "VEN-SEED-04", "name": "Sample Large-Format & Digital", "type": "Digital Vendor", "capabilities": ["digital", "largeformat", "printing"], "contact": { "person": "—", "phone": "", "email": "" }, "paymentTerms": "COD", "discountPct": 0, "active": true },
+  { "id": "VEN-SEED-05", "name": "Sample Offset Press", "type": "Printing Vendor", "capabilities": ["offset", "printing"], "contact": { "person": "—", "phone": "", "email": "" }, "paymentTerms": "7 day", "discountPct": 0, "active": true },
+  { "id": "VEN-SEED-06", "name": "Sample Materials & Ink", "type": "Material Vendor", "capabilities": ["material", "ink", "foil", "film", "consumable"], "contact": { "person": "—", "phone": "", "email": "" }, "paymentTerms": "COD", "discountPct": 10, "active": true },
+  { "id": "VEN-SEED-07", "name": "Sample Transport", "type": "Transporter", "capabilities": ["dispatch", "courier", "transport"], "contact": { "person": "—", "phone": "", "email": "" }, "paymentTerms": "COD", "discountPct": 0, "active": true }
+]

@@ -96,7 +96,10 @@ Product breadth (Track A) is effectively complete in the engine, so this plan is
    engine's production traveller; operations advance each stage; actuals are captured and compared to the
    estimate, and a persistent per-product gap surfaces an *advisory* rate-card correction (human approves in
    the admin, pricing reloads). Delivered as `platform/production-service/`.
-8. **B4/B5 — Vendors, POs, bought-out** routing.
+8. **B4/B5 — Vendors, POs, bought-out routing** ✅: a vendor master (typed + capability-tagged), a rule that
+   classifies each traveller stage as in-house vs bought-out and suggests capable vendors, and purchase orders
+   (lines + vendor terms, draft→issued→received→closed; seedable from a job's bought-out stages). Delivered as
+   `platform/vendor-service/`.
 
 Rule of thumb (roadmap): never let breadth get more than one step ahead of produce-and-track.
 
