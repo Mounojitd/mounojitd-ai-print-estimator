@@ -363,6 +363,13 @@
             <div class="fld"><label>Embellishment 3</label><select id="coverEmb3" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
             <div class="fld" style="grid-column:span 2"><div class="hint" style="margin-top:8px">Coating + up to 3 embellishments combine on the cover (e.g. Matt lam + Spot UV + Foil).</div></div>
           </div>
+          <!-- Editable gold/silver screen-printing rate (NKK sir): screen ink is setup-heavy + coverage-dependent, so
+               the built-in area rate under-quotes short premium runs. Enter the real ₹/copy here to override it. -->
+          <div class="row3">
+            <div class="fld"><label>Screen ink ₹ / copy / side</label><input id="scrRate" type="number" step="1" value="0" placeholder="0 = built-in" oninput="showPrice()" /><div class="hint">gold/silver screen override; 0 uses the default rate</div></div>
+            <div class="fld"><label>Screen sides</label><input id="scrSides" type="number" step="1" min="1" max="2" value="2" oninput="showPrice()" /><div class="hint">cover only = 1, cover + back = 2</div></div>
+            <div class="fld"><label>Screen job min ₹</label><input id="scrMin" type="number" step="500" value="8000" oninput="showPrice()" /></div>
+          </div>
         </div>
         <div id="hardcaseFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#c9a96a;background:#fbf7ef">
           <div class="ptitle">📦 Hard case (Binding = Hard case book) — case = PLC + chipboard + endpapers</div>
@@ -681,6 +688,12 @@
           <div class="fld"><label>Embellishment 1</label><select id="flatEmb1" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
           <div class="fld"><label>Embellishment 2</label><select id="flatEmb2" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
           <div class="fld"><label>Embellishment 3</label><select id="flatEmb3" onchange="showPrice()"><option value="none" selected>None</option><option value="spotuv">Spot UV</option><option value="raiseduv">Raised / Textured UV</option><option value="foil">Foil stamping</option><option value="emboss">Embossing</option><option value="deboss">Debossing</option><option value="texture">Texture effect</option><option value="specialty">Specialty finish</option><option value="drip">Drip-off UV</option><option value="mgi_uv">MGI UV (digital)</option><option value="metal_stamp">Metal stamping</option><option value="screen_gold">Screen printing — gold</option><option value="screen_silver">Screen printing — silver</option><option value="screen_other">Screen printing — other</option></select></div>
+        </div>
+        <!-- Editable gold/silver screen rate for flat products — same override as the cover panel. -->
+        <div class="row3">
+          <div class="fld"><label>Screen ink ₹ / copy / side</label><input id="flatScrRate" type="number" step="1" value="0" placeholder="0 = built-in" oninput="showPrice()" /><div class="hint">gold/silver screen override; 0 uses the default rate</div></div>
+          <div class="fld"><label>Screen sides</label><input id="flatScrSides" type="number" step="1" min="1" max="2" value="1" oninput="showPrice()" /><div class="hint">one side = 1, both sides = 2</div></div>
+          <div class="fld"><label>Screen job min ₹</label><input id="flatScrMin" type="number" step="500" value="8000" oninput="showPrice()" /></div>
         </div>
       </div>
       <div id="jkFields" class="pbox" style="margin:0 0 10px;display:none;border-color:#3f7c9c;background:#eef6fa">
@@ -2641,8 +2654,19 @@ const SCREEN_GOLD_SIDE_AWARE=false;
 const SCREEN_SIDE_MIN_SCALE=1.0;   // how much the ₹ job-minimum grows per extra side (1.0 = fully doubles for 2 sides)
 function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cover printed sheets
   const sides = (SCREEN_GOLD_SIDE_AWARE && window.screenGoldSides>1) ? window.screenGoldSides : 1;
+  // EDITABLE gold/silver screen override (NKK sir): when the estimator enters a real ₹/copy for screen ink,
+  // price it as rate × qty × sides (floored at the screen job-min) instead of the built-in area rate — which
+  // under-quotes setup-heavy short premium runs. Fields differ for flat vs cover jobs; 0 = use the default.
+  const isFlat = LASTINP && !LASTINP.separateCover && !LASTINP.isSig;
+  const fld = suffix => { const el=$(isFlat?"flatScr"+suffix:"scr"+suffix); return el?parseFloat(el.value)||0:0; };
+  const scrRate=fld("Rate"), scrSides=fld("Sides")||1, scrMin=fld("Min");
+  const qty = (LASTINP&&LASTINP.copies)||parseInt(String((($("copies2")||$("copies")||{}).value)||"").replace(/[^0-9]/g,""),10)||0;
   return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none;
     const isScreen = /^screen_/.test(v);
+    if(isScreen && scrRate>0 && qty>0){                   // per-copy override for screen ink
+      const cost=Math.max(scrRate*qty*scrSides, scrMin>0?scrMin:e.min);
+      return {name:`${e.name} (₹${scrRate}/copy × ${scrSides} side${scrSides>1?"s":""})`, cost};
+    }
     const s = isScreen ? sides : 1;                       // only screen embellishments are side-scaled
     const minScaled = e.min*(1+(s-1)*SCREEN_SIDE_MIN_SCALE);
     return {name:e.name+(isScreen&&s>1?` (×${s} sides)`:""), cost:Math.max(e.r*(area/100)*sheets*s, minScaled)}; });
