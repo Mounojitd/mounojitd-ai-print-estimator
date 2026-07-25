@@ -4567,9 +4567,21 @@ function menuRateHTML(costGrand, qty){
     <div style="font-size:12.5px;color:${color}">vs cost quote ${inr(costGrand)} → <b>${dpct>=0?"+":""}${dpct.toFixed(1)}%</b> (${delta>=0?"+":""}${inr(Math.abs(delta))})</div>
   </div>`;
 }
+// PRODUCT PHOTOS (NKK sir): show the real product picture alongside the quote. Keyed by the product-select
+// value (same 28 keys as the catalogue). All null until photos are wired — fill a URL here: a hosted link
+// (https://…) or a repo-relative path served by GitHub Pages (e.g. "photos/booklet.jpg"). When a value is
+// null/absent, or the image fails to load, nothing shows — the estimator is unchanged until photos land.
+const PRODUCT_PHOTOS = { booklet:null, catalogue:null, magazine:null, manual:null, annual:null, brochure_multi:null, leaflet:null, poster:null, card:null, banner:null, standee:null, lanyard:null, pouch:null, rigidbox:null, jacket:null, ncr:null, calendar_sheet:null, calendar_table:null, dangler:null, insert:null, pasted_tag:null, carton_tuck:null, carton_seal:null, sleeve:null, folder:null, envelope:null, bag:null, slipcase:null };
+function productPhotoHTML(){
+  const el=$("product"); if(!el) return "";
+  const url=PRODUCT_PHOTOS[el.value]; if(!url) return "";
+  const label=(el.selectedOptions&&el.selectedOptions[0]?el.selectedOptions[0].text:el.value).replace(/"/g,"&quot;");
+  return `<div style="text-align:center;margin:0 0 10px"><img src="${url}" alt="${label}" loading="lazy" onerror="this.parentNode.style.display='none'" style="max-width:100%;max-height:180px;object-fit:contain;border:1px solid #e5e7eb;border-radius:10px;background:#f8fafc"/><div class="hint" style="margin-top:3px">Sample: ${label}</div></div>`;
+}
 function setPriceHTML(html){ const q=(LASTINP&&LASTINP.copies)||0;
-  try{ const x=combinedPrice(); $("m_price").innerHTML=html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
-  catch(e){ $("m_price").innerHTML=html; } }
+  const photo=(typeof productPhotoHTML==="function")?productPhotoHTML():"";
+  try{ const x=combinedPrice(); $("m_price").innerHTML=photo+html+menuRateHTML(x&&x.q?x.q.grand:0, q); }
+  catch(e){ $("m_price").innerHTML=photo+html; } }
 function showPrice(){
   if(typeof isNCR==="function" && isNCR($("product")?$("product").value:"")){ renderNCR(); return; }   // NCR has no CHOSEN
   if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")){ if(num("W",0)>0&&num("H",0)>0&&num("rbH",0)>0) renderRigidBox(); return; }   // rigid box has no CHOSEN
