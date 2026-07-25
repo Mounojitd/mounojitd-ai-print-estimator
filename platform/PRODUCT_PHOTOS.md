@@ -22,8 +22,28 @@ Rebuild the map after adding photos:
 
 ```bash
 node platform/api/tools/build_product_photos.mjs            # from local files in PHOTOS_DIR
-node platform/api/tools/build_product_photos.mjs urls.json  # from a { "<key>": "https://…" } URL map
+node platform/api/tools/build_product_photos.mjs urls.json  # map { "<key>": "https://…" } directly (links)
+node platform/api/tools/download_photos.mjs photo_urls.json # DOWNLOAD each URL into PHOTOS_DIR (robust; no hotlinking)
 ```
+
+## Chosen path: an image-URL column in the sheet (option 2)
+
+The "data" sheet does **not** yet have a URL column — the photos are still pasted into cells, which the API
+can't read. To use option 2, add the column, then I pull it in:
+
+1. **Add one column** to the Job Database tab, header e.g. `Photo URL`.
+2. For **one representative row per product type**, put a **direct image URL** in that column. You do NOT need
+   to fill all 376 rows — 28 good photos (one per product type) is the whole job. Use the
+   `Estimator product (mapped)` value already in that row to know which product a photo covers.
+3. Make each image **viewable by anyone with the link**. A Google Drive image works as
+   `https://drive.google.com/uc?export=view&id=FILE_ID` (get FILE_ID from the file's share link). A plain
+   hosted image URL (ends in .jpg/.png) works too.
+4. Tell me it's ready. I read the sheet, take the first URL per `Estimator product (mapped)` key, run
+   `download_photos.mjs` so each image is copied into our own service (no flaky Drive hotlinks), write
+   `product_photos.json`, and commit. The showcase + B1 go visual immediately.
+
+`download_photos.mjs` validates content-type, skips 404s, and leaves a key `null` on any failure — a missing
+or bad photo never becomes a broken image.
 
 ## Getting the pictures out of the sheet — the honest constraint
 
