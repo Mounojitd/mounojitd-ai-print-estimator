@@ -11,10 +11,53 @@
 import http from 'node:http';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { store } from '../api/store.mjs';   // P0.4c: read rate cards from the shared catalog store (Postgres in prod)
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 8787);
 const ENGINE_PATH = process.env.ENGINE_PATH || resolve(__dir, '../../paper_calculator.html');
+
+let RATECARD_FINGERPRINT = 'none';   // stamped on every estimate for reproducibility
+
+// P0.4c — build engine overrides from the rate-card data (the same records the admin edits).
+function buildOverrides() {
+  const cards = store.listRateCards();
+  const ov = { margins: {}, bindings: {}, printSources: {}, lfMedia: {}, pouchMedia: {}, lanyardMedia: {}, ncrPly: {}, rigidStyles: {} };
+  let vsum = 0;
+  for (const c of cards) {
+    vsum += c.version; const v = c.values;
+    switch (c.category) {
+      case 'product_margin':   ov.margins[c.key] = v.margin_pct; break;
+      case 'binding':          ov.bindings[c.key] = [v.rate, v.minimum]; break;
+      case 'press_source':     ov.printSources[c.key] = v; break;
+      case 'largeformat_media':ov.lfMedia[c.key] = { r: v.rate_per_sqft, name: c.label }; break;
+      case 'pouch_media':      ov.pouchMedia[c.key] = { r: v.rate_per_pc, name: c.label, fabric: !!v.fabric }; break;
+      case 'lanyard_media':    ov.lanyardMedia[c.key] = { r: v.rate_per_pc, name: c.label }; break;
+      case 'ncr_ply_rate':     ov.ncrPly[c.key] = v.rate_per_ply; break;
+      case 'rigidbox_style':   ov.rigidStyles[c.key] = { name: c.label, lid: !!v.lid, mult: v.area_multiplier }; break;
+    }
+  }
+  return { ov, fingerprint: `rc-${cards.length}-${vsum}` };
+}
+// Inject the overrides into the engine by MUTATING its rate-card globals (const objects, mutable contents).
+// Seed values equal the engine's own, so this is a no-op until an admin edits a rate — then prices move.
+async function applyOverrides(page) {
+  const { ov, fingerprint } = buildOverrides();
+  await page.evaluate((ov) => {
+    const put = (name, map, xform) => { try { const g = eval(name); if (!g) return; for (const k in map) g[k] = xform ? xform(map[k], g[k]) : map[k]; } catch {} };
+    put('MARGIN_DEFAULT', ov.margins);
+    put('BINDING', ov.bindings);
+    put('PRINT_SOURCES', ov.printSources);
+    put('LF_MEDIA', ov.lfMedia);
+    put('POUCH_MEDIA', ov.pouchMedia);
+    put('LANYARD_MEDIA', ov.lanyardMedia);
+    put('NCR_PLY_RATE', ov.ncrPly);
+    put('RIGIDBOX_STYLES', ov.rigidStyles);
+    return true;
+  }, ov);
+  RATECARD_FINGERPRINT = fingerprint;
+  return fingerprint;
+}
 
 async function loadPlaywright() {
   const candidates = [process.env.PLAYWRIGHT_MODULE, 'playwright', '/opt/node22/lib/node_modules/playwright/index.js'].filter(Boolean);
@@ -30,7 +73,7 @@ let page; // the single reused engine page
 
 async function estimate({ brief, product, qty, margin }) {
   if (!brief || typeof brief !== 'string') throw Object.assign(new Error('brief (string) is required'), { code: 400 });
-  return page.evaluate(({ brief, product, qty, margin }) => {
+  const out = await page.evaluate(({ brief, product, qty, margin }) => {
     const $ = (id) => document.getElementById(id);
     resetParserFields();
     applyVoiceSpec(brief);
@@ -63,6 +106,8 @@ async function estimate({ brief, product, qty, margin }) {
       },
     };
   }, { brief, product, qty, margin });
+  out.ratecardVersion = RATECARD_FINGERPRINT;   // reproducibility: which rate-card set produced this quote
+  return out;
 }
 
 function send(res, code, obj) { const b = JSON.stringify(obj); res.writeHead(code, { 'content-type': 'application/json', 'content-length': Buffer.byteLength(b) }); res.end(b); }
@@ -77,10 +122,12 @@ async function main() {
   await page.goto(pathToFileURL(ENGINE_PATH).href, { waitUntil: 'load' });
   await page.waitForTimeout(800);
   if (errors.length) console.error('engine load errors:', errors);
-  console.log(`pricing-service: engine loaded from ${ENGINE_PATH}`);
+  const fp = await applyOverrides(page);   // P0.4c: load rate cards into the engine
+  console.log(`pricing-service: engine loaded from ${ENGINE_PATH}; rate cards ${fp}`);
 
   const server = http.createServer((req, res) => {
-    if (req.method === 'GET' && req.url === '/health') return send(res, 200, { ok: true, engine: ENGINE_PATH });
+    if (req.method === 'GET' && req.url === '/health') return send(res, 200, { ok: true, engine: ENGINE_PATH, ratecardVersion: RATECARD_FINGERPRINT });
+    if (req.method === 'POST' && req.url === '/reload') return serialize(async () => { try { const f = await applyOverrides(page); send(res, 200, { ok: true, ratecardVersion: f }); } catch (e) { send(res, 500, { error: String(e.message || e) }); } });
     if (req.method === 'POST' && req.url === '/estimate') {
       return serialize(async () => {
         try {

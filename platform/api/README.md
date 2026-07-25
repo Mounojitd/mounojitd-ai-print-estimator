@@ -39,11 +39,10 @@ No native dependencies — the dev store is JSON files under `data/`. Production
 | PUT | `/rate-cards/:category/:key` | update `{values, label?}` → new version + history |
 | GET | `/rate-cards/:category/:key/history` | change log |
 
-## Honest scope / next step (P0.4c)
+## Scope (P0.4b) + the loop is now closed (P0.4c ✅)
 
-This delivers the **data + admin** layer: rate cards are now data an owner can edit, versioned so any
-past quote's rates are reproducible. **The pricing engine does not yet read these live** — today it
-still holds its own copy of the values (identical, since the seed was extracted from it). Wiring the
-pricing service to consume these rate cards (so an admin edit changes future quotes) is the next
-slice, **P0.4c**: have the engine/service load rate overrides from this API at startup, tagged with
-the rate-card version on every quote.
+This slice delivers the **data + admin** layer: rate cards are data an owner can edit, versioned so any
+past quote's rates are reproducible. As of **P0.4c** the pricing service *reads these live* — it loads
+the rate cards from this store at startup / `POST /reload` and mutates the engine's rate globals, so an
+admin edit here now changes future quotes, and every estimate is stamped with the rate-card version.
+See `../pricing-service/README.md`.

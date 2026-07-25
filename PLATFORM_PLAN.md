@@ -73,18 +73,21 @@ Quote reproducibility = store `{engine_version, ratecard_version, spec}` on ever
 Product breadth (Track A) is effectively complete in the engine, so this plan is mostly the
 **wrapper + Track B depth**, in shippable slices:
 
-1. **P0.4a — Pricing service** *(starting now)*: Node service wrapping the validated engine;
+1. **P0.4a — Pricing service** ✅: Node service wrapping the validated engine;
    `POST /estimate` → itemised JSON + lead time. Smoke-tested against known jobs.
-2. **P0.4b — DB + API skeleton**: Postgres schema above; CRUD for templates + rate cards;
+2. **P0.4b — DB + API skeleton** ✅: Postgres schema above; CRUD for templates + rate cards;
    admin panel to edit them. Rate cards move from code → data.
-3. **P1 — Customer slice**: showcase → AI intake (LLM) → spec confirm → estimate (calls the
+3. **P0.4c — Wire the engine to the rate cards** ✅: pricing service loads the rate cards at
+   startup / `POST /reload` and mutates the engine's rate globals; an admin edit now moves future
+   quotes; every estimate is stamped with a `ratecardVersion` fingerprint. Closes the code→data loop.
+4. **P1 — Customer slice**: showcase → AI intake (LLM) → spec confirm → estimate (calls the
    service) → quote saved + shareable with delivery date.
-4. **P1.7 — Order & payment**: pluggable gateway; advance/balance.
-5. **B1 — History match**: ingest past jobs (private DB stays server-side) + embeddings; "show
+5. **P1.7 — Order & payment**: pluggable gateway; advance/balance.
+6. **B1 — History match**: ingest past jobs (private DB stays server-side) + embeddings; "show
    me what we did for a school annual report" → recommend a configured solution.
-6. **B2/B3 — Production + actuals**: the engine's production traveller becomes DB-backed job
+7. **B2/B3 — Production + actuals**: the engine's production traveller becomes DB-backed job
    travellers; capture actuals vs estimate; feed corrections back into rate cards.
-7. **B4/B5 — Vendors, POs, bought-out** routing.
+8. **B4/B5 — Vendors, POs, bought-out** routing.
 
 Rule of thumb (roadmap): never let breadth get more than one step ahead of produce-and-track.
 
