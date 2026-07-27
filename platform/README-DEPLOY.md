@@ -61,6 +61,22 @@ fly logs                                          # watch it boot ("AI Print pla
 check with a warm-up grace period, and a `/data` volume so saved quotes persist. It **scales to zero when
 idle** (cheapest) — the first visit cold-starts in ~10 s; set `min_machines_running = 1` for always-on.
 
+## Auto-deploy via GitHub (no local Docker/flyctl — the "hands-off" path)
+
+`.github/workflows/fly-deploy.yml` deploys to Fly with Fly's **remote builder** (nothing to install locally).
+You do exactly **one** thing:
+
+1. Create a Fly deploy token — either `fly tokens create deploy -x 8760h` (from any machine with flyctl), or
+   in the Fly dashboard → your app → **Tokens**.
+2. In GitHub → **Settings → Secrets and variables → Actions → New repository secret**: name `FLY_API_TOKEN`,
+   value = the token.
+
+Then trigger it: **Actions → "Deploy to Fly.io" → Run workflow** (or just push to `main`). The workflow
+creates the app + volume if missing and deploys — the run log prints `https://<app>.fly.dev`.
+
+> The app name (`andreal-print-platform`) must be globally unique. If Fly says it's taken, change `app =` in
+> `fly.toml` **and** `FLY_APP` in the workflow to a unique name, then re-run.
+
 ## Other hosts
 
 Any Docker host with **~2 GB RAM**: a small **VM** (`docker run -p 80:8080 …`), **Render** / **Railway**
