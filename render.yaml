@@ -1,14 +1,24 @@
-# Render.com blueprint — free public web service.
-# Push this repo to GitHub, then on render.com: New + → Blueprint → pick the repo.
+# Render Blueprint — the AI Print platform BACKEND (Node services + the pricing engine in headless Chromium).
+# In Render: New → Blueprint → point at this repo. It builds platform/Dockerfile from the repo root.
+#
+# MEMORY NOTE: the pricing engine runs headless Chromium, which needs ~1–2 GB. Render's free/starter tiers
+# are 512 MB and WILL crash/OOM. Use `standard` (2 GB) for a reliable backend — OR convert the pricing
+# service to jsdom (no browser, fits 512 MB free) — see platform/README-DEPLOY.md.
 services:
   - type: web
-    name: ai-print-estimator
+    name: print-platform-api
     runtime: docker
-    dockerfilePath: ./Dockerfile
-    plan: free
+    dockerfilePath: ./platform/Dockerfile
+    dockerContext: .
+    plan: standard              # 2 GB. Chromium OOMs on free/starter (512 MB).
+    region: singapore           # closest Render region to India
+    healthCheckPath: /health
     autoDeploy: true
     envVars:
-      # Optional: set this to enable the "Estimate with AI" Claude parsing.
-      # Without it, the natural-language box falls back to the built-in rules parser.
-      - key: ANTHROPIC_API_KEY
-        sync: false
+      - key: NODE_ENV
+        value: production
+      # Render injects PORT and the app binds to it (start-all.mjs reads process.env.PORT) — do NOT hardcode.
+      - key: HISTORY_JOBS
+        value: /app/platform/history-service/fixtures/sample_jobs.jsonl
+    # Saved quotes live in /data (ephemeral without a disk — fine for a demo). To persist, add:
+    # disk: { name: data, mountPath: /data, sizeGB: 1 }
