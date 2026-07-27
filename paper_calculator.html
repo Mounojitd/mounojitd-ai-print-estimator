@@ -4027,7 +4027,11 @@ function parseSpec(raw){
   for(const m of gAll){
     const g=+m[1], start=m.index;
     const ctx=t.slice(Math.max(0,start-30),start).toLowerCase();
-    if(/cover|outer/.test(ctx) && gCover==null) gCover=g;
+    // "cover plus/+ N pages" is an EXTENT phrase (cover + inside pages), NOT a cover-paper reference — it must
+    // not tag the following gsm as the cover (bug: "cover plus 48 pages 130 gsm" put the 130 inside-paper on
+    // the cover). Only treat "cover" as a paper context when it's not that extent phrase.
+    const coverCtx=/cover|outer/.test(ctx) && !/cover\s*(?:plus|\+|and)\s*\d/.test(ctx);
+    if(coverCtx && gCover==null) gCover=g;
     else if(/inside|text|inner|body|content/.test(ctx) && gText==null) gText=g;
   }
   if(gText==null || gCover==null){
