@@ -77,6 +77,27 @@ creates the app + volume if missing and deploys — the run log prints `https://
 > The app name (`andreal-print-platform`) must be globally unique. If Fly says it's taken, change `app =` in
 > `fly.toml` **and** `FLY_APP` in the workflow to a unique name, then re-run.
 
+## Render (backend) + Vercel (frontend) — the split, mostly free
+
+The AI UI is static → **Vercel (free)**. The backend runs the pricing engine (headless Chromium) → **Render**.
+They talk cross-origin; CORS is already open (`*`) on the services.
+
+**Backend on Render** — `render.yaml` (repo root) is a Blueprint:
+1. Render → **New → Blueprint** → pick this repo. It builds `platform/Dockerfile` from the repo root.
+2. Deploy → you get `https://<name>.onrender.com`. Check `…/health`.
+
+> **Memory reality:** the pricing engine runs **headless Chromium (~1–2 GB)**. Render's **free/starter tiers
+> are 512 MB and will OOM** — `render.yaml` uses `standard` (2 GB). There is **no truly-free tier that runs
+> Chromium**. To make the backend fit the **free 512 MB** tier, the pricing service must drop the browser and
+> run the engine via **jsdom** (no Chromium) — a change I can make on request; it's the real path to a $0 backend.
+
+**Frontend on Vercel** — see `frontend/README.md`:
+1. Vercel → **Add New → Project** → import this repo, **Root Directory = `frontend`**, framework **Other**.
+2. Deploy → `https://<project>.vercel.app`.
+3. Set `frontend/config.js` → `window.API_BASE = "https://<name>.onrender.com"` → redeploy.
+
+Now the Vercel URL is your public AI site, pricing on the Render backend.
+
 ## Other hosts
 
 Any Docker host with **~2 GB RAM**: a small **VM** (`docker run -p 80:8080 …`), **Render** / **Railway**

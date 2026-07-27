@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Print Studio — AI print assistant</title>
+<style>
+  :root{--bg:#0b1220;--panel:#0f1830;--card:#111c38;--ink:#eaf0ff;--mut:#9fb0d0;--line:#22304f;--brand:#4c8dff;--brandink:#fff;--ok:#3ad29f;--chip:#16233f;}
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.55 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:radial-gradient(1200px 600px at 70% -10%,#16264d 0,var(--bg) 55%);color:var(--ink);min-height:100vh}
+  a{color:var(--brand)}
+  .wrap{max-width:960px;margin:0 auto;padding:22px 18px 60px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+  .logo{font-weight:800;letter-spacing:-.3px;font-size:18px}.logo span{color:var(--brand)}
+  .top-link{color:var(--mut);font-size:13px}
+  .hero{text-align:center;padding:26px 8px 10px}
+  .hero h1{font-size:30px;line-height:1.15;margin:6px 0 4px;letter-spacing:-.5px}
+  .hero p{color:var(--mut);margin:0 0 16px}
+  .ask{display:flex;gap:8px;max-width:680px;margin:0 auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:8px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .ask input{flex:1;background:transparent;border:0;color:var(--ink);font:inherit;padding:10px 10px;outline:none}
+  .ask button{background:var(--brand);color:var(--brandink);border:0;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer}
+  .iconbtn{background:var(--chip)!important;color:var(--mut)!important;width:40px;padding:0!important;font-size:16px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:14px auto 0;max-width:720px}
+  .chip{background:var(--chip);border:1px solid var(--line);color:#cfe0ff;border-radius:999px;padding:7px 13px;font-size:13px;cursor:pointer}
+  .chip:hover{border-color:var(--brand)}
+  h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin:26px 0 10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+  .pcard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .12s,border-color .12s}
+  .pcard:hover{transform:translateY(-2px);border-color:var(--brand)}
+  .pcard .ph{height:82px;background:linear-gradient(135deg,#16233f,#1d3a66);display:flex;align-items:center;justify-content:center;color:#4b628f;font-size:24px}
+  .pcard img{width:100%;height:82px;object-fit:cover;display:block}
+  .pcard .cap{padding:8px 9px;font-size:13px}
+  /* chat */
+  #chat{margin-top:18px;display:none}
+  .msg{display:flex;gap:10px;margin:12px 0;align-items:flex-start}
+  .msg .av{width:28px;height:28px;border-radius:8px;flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;background:var(--chip)}
+  .msg.you{flex-direction:row-reverse}
+  .bubble{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 13px;max-width:78%}
+  .msg.you .bubble{background:#1b2b52;border-color:#2a3f6c}
+  .bubble.pad0{padding:0;overflow:hidden;max-width:100%;width:100%;background:transparent;border:0}
+  .est{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .est .big{font-size:26px;font-weight:800;letter-spacing:-.4px}
+  .est table{width:100%;border-collapse:collapse;font-size:14px;margin-top:6px}
+  .est td{padding:4px 0}.est td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  .kv{display:flex;flex-wrap:wrap;gap:5px 16px;font-size:13px;color:var(--mut);margin:4px 0}
+  .row-b{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .btn{background:var(--brand);color:#fff;border:0;border-radius:9px;padding:9px 15px;font:inherit;font-weight:700;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid var(--brand);color:var(--brand)}
+  .samples{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:4px}
+  .scard{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+  .scard img{width:100%;height:96px;object-fit:cover;background:#16233f}
+  .scard .noimg{height:96px;background:#16233f;display:flex;align-items:center;justify-content:center;color:#4b628f;font-size:12px}
+  .scard .b{padding:9px}
+  .scard .use{color:var(--brand);cursor:pointer;font-weight:600;margin-top:6px;display:inline-block}
+  .mut{color:var(--mut)} .ok{color:var(--ok)}
+  .miss{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .note{font-size:11.5px;color:#6f83a8;text-align:center;margin-top:24px;line-height:1.5}
+  @media (max-width:560px){.hero h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">Print<span>Studio</span> · AI assistant</div>
+    <a class="top-link" id="classicLink" href="/classic">Classic form ↗</a>
+  </header>
+
+  <div class="hero" id="hero">
+    <h1>What would you like to print today?</h1>
+    <p>Describe it in your own words — I'll find samples, ask only what's needed, and price it instantly.</p>
+    <div class="ask">
+      <button class="iconbtn" title="Voice input — coming soon" onclick="soon('Voice input')">🎤</button>
+      <input id="q" placeholder="e.g. a premium visiting card, or “1000 A4 brochures”" onkeydown="if(event.key==='Enter')start()" />
+      <button class="iconbtn" title="Upload a design — coming soon" onclick="soon('Image upload')">📎</button>
+      <button onclick="start()">Ask&nbsp;→</button>
+    </div>
+    <div class="chips" id="prompts"></div>
+  </div>
+
+  <div id="chat"></div>
+
+  <div id="popular">
+    <h3>Popular products</h3>
+    <div class="grid" id="pgrid" class="mut">Loading…</div>
+  </div>
+
+  <p class="note" id="foot"></p>
+</div>
+
+<script src="config.js"></script>
+<script>
+// API base = the Render backend URL, set in config.js (window.API_BASE). Empty = same-origin (dev).
+const API=((typeof window!=='undefined'&&window.API_BASE)||'').replace(/\/$/,'');
+const $=(id)=>document.getElementById(id);
+const esc=(s)=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const inr=(n)=>'₹'+Math.round(n).toLocaleString('en-IN');
+let STATE={brief:'',product:null,lastBrief:''};
+
+const SUGGEST=['Premium visiting card','1000 A4 brochures','Letterhead','Catalogue','Packaging boxes','Stickers','Table calendar','Notebook','Presentation folder','Wedding invitation'];
+$('prompts').innerHTML=SUGGEST.map(s=>`<span class="chip" onclick="fill('${s.replace(/'/g,"\\'")}')">${esc(s)}</span>`).join('');
+function fill(s){ $('q').value=s; start(); }
+function soon(w){ addAssistant(`${w} is coming in the next phase — for now, just type what you need and I'll find samples and price it.`); }
+
+async function api(p,b){ const r=await fetch(API+p,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)}); const j=await r.json().catch(()=>({})); if(!r.ok) throw new Error(j.error||('HTTP '+r.status)); return j; }
+
+// ---------- popular products (from the real catalogue) ----------
+async function loadPopular(){
+  try{
+    const items=await (await fetch(API+'/catalog')).json();
+    const pick=['card','brochure_multi','insert','catalogue','carton_tuck','booklet','calendar_table','folder','poster','bag','pouch','banner'];
+    const byKey={}; items.forEach(i=>byKey[i.engine_product_key]=i);
+    const show=pick.map(k=>byKey[k]).filter(Boolean);
+    $('pgrid').innerHTML=show.map(it=>`<div class="pcard" onclick="fill('I want a ${esc(it.label)}')">${it.photo?`<img loading="lazy" src="${esc(API+it.photo)}" alt="${esc(it.label)}" onerror="this.outerHTML='<div class=ph>🖨️</div>'"/>`:'<div class="ph">🖨️</div>'}<div class="cap">${esc(it.label)}</div></div>`).join('');
+  }catch(e){ $('pgrid').innerHTML='<span class="mut">Catalogue unavailable.</span>'; }
+}
+
+// ---------- chat ----------
+function show(){ $('hero').style.display='none'; $('popular').style.display='none'; $('chat').style.display='block'; }
+function addYou(t){ $('chat').insertAdjacentHTML('beforeend',`<div class="msg you"><div class="av">🧑</div><div class="bubble">${esc(t)}</div></div>`); scroll(); }
+function addAssistant(t){ $('chat').insertAdjacentHTML('beforeend',`<div class="msg"><div class="av">🤖</div><div class="bubble">${esc(t)}</div></div>`); scroll(); }
+function addBlock(html){ $('chat').insertAdjacentHTML('beforeend',`<div class="msg"><div class="av">🤖</div><div class="bubble pad0">${html}</div></div>`); scroll(); }
+function scroll(){ window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'}); }
+
+async function start(){
+  const m=$('q').value.trim(); if(!m) return; $('q').value='';
+  show(); addYou(m); await turn(m);
+}
+async function reply(m){ addYou(m); await turn(m); }
+
+async function turn(message){
+  addAssistant('…');
+  const thinking=$('chat').lastElementChild;
+  try{
+    const r=await api('/discover',{message,brief:STATE.brief,product:STATE.product});
+    thinking.remove();
+    STATE.brief=r.brief||STATE.brief; if(r.product) STATE.product=r.product;
+    addAssistant(r.reply);
+    if(r.samples&&r.samples.length) renderSamples(r.samples);
+    if(r.missing&&r.missing.length&&!r.estimate) renderMissing(r.missing);
+    if(r.estimate) renderEstimate(r.estimate, r.label||STATE.product);
+  }catch(e){ thinking.remove(); addAssistant('Sorry — '+e.message); }
+}
+
+function renderMissing(missing){
+  const chips=missing.slice(0,6).map(x=>`<span class="chip" onclick="askFor('${x.replace(/'/g,"\\'")}')">${esc(x)}</span>`).join('');
+  addBlock(`<div class="est"><div class="mut" style="margin-bottom:6px">I still need:</div><div class="miss">${chips}</div><div class="mut" style="margin-top:8px;font-size:12px">…or just type the details in one line and I'll parse them.</div></div>`);
+}
+function askFor(field){ const v=prompt('Enter '+field+':'); if(v&&v.trim()) reply(field.replace(/\(.*/,'').trim()+' '+v.trim()); }
+
+function renderSamples(samples){
+  const cards=samples.map(s=>{
+    const kv=[['Paper',s.spec&&s.spec.paper],['Binding',s.spec&&s.spec.binding],['Size',s.spec&&s.spec.size]].filter(x=>x[1]).map(x=>`<div class="mut">${esc(x[0])}: ${esc(x[1])}</div>`).join('');
+    return `<div class="scard">${s.photo?`<img src="${esc(API+s.photo)}" onerror="this.outerHTML='<div class=noimg>no photo yet</div>'"/>`:'<div class="noimg">no photo yet</div>'}<div class="b"><b>${esc(s.productType||'Sample')}</b>${kv}<span class="use" onclick="usesample('${esc((s.suggestedBrief||'').replace(/'/g,"\\'"))}')">Use this spec →</span></div></div>`;
+  }).join('');
+  addBlock(`<div><div class="mut" style="margin:2px 0 6px">Similar work we've done:</div><div class="samples">${cards}</div></div>`);
+}
+function usesample(brief){ if(!brief) return; STATE.brief=''; STATE.product=null; reply(brief); }
+
+function renderEstimate(e,label){
+  const p=e.price||{};
+  const rows=['paper','printing','plates','coating','margin','gst'].filter(k=>p[k]>0).map(k=>`<tr><td>${k[0].toUpperCase()+k.slice(1)}</td><td>${inr(p[k])}</td></tr>`).join('');
+  const menu=p.menuRate?`<tr><td>Menu rate</td><td>${inr(p.menuRate)}</td></tr>`:'';
+  const spec=e.spec?Object.entries(e.spec).filter(([k,v])=>v).map(([k,v])=>`<span>${esc(k)}: ${esc(v)}</span>`).join(''):'';
+  addBlock(`<div class="est">
+    <div class="mut">${esc(label||'')} · ${e.quantity?e.quantity.toLocaleString('en-IN')+' pcs':''}</div>
+    <div class="big">${inr(p.grand)} <span class="mut" style="font-size:14px;font-weight:500">${p.unit?'· '+inr(p.unit)+'/pc':''}</span></div>
+    ${spec?`<div class="kv">${spec}</div>`:''}
+    <table>${rows}${menu}<tr style="border-top:1px solid var(--line);font-weight:700"><td>Total (incl. GST)</td><td>${inr(p.grand)}</td></tr></table>
+    ${e.leadTimeDays?`<div class="mut" style="margin-top:8px">Estimated turnaround: <b class="ok">${e.leadTimeDays} working days</b></div>`:''}
+    <div class="mut" style="font-size:11px;margin-top:4px">Preliminary estimate · rate card ${esc(e.ratecardVersion||'n/a')}</div>
+    <div class="row-b"><button class="btn" onclick="saveQuote()">Save &amp; get shareable quote</button><button class="btn ghost" onclick="tweak()">Change something</button></div>
+    <div id="saved"></div>
+  </div>`);
+}
+function tweak(){ addAssistant("Sure — tell me what to change (e.g. “make it 2000 pcs”, “300 gsm cover”, “add matt lamination”) and I'll re-price."); }
+
+async function saveQuote(){
+  const box=$('saved'); box.innerHTML='<div class="mut" style="margin-top:8px">Saving…</div>';
+  try{
+    const q=await api('/quotes',{brief:STATE.brief,product:STATE.product});
+    const url=API+'/classic#/q/'+q.token;
+    const co=(window.ORDER_CHECKOUT_BASE)?` · <a href="${esc(window.ORDER_CHECKOUT_BASE)}/checkout/${esc(q.token)}">Confirm &amp; pay →</a>`:'';
+    box.innerHTML=`<div style="margin-top:10px" class="ok">✓ Saved — ${inr(q.price.grand)}${q.deliveryDate?' · delivery by '+esc(q.deliveryDate):''}</div><div class="mut" style="font-size:13px;margin-top:4px"><a href="${esc(url)}">${esc(url)}</a>${co}</div>`;
+  }catch(e){ box.innerHTML='<div class="mut" style="margin-top:8px">Could not save: '+esc(e.message)+'</div>'; }
+}
+
+$('foot').innerHTML='Preliminary estimates from the validated pricing engine (the same one used against 341 real jobs). Natural-language understanding today uses the engine\u2019s reconciled parser; a conversational LLM is a drop-in. Voice &amp; image upload arrive in the next phase.';
+if($('classicLink')&&API)$('classicLink').href=API+'/classic';
+loadPopular();
+</script>
+</body>
+</html>
