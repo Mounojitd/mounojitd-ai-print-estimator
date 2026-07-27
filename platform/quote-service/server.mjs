@@ -31,6 +31,8 @@ const HISTORY_URL = process.env.HISTORY_URL || '';                 // optional: 
 const ORDER_CHECKOUT_BASE = process.env.ORDER_CHECKOUT_URL || '';   // P1.7: if set, "Confirm order" → order-service checkout
 const APP = resolve(__dir, 'public', 'index.html');
 const DISCOVER_APP = resolve(__dir, 'public', 'discover.html');    // the AI-first homepage
+// The REAL, full estimator — the standalone single-file engine NK Sir actually uses (repo root → /app in the image).
+const ESTIMATOR = resolve(__dir, '..', '..', 'paper_calculator.html');
 
 // Real past-work samples for a category (from the history-match service, B1). Anonymised; empty if unavailable.
 async function fetchSamples(query, limit = 4) {
@@ -67,8 +69,14 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && path === '/health') return json(res, 200, { ok: true, pricingUrl: PRICING_URL, catalog: catalog.listTemplates().length, quotes: quotes.list({ limit: 1e9 }).length });
 
-    // Homepage = the AI-first discovery app; the classic form app stays at /classic.
-    if (req.method === 'GET' && (path === '/' || path === '/classic')) {
+    // The REAL full print estimator (the standalone single-file engine NK Sir uses) — served raw at /estimator and /classic.
+    if (req.method === 'GET' && (path === '/estimator' || path === '/classic') && existsSync(ESTIMATOR)) {
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
+      return res.end(readFileSync(ESTIMATOR, 'utf8'));
+    }
+
+    // Homepage = the AI-first discovery app; the lightweight quick-quote form is at /quickquote (and /classic if the estimator file is absent).
+    if (req.method === 'GET' && (path === '/' || path === '/quickquote' || path === '/classic')) {
       const file = (path === '/' && existsSync(DISCOVER_APP)) ? DISCOVER_APP : APP;
       if (existsSync(file)) {
         const html = readFileSync(file, 'utf8').replace('/*__CONFIG__*/', `window.ORDER_CHECKOUT_BASE=${JSON.stringify(ORDER_CHECKOUT_BASE)};window.HAS_HISTORY=${JSON.stringify(!!HISTORY_URL)};`);
