@@ -752,6 +752,18 @@
           <div class="fld"><label>Specialty ₹/kg (text)</label><input id="paperSpecKg" type="number" step="1" placeholder="e.g. 220 for Montblanc" oninput="applySpecialtyRate('text')" /><div class="hint">For Montblanc / imported stock not in the DB — auto-computes ₹/sheet.</div></div>
         </div>
         <div class="hint" id="paperRateNote">Auto rate from the price list after you run.</div>
+        <!-- INSIDE COLOUR BIFURCATION (NKK sir): inside pages aren't always one colour — some sections 4-col,
+             some 2-col, some 1-col. Split the extent into up to 3 sections, each priced for its own plates +
+             printing, then summed. OFF by default → the single "Text colours" spec above is used, unchanged. -->
+        <div class="pbox" style="margin:8px 0 0;border-color:#8a6d3b;background:#fbf7ef">
+          <label class="chip" style="font-weight:600;margin:0"><input type="checkbox" id="insideBifOn" onchange="document.getElementById('insideSecFields').style.display=this.checked?'block':'none';showPrice()" /> Inside colour sections — bifurcate (e.g. 16pp 4-col + 32pp 1-col)</label>
+          <div id="insideSecFields" style="display:none;margin-top:6px">
+            <div class="hint" style="margin:-2px 0 6px">Up to 3 sections of the inside pages, each with its own front/back colours. A row with 0 pages is skipped; the last filled row takes the remaining signatures. Needs ≥2 filled rows to apply — otherwise the single Text-colours spec is used.</div>
+            <div class="row3"><div class="fld"><label>Sec 1 pages</label><input id="sec1p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 1 front</label><input id="sec1f" type="number" min="0" value="4" oninput="showPrice()" /></div><div class="fld"><label>Sec 1 back</label><input id="sec1b" type="number" min="0" value="4" oninput="showPrice()" /></div></div>
+            <div class="row3"><div class="fld"><label>Sec 2 pages</label><input id="sec2p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 2 front</label><input id="sec2f" type="number" min="0" value="1" oninput="showPrice()" /></div><div class="fld"><label>Sec 2 back</label><input id="sec2b" type="number" min="0" value="1" oninput="showPrice()" /></div></div>
+            <div class="row3"><div class="fld"><label>Sec 3 pages</label><input id="sec3p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 3 front</label><input id="sec3f" type="number" min="0" value="2" oninput="showPrice()" /></div><div class="fld"><label>Sec 3 back</label><input id="sec3b" type="number" min="0" value="2" oninput="showPrice()" /></div></div>
+          </div>
+        </div>
       </div>
 
       <h2>Margins (mm)</h2>
@@ -3310,7 +3322,7 @@ function priceJob(o,p,machine){
   // PER-FORME printing (NKK sir): each printed side of each LAYOUT is a SEPARATE press run with its own
   // lot/minimum. Ganged forms share a layout (and its plates), so the cut part is not double-charged.
   const formeRun=Math.max(1,Math.round(sheets/sigs));            // sheets passing the press per forme
-  const fFront=p.cf>0?sigs:0, fBack=p.cb>0?sigs:0, formes=fFront+fBack;
+  const fFront=p.cf>0?sigs:0, fBack=p.cb>0?sigs:0; let formes=fFront+fBack;
   // DIGITAL (NKK sir 2026-06-27): flat ₹/SHEET both-side rate by paper class × sheet size — no plates, no
   // per-forme tiering. Replaces the old (wrong) offset-rate borrow. Single-colour rate still pending.
   const digital=!!(press&&press.digital);
@@ -3328,12 +3340,24 @@ function priceJob(o,p,machine){
   } else {
     // PER-MACHINE rate card (printing depends on the SELECTED machine) — else band/source rates.
     const card=PRESS_RATES[press&&press.id];
-    printing = card
-      ? fFront*pressSideCost(card,p.cf,formeRun)+fBack*pressSideCost(card,p.cb,formeRun)
-      : fFront*sideCost(src,band,p.cf,formeRun)+fBack*sideCost(src,band,p.cb,formeRun);
-    const platesPerForme=(work==="back")?(Math.max(0,p.cf)+Math.max(0,p.cb)):Math.max(Math.max(0,p.cf),Math.max(0,p.cb));
-    plateCount=platesPerForme*sigs;
-    plates=plateCount*(card?card.plate:plateRate(src,band));
+    const rate=card?card.plate:plateRate(src,band);
+    const sideCostFn=(cols)=> card?pressSideCost(card,cols,formeRun):sideCost(src,band,cols,formeRun);
+    // INSIDE COLOUR BIFURCATION (NKK sir): split the signatures across the colour sections (by page share;
+    // the last section takes the remainder), pricing each section's plates + printing at its own colours,
+    // then summing. Default = ONE section over ALL signatures with p.cf/p.cb → identical to un-bifurcated.
+    const secs=(Array.isArray(p.sections)&&p.sections.length>=2)?p.sections:[{pages:1,cf:p.cf,cb:p.cb}];
+    const totPg=secs.reduce((s,x)=>s+(+x.pages||0),0)||1;
+    let rem=sigs; printing=0; plateCount=0; formes=0;
+    secs.forEach((x,i)=>{
+      const share=(i===secs.length-1)?rem:Math.max(0,Math.min(rem,Math.round(sigs*(+x.pages||0)/totPg)));
+      rem-=share;
+      const cf=Math.max(0,+x.cf||0), cb=Math.max(0,+x.cb||0);
+      const fF=cf>0?share:0, fB=cb>0?share:0; formes+=fF+fB;
+      printing+=fF*sideCostFn(cf)+fB*sideCostFn(cb);
+      const ppf=(work==="back")?(cf+cb):Math.max(cf,cb);
+      plateCount+=ppf*share;
+    });
+    plates=plateCount*rate;
     // REPRINT (NKK sir 2026-07-17 Keventer): plates already exist from the prior run — only a handling
     // fee applies (~10% of fresh plate cost), NOT a full re-plate. Printing itself still charged.
     if(p.reprint){ plates=+(plates*0.10).toFixed(2); }
@@ -3373,6 +3397,7 @@ function priceJob(o,p,machine){
         return `${sigs} form(s) × [₹${Math.round(lot)} lot (first ${cardE.lotQty}) + ₹${t.r}/1000 × ${((formeRun-cardE.lotQty)/1000).toFixed(1)}k = ₹${perForme}]`; }
       return `${sigs} form(s) × band ${band} rate`; };
     explain.printing=[p.cf>0?"F "+side(p.cf):null,p.cb>0?"B "+side(p.cb):null].filter(Boolean).join("  ·  ");
+    if(Array.isArray(p.sections)&&p.sections.length>=2) explain.printing=`Bifurcated inside — `+p.sections.map(s=>`${s.pages}pp @ ${s.cf}+${s.cb}`).join(" · ")+` (plates + printing summed per section)`;
     const plateUnit=cardE?cardE.plate:plateRate(src,band);
     const workNote=work==="back"?"work&back → separate front + back plates":"work&"+work+" → one shared plate set";
     const rprNote=p.reprint?" · <b style='color:#7c3aed'>REPRINT: plates reused → 10% handling fee only</b>":"";
@@ -3382,8 +3407,15 @@ function priceJob(o,p,machine){
   if(p.lam&&p.lam!=="none") explain.lam=`${coatSheets.toLocaleString("en-IN")} sheets × ₹${c.r}/100sq.in × ${Math.round(o.sw*o.sh)} sq.in${Math.abs(lam-c.min)<0.5?` (min ₹${c.min})`:""}`;
   return {band,paper,buySheets,printing,plates,plateCount,impressions,formes,formeRun,sigs,lam,coatSheets,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/(p.books||1),digital,digitalRate,explain};
 }
+// INSIDE COLOUR SECTIONS (NKK sir bifurcation): read up to 3 sections {pages,cf,cb}. Returns null unless the
+// toggle is on AND ≥2 rows have pages>0 — otherwise the single Text-colours spec is used (no change).
+function readInsideSections(){
+  if(!($("insideBifOn")&&$("insideBifOn").checked)) return null;
+  const secs=[1,2,3].map(i=>({pages:Math.max(0,num("sec"+i+"p",0)),cf:Math.max(0,Math.round(num("sec"+i+"f",0))),cb:Math.max(0,Math.round(num("sec"+i+"b",0)))})).filter(s=>s.pages>0);
+  return secs.length>=2 ? secs : null;
+}
 function currentPriceParams(){
-  return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value,
+  return {cf:Math.round(num("cf",4)),cb:Math.round(num("cb",4)),lam:$("lam").value, sections:readInsideSections(),
           coatArea:($("coatArea")?$("coatArea").value:"cover"),paperRate:num("paperRate",0),
           isSpecial:paperIsSpecial("paperTypeSel","paperGrade"),
           work:($("workStyle")?$("workStyle").value:"back"),
