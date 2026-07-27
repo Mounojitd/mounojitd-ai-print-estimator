@@ -758,10 +758,10 @@
         <div class="pbox" style="margin:8px 0 0;border-color:#8a6d3b;background:#fbf7ef">
           <label class="chip" style="font-weight:600;margin:0"><input type="checkbox" id="insideBifOn" onchange="document.getElementById('insideSecFields').style.display=this.checked?'block':'none';showPrice()" /> Inside colour sections — bifurcate (e.g. 16pp 4-col + 32pp 1-col)</label>
           <div id="insideSecFields" style="display:none;margin-top:6px">
-            <div class="hint" style="margin:-2px 0 6px">Up to 3 sections of the inside pages, each with its own front/back colours. A row with 0 pages is skipped; the last filled row takes the remaining signatures. Needs ≥2 filled rows to apply — otherwise the single Text-colours spec is used.</div>
-            <div class="row3"><div class="fld"><label>Sec 1 pages</label><input id="sec1p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 1 front</label><input id="sec1f" type="number" min="0" value="4" oninput="showPrice()" /></div><div class="fld"><label>Sec 1 back</label><input id="sec1b" type="number" min="0" value="4" oninput="showPrice()" /></div></div>
-            <div class="row3"><div class="fld"><label>Sec 2 pages</label><input id="sec2p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 2 front</label><input id="sec2f" type="number" min="0" value="1" oninput="showPrice()" /></div><div class="fld"><label>Sec 2 back</label><input id="sec2b" type="number" min="0" value="1" oninput="showPrice()" /></div></div>
-            <div class="row3"><div class="fld"><label>Sec 3 pages</label><input id="sec3p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 3 front</label><input id="sec3f" type="number" min="0" value="2" oninput="showPrice()" /></div><div class="fld"><label>Sec 3 back</label><input id="sec3b" type="number" min="0" value="2" oninput="showPrice()" /></div></div>
+            <div class="hint" style="margin:-2px 0 6px">Up to 3 sections of the inside pages, each with its own front/back colours and (optionally) its own GSM. A row with 0 pages is skipped; the last filled row takes the remaining signatures. GSM blank/0 = the base Text-paper GSM above. Needs ≥2 filled rows to apply — otherwise the single Text-colours spec is used.</div>
+            <div class="row"><div class="fld"><label>Sec 1 pages</label><input id="sec1p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 1 front</label><input id="sec1f" type="number" min="0" value="4" oninput="showPrice()" /></div><div class="fld"><label>Sec 1 back</label><input id="sec1b" type="number" min="0" value="4" oninput="showPrice()" /></div><div class="fld"><label>Sec 1 GSM</label><input id="sec1g" type="number" min="0" placeholder="base" oninput="showPrice()" /></div></div>
+            <div class="row"><div class="fld"><label>Sec 2 pages</label><input id="sec2p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 2 front</label><input id="sec2f" type="number" min="0" value="1" oninput="showPrice()" /></div><div class="fld"><label>Sec 2 back</label><input id="sec2b" type="number" min="0" value="1" oninput="showPrice()" /></div><div class="fld"><label>Sec 2 GSM</label><input id="sec2g" type="number" min="0" placeholder="base" oninput="showPrice()" /></div></div>
+            <div class="row"><div class="fld"><label>Sec 3 pages</label><input id="sec3p" type="number" min="0" value="0" oninput="showPrice()" /></div><div class="fld"><label>Sec 3 front</label><input id="sec3f" type="number" min="0" value="2" oninput="showPrice()" /></div><div class="fld"><label>Sec 3 back</label><input id="sec3b" type="number" min="0" value="2" oninput="showPrice()" /></div><div class="fld"><label>Sec 3 GSM</label><input id="sec3g" type="number" min="0" placeholder="base" oninput="showPrice()" /></div></div>
           </div>
         </div>
       </div>
@@ -3323,18 +3323,26 @@ function priceJob(o,p,machine){
   // lot/minimum. Ganged forms share a layout (and its plates), so the cut part is not double-charged.
   const formeRun=Math.max(1,Math.round(sheets/sigs));            // sheets passing the press per forme
   const fFront=p.cf>0?sigs:0, fBack=p.cb>0?sigs:0; let formes=fFront+fBack;
-  // DIGITAL (NKK sir 2026-06-27): flat ₹/SHEET both-side rate by paper class × sheet size — no plates, no
-  // per-forme tiering. Replaces the old (wrong) offset-rate borrow. Single-colour rate still pending.
+  // INSIDE SECTIONS (NKK sir bifurcation): split the signatures across up to 3 sections (by page share; the
+  // last takes the remainder). Each section carries its own colours (plates+printing) and optional GSM (paper).
+  // Default = ONE section over all signatures with p.cf/p.cb + base GSM → identical to the un-bifurcated result.
+  const secs=(Array.isArray(p.sections)&&p.sections.length>=2)?p.sections:[{pages:1,cf:p.cf,cb:p.cb}];
+  const totPg=secs.reduce((s,x)=>s+(+x.pages||0),0)||1;
+  const shares=[]; { let rem2=sigs; secs.forEach((x,i)=>{ const sh=(i===secs.length-1)?rem2:Math.max(0,Math.min(rem2,Math.round(sigs*(+x.pages||0)/totPg))); rem2-=sh; shares.push(sh); }); }
+  // Per-section PAPER: page-weighted GSM ratio vs the base GSM (same paper type → ₹/sheet + weight scale with
+  // GSM). Stays 1.0 unless a section states a different GSM → then paper cost + weight scale by the mix.
+  const baseGsm=(LASTINP&&LASTINP.gsm)||num("gsm",0)||0;
+  let gsmMult=1, gsmMixed=false;
+  if(baseGsm>0 && secs.length>=2){ let m=0; secs.forEach((x,i)=>{ const gg=(+x.gsm>0)?(+x.gsm/baseGsm):1; if(+x.gsm>0 && +x.gsm!==baseGsm) gsmMixed=true; m+=(shares[i]/(sigs||1))*gg; }); if(gsmMixed) gsmMult=m; }
+  // DIGITAL (NKK sir 2026-06-27): flat ₹/SHEET both-side rate by paper class × sheet size — no plates.
   const digital=!!(press&&press.digital);
   const work=p.work||"back";
   let printing, plateCount, plates, digitalRate=0;
   if(digital){
-    // NKK sir 2026-07-18 (NEW SUSHMA live card): rate now varies by GSM + single-side vs both-side.
     const sidesUsed = (p.cf>0?1:0) + (p.cb>0?1:0) || 2;
     const gsmUsed = (LASTINP&&LASTINP.gsm)||num("gsm",170);
     digitalRate=digitalRateFor(!!p.isSpecial, o.sw, o.sh, gsmUsed, sidesUsed);
     printing=digitalRate*sheets;                                   // sheets = printed sheets (both sides/sheet)
-    // Minimum digital-job floor: a tiny click count can't cost less than the shop's minimum charge.
     if(DIGITAL_MIN_JOB>0 && printing<DIGITAL_MIN_JOB) printing=DIGITAL_MIN_JOB;
     plateCount=0; plates=0;
   } else {
@@ -3342,15 +3350,9 @@ function priceJob(o,p,machine){
     const card=PRESS_RATES[press&&press.id];
     const rate=card?card.plate:plateRate(src,band);
     const sideCostFn=(cols)=> card?pressSideCost(card,cols,formeRun):sideCost(src,band,cols,formeRun);
-    // INSIDE COLOUR BIFURCATION (NKK sir): split the signatures across the colour sections (by page share;
-    // the last section takes the remainder), pricing each section's plates + printing at its own colours,
-    // then summing. Default = ONE section over ALL signatures with p.cf/p.cb → identical to un-bifurcated.
-    const secs=(Array.isArray(p.sections)&&p.sections.length>=2)?p.sections:[{pages:1,cf:p.cf,cb:p.cb}];
-    const totPg=secs.reduce((s,x)=>s+(+x.pages||0),0)||1;
-    let rem=sigs; printing=0; plateCount=0; formes=0;
+    printing=0; plateCount=0; formes=0;
     secs.forEach((x,i)=>{
-      const share=(i===secs.length-1)?rem:Math.max(0,Math.min(rem,Math.round(sigs*(+x.pages||0)/totPg)));
-      rem-=share;
+      const share=shares[i];
       const cf=Math.max(0,+x.cf||0), cb=Math.max(0,+x.cb||0);
       const fF=cf>0?share:0, fB=cb>0?share:0; formes+=fF+fB;
       printing+=fF*sideCostFn(cf)+fB*sideCostFn(cb);
@@ -3358,11 +3360,9 @@ function priceJob(o,p,machine){
       plateCount+=ppf*share;
     });
     plates=plateCount*rate;
-    // REPRINT (NKK sir 2026-07-17 Keventer): plates already exist from the prior run — only a handling
-    // fee applies (~10% of fresh plate cost), NOT a full re-plate. Printing itself still charged.
+    // REPRINT (NKK sir): plates already exist — only a ~10% handling fee, not a full re-plate.
     if(p.reprint){ plates=+(plates*0.10).toFixed(2); }
-    // GANGED (NKK sir 2026-07-17 Sunili VCards): small commodity jobs share a plate + sheet with
-    // other jobs. This job pays only its share of plates + printing (default 25%). Paper stays full.
+    // GANGED (NKK sir): job shares a plate+sheet with others → pays its share of plates + printing.
     if(p.ganged){ const s=(p.gangedShare||25)/100; plates=+(plates*s).toFixed(2); printing=+(printing*s).toFixed(2); }
   }
   const impressions=formes*formeRun;
@@ -3372,11 +3372,13 @@ function priceJob(o,p,machine){
   // PAPER bought as PARENT sheets (NKK sir Req6): cost & weight on the parent, not the cut/print sheet.
   // PAPER discount (NKK sir): vendor gives a % off the paper purchase (e.g. 13%) — reduce the paper cost.
   const paperDisc=Math.min(Math.max(p.discount||0,0),95)/100;
-  const buySheets=o.paperSheets||sheets, paperGross=(p.paperRate||0)*buySheets;
+  // gsmMult (per-section paper): 1.0 unless inside sections state different GSMs → scales ₹/sheet + weight by
+  // the page-weighted GSM mix (same paper type). Byte-identical when no section overrides the GSM.
+  const buySheets=o.paperSheets||sheets, paperGross=(p.paperRate||0)*buySheets*gsmMult;
   // GANGED (NKK sir 2026-07-17 Sunili VCards): if this job shares a sheet with others, paper is also
   // charged at this job's share only. Weight is NOT shared — the finished pieces still weigh their own.
   const gangShare=p.ganged?((p.gangedShare||25)/100):1;
-  const paper=+(paperGross*(1-paperDisc)*gangShare).toFixed(2), wt=o.paperWeight||o.total_wt;
+  const paper=+(paperGross*(1-paperDisc)*gangShare).toFixed(2), wt=(o.paperWeight||o.total_wt)*gsmMult;
   const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
   const base=paper+printing+plates+lam+packing+freight, overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100), prod=base+overhead;
   // MARGIN on the SELLING price, not markup on cost (NKK sir 2026-07-08): margin% is a share of the sale
@@ -3397,7 +3399,7 @@ function priceJob(o,p,machine){
         return `${sigs} form(s) × [₹${Math.round(lot)} lot (first ${cardE.lotQty}) + ₹${t.r}/1000 × ${((formeRun-cardE.lotQty)/1000).toFixed(1)}k = ₹${perForme}]`; }
       return `${sigs} form(s) × band ${band} rate`; };
     explain.printing=[p.cf>0?"F "+side(p.cf):null,p.cb>0?"B "+side(p.cb):null].filter(Boolean).join("  ·  ");
-    if(Array.isArray(p.sections)&&p.sections.length>=2) explain.printing=`Bifurcated inside — `+p.sections.map(s=>`${s.pages}pp @ ${s.cf}+${s.cb}`).join(" · ")+` (plates + printing summed per section)`;
+    if(Array.isArray(p.sections)&&p.sections.length>=2) explain.printing=`Bifurcated inside — `+p.sections.map(s=>`${s.pages}pp @ ${s.cf}+${s.cb}${s.gsm>0?` ${s.gsm}gsm`:""}`).join(" · ")+` (plates + printing summed per section; paper scaled by GSM mix)`;
     const plateUnit=cardE?cardE.plate:plateRate(src,band);
     const workNote=work==="back"?"work&back → separate front + back plates":"work&"+work+" → one shared plate set";
     const rprNote=p.reprint?" · <b style='color:#7c3aed'>REPRINT: plates reused → 10% handling fee only</b>":"";
@@ -3411,7 +3413,7 @@ function priceJob(o,p,machine){
 // toggle is on AND ≥2 rows have pages>0 — otherwise the single Text-colours spec is used (no change).
 function readInsideSections(){
   if(!($("insideBifOn")&&$("insideBifOn").checked)) return null;
-  const secs=[1,2,3].map(i=>({pages:Math.max(0,num("sec"+i+"p",0)),cf:Math.max(0,Math.round(num("sec"+i+"f",0))),cb:Math.max(0,Math.round(num("sec"+i+"b",0)))})).filter(s=>s.pages>0);
+  const secs=[1,2,3].map(i=>({pages:Math.max(0,num("sec"+i+"p",0)),cf:Math.max(0,Math.round(num("sec"+i+"f",0))),cb:Math.max(0,Math.round(num("sec"+i+"b",0))),gsm:Math.max(0,num("sec"+i+"g",0))})).filter(s=>s.pages>0);
   return secs.length>=2 ? secs : null;
 }
 function currentPriceParams(){
