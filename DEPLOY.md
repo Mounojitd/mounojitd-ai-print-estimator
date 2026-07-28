@@ -43,4 +43,4 @@ The app stays online 24/7 with a stable URL; no need for your PC to be on.
 > real paper/machine/plate data. To update rates later, edit those files (or add
 > `db/files/Printing_Rate_Master.xlsx`), commit, and push — Render redeploys.
 
-Railway / Fly.io work the same way off the `Dockerfile`.
+Railway works the same way off the `Dockerfile`.
