@@ -41,42 +41,6 @@ PORT=8080 node start-all.mjs
 | `HISTORY_JOBS` | the committed **synthetic** fixture | path to anonymised job specs for B1 samples; point at your own to use real ones |
 | `START_FULL` | unset | `1` also boots order/production/vendor (internal ports — see below) |
 
-## Deploy to Fly.io (config included — `fly.toml` at the repo root)
-
-```bash
-# 1. one-time: install flyctl + log in
-curl -L https://fly.io/install.sh | sh          # (or: brew install flyctl)
-fly auth login
-
-# 2. from the REPO ROOT (fly.toml + the engine HTML are here)
-fly apps create andreal-print-platform          # pick a unique name; edit `app =` in fly.toml to match
-fly volumes create print_data --size 1 --region bom --app andreal-print-platform
-fly deploy                                       # builds platform/Dockerfile, ~a few min (Chromium)
-
-fly open                                          # opens https://<app>.fly.dev  → the AI homepage
-fly logs                                          # watch it boot ("AI Print platform up")
-```
-
-`fly.toml` is preset: Mumbai region (`bom`), **2 GB RAM** (Chromium OOMs on the 256 MB default), a `/health`
-check with a warm-up grace period, and a `/data` volume so saved quotes persist. It **scales to zero when
-idle** (cheapest) — the first visit cold-starts in ~10 s; set `min_machines_running = 1` for always-on.
-
-## Auto-deploy via GitHub (no local Docker/flyctl — the "hands-off" path)
-
-`.github/workflows/fly-deploy.yml` deploys to Fly with Fly's **remote builder** (nothing to install locally).
-You do exactly **one** thing:
-
-1. Create a Fly deploy token — either `fly tokens create deploy -x 8760h` (from any machine with flyctl), or
-   in the Fly dashboard → your app → **Tokens**.
-2. In GitHub → **Settings → Secrets and variables → Actions → New repository secret**: name `FLY_API_TOKEN`,
-   value = the token.
-
-Then trigger it: **Actions → "Deploy to Fly.io" → Run workflow** (or just push to `main`). The workflow
-creates the app + volume if missing and deploys — the run log prints `https://<app>.fly.dev`.
-
-> The app name (`andreal-print-platform`) must be globally unique. If Fly says it's taken, change `app =` in
-> `fly.toml` **and** `FLY_APP` in the workflow to a unique name, then re-run.
-
 ## Render (backend) + Vercel (frontend) — the split, mostly free
 
 The AI UI is static → **Vercel (free)**. The backend runs the pricing engine (headless Chromium) → **Render**.
