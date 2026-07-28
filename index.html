@@ -854,6 +854,14 @@
           <span><label>Finishing make-ready (sheets/op)</label><input id="finishMR" type="number" value="25" min="10" max="50" oninput="showPrice()" /><div class="hint">Per op (coating/fold/bind/embellish); sir: 10 min, 40–50 max</div></span>
           <span><label>Finishing ₹/book (manual)</label><input id="finishRate" type="number" step="0.01" value="0" oninput="showPrice()" /><div class="hint">NKK sir: finishing (trim/fold) as its OWN line, separate from binding</div></span>
         </div>
+        <div class="prow" style="margin-top:2px">
+          <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="packPcOn" type="checkbox" oninput="document.getElementById('packPcFields').style.display=this.checked?'flex':'none';showPrice()" style="width:auto"> Packing &amp; delivery per piece (NKK sir)</label></span>
+          <span id="packPcFields" style="display:none;gap:12px;flex:1">
+            <span><label>Packing ₹/pc</label><input id="packPc" type="number" step="0.05" value="2" oninput="showPrice()" /><div class="hint">polybag / insert per finished piece</div></span>
+            <span><label>Delivery ₹/pc</label><input id="delivPc" type="number" step="0.05" value="0.75" oninput="showPrice()" /><div class="hint">local delivery per piece (min ₹300)</div></span>
+          </span>
+        </div>
+        <div class="hint" style="margin:2px 0 0">NKK sir: books are individually polybagged &amp; delivered → price packing + delivery <b>per piece</b>. Off = the by-weight estimate (₹/kg). Editable; the by-weight figure is the fallback floor.</div>
         <div class="prow" style="margin-top:-4px">
           <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="forceBinding" type="checkbox" oninput="if(RESULT)run()" style="width:auto"> Force binding (override spine limit)</label></span>
         </div>
@@ -3332,6 +3340,19 @@ function pressSideCost(card,cols,sheets){ if(cols<=0)return 0;
   if(sheets<=card.lotQty) return lot;
   const tier=card.tiers.find(t=>sheets<=t.upTo)||card.tiers[card.tiers.length-1];
   return lot + scale*tier.r*((sheets-card.lotQty)/1000); }
+// PACKING & DELIVERY (NKK sir): default = by-weight (⌈kg÷15⌉ boxes × ₹35; freight kg × ₹8, min ₹300).
+// When "Packing & delivery per piece" is ticked, price both PER FINISHED PIECE instead (books are
+// individually polybagged/inserted and delivered) — packing = qty × ₹/pc, delivery = max(qty × ₹/pc, ₹300).
+// Gated behind the checkbox so the by-weight reconciliation (and the pricing-service smoke) is untouched by default.
+function packFreight(wt, qty){
+  const on = !!($("packPcOn") && $("packPcOn").checked);
+  if(on){
+    const q=Math.max(0,Math.round(qty||0));
+    const packPc=Math.max(0,num("packPc",0)), delivPc=Math.max(0,num("delivPc",0));
+    return { packing:+(packPc*q).toFixed(2), freight:Math.max(+(delivPc*q).toFixed(2),300), perPc:true, packPc, delivPc, qty:q };
+  }
+  return { packing:Math.max(1,Math.ceil(wt/15))*35, freight:Math.max(wt*8,300), perPc:false };
+}
 function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
   const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
@@ -3412,7 +3433,7 @@ function priceJob(o,p,machine){
   // charged at this job's share only. Weight is NOT shared — the finished pieces still weigh their own.
   const gangShare=p.ganged?((p.gangedShare||25)/100):1;
   const paper=+(paperGross*(1-paperDisc)*gangShare).toFixed(2), wt=(o.paperWeight||o.total_wt)*gsmMult;
-  const packing=Math.max(1,Math.ceil(wt/15))*35, freight=Math.max(wt*8,300);
+  const {packing,freight}=packFreight(wt, p.books);
   const base=paper+printing+plates+lam+packing+freight, overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100), prod=base+overhead;
   // MARGIN on the SELLING price, not markup on cost (NKK sir 2026-07-08): margin% is a share of the sale
   // price → sale = cost ÷ (1 − margin%). e.g. cost 100 @ 20% sells at 125 (margin 25 = 20% of 125), not 120.
@@ -3863,7 +3884,7 @@ function combinedPrice(){
   if(hc){
     const fmr=finishingMakeReady(textP,null,p,tq);
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(hc.plcWt||0)+fmr.wt;
-    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const {packing,freight}=packFreight(wt, p.books);
     const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.total+hc.total+packing+freight;
     const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
@@ -3879,7 +3900,7 @@ function combinedPrice(){
     // Printing/plates stay (the same imaged pages), the extra is unbacked paper only.
     const b2bPaper=tq.paper;                                  // 2nd single-side sheet of each pasted leaf
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)*2+(bb.bbWt||0)+fmr.wt;
-    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const {packing,freight}=packFreight(wt, p.books);
     const base=tq.paper+b2bPaper+tq.printing+tq.plates+tq.lam+fmr.total+bb.total+packing+freight;
     const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
@@ -3891,7 +3912,7 @@ function combinedPrice(){
   if(dl){
     const fmr=finishingMakeReady(textP,null,p,tq);
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt;
-    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const {packing,freight}=packFreight(wt, p.books);
     const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.total+dl.total+packing+freight;
     const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
@@ -3903,7 +3924,7 @@ function combinedPrice(){
   if(sc){
     const fmr=finishingMakeReady(textP,null,p,tq);
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(sc.scWt||0)+fmr.wt;
-    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const {packing,freight}=packFreight(wt, p.books);
     const base=tq.paper+tq.printing+tq.plates+tq.lam+fmr.total+sc.total+packing+freight;
     const overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
@@ -3925,7 +3946,7 @@ function combinedPrice(){
     const flatEmbCost = flatEmb.reduce((s,e)=>s+e.cost, 0);
     if(!bindCost&&!finishing&&!tcalCost&&!fppCost&&!ptagCost&&!wcalCost&&!flatEmbCost&&fmr.sheets===0)return {p,q:tq,text:tq,cover:null,coverPlan:cp,binding:0,flatpp:fpp,ptag,wallcal:wcal,fmr,embItems:flatEmb,embTotal:0};
     const wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+fmr.wt+mbWt+tcalWt+ptagWt;
-    const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+    const {packing,freight}=packFreight(wt, p.books);
     const base=tq.paper+fmr.total+tq.printing+tq.plates+tq.lam+bindCost+finishing+tcalCost+fppCost+ptagCost+wcalCost+flatEmbCost+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
     const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
     const paperShown = tq.paper + (ptag?ptag.paperExtra:0);        // show doubled paper on the price panel
@@ -3943,7 +3964,7 @@ function combinedPrice(){
   const fmr=finishingMakeReady(textP,cp,p,tq,cq);
   const paper=tq.paper+cq.paper+fmr.cost,printing=tq.printing+cq.printing+fmr.print,plates=tq.plates+cq.plates,plateCount=tq.plateCount+cq.plateCount;
   const impressions=tq.impressions+cq.impressions,lam=tq.lam+cq.lam,wt=(CHOSEN.paperWeight||CHOSEN.total_wt)+(cp.option.paperWeight||cp.option.total_wt)+fmr.wt+mbWt;
-  const packing=Math.max(1,Math.ceil(wt/15))*35,freight=Math.max(wt*8,300);
+  const {packing,freight}=packFreight(wt, p.books);
   const base=paper+printing+plates+lam+embTotal+bindCost+finishing+packing+freight,overhead=base*((p.overheadPct!=null?p.overheadPct:12)/100),prod=base+overhead;
   const _mp=Math.min(Math.max(p.margin||0,0),99),pretax=prod/(1-_mp/100),margin=pretax-prod,gst=pretax*p.gst/100,grand=pretax+gst;   // margin on SALE price (NKK sir)
   const q={band:tq.band+" text / "+cq.band+" cover",paper,printing,plates,plateCount,impressions,lam,embTotal,embItems,fmr:fmr.cost,packing,freight,overhead,prod,margin,pretax,gst,grand,unit:grand/p.books};
@@ -4631,6 +4652,11 @@ function priceRowsHTML(rows,inr){
 // Packing = ⌈wt÷15⌉ boxes × ₹35; Freight = wt × ₹8/kg (min ₹300). Back-derive the weight from the charge so
 // the shown logic matches exactly what was billed. (Rates editable — pending sir's confirmed packing/freight.)
 function packFreightWhy(q,fallbackWt){
+  if($("packPcOn")&&$("packPcOn").checked){
+    const qty=Math.max(0,Math.round((LASTINP&&LASTINP.copies)||0)), packPc=num("packPc",0), delivPc=num("delivPc",0);
+    return { pack:`${qty.toLocaleString("en-IN")} pcs × ₹${packPc}/pc (polybag / insert)`,
+             freight:`${qty.toLocaleString("en-IN")} pcs × ₹${delivPc}/pc delivery${q.freight<=300?" (min ₹300)":""}` };
+  }
   const shipWt=q.freight>300?q.freight/8:(fallbackWt||0);
   return { pack:`⌈ ${shipWt.toFixed(0)} kg ÷ 15 ⌉ = ${Math.max(1,Math.round(q.packing/35))} box(es) × ₹35`,
            freight:q.freight>300?`${shipWt.toFixed(0)} kg × ₹8/kg`:`minimum ₹300` };
