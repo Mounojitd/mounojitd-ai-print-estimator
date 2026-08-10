@@ -45,10 +45,10 @@
   h2:first-of-type{margin-top:0}
   h2::before{content:"";width:4px;height:13px;border-radius:2px;background:linear-gradient(var(--accent),var(--accent2))}
 
-  label{display:block;font-size:11.5px;font-weight:600;color:#46505e;margin-bottom:5px;letter-spacing:.1px}
-  .fld{margin-bottom:12px}
-  input,select{width:100%;min-width:0;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;
-    background:#fff;color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
+  label{display:block;font-size:10.5px;font-weight:700;text-transform:uppercase;color:#66717f;margin-bottom:6px;letter-spacing:.045em}
+  .fld{margin-bottom:14px}
+  input,select{width:100%;min-width:0;padding:11px 13px;border:1px solid var(--line);border-radius:10px;font-size:14px;font-family:inherit;
+    background:#fbfcfe;color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
   input::placeholder{color:#aab2bd}
   input:hover,select:hover{border-color:#c4ccd6}
   input:focus,select:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 3px rgba(31,82,134,.15)}
@@ -57,8 +57,8 @@
   select{appearance:none;-webkit-appearance:none;
     background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236a7686' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
     background-repeat:no-repeat;background-position:right 11px center;padding-right:30px}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:11px}
-  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
   .row>*,.row3>*,.prow>span{min-width:0}                 /* let grid/flex cells shrink — no page-wide scroll */
   .pbox{overflow-x:auto}                                  /* wide result tables scroll inside their box, not the page */
   .hint{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.45}
@@ -99,14 +99,15 @@
 
   .pill{display:inline-block;color:#fff;border-radius:6px;padding:2px 7px;font-size:9.5px;font-weight:700;letter-spacing:.4px;
     text-transform:uppercase;margin-left:6px;background:var(--brand2);vertical-align:middle}
-  .pbox{background:#f8fafc;border:1px solid var(--line2);border-radius:13px;padding:14px;margin-top:14px}
-  .ptitle{font-size:12px;font-weight:700;color:var(--brand);margin-bottom:9px;letter-spacing:.2px}
-  .prow{display:flex;gap:10px;margin-bottom:9px} .prow span{flex:1}
+  .pbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px;box-shadow:0 1px 2px rgba(16,26,38,.03)}
+  .ptitle{font-size:13px;font-weight:800;color:var(--brand);margin:-2px 0 13px;letter-spacing:-.1px;
+    padding-bottom:10px;border-bottom:1px solid var(--line2)}
+  .prow{display:flex;gap:12px;margin-bottom:11px} .prow span{flex:1}
   /* commercial-settings row: don't cram many fields into slivers — wrap into a readable grid */
   .prow-wrap{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px 12px;align-items:start}
   .prow-wrap>span,.prow-wrap>.fld{flex:none;min-width:0;margin-bottom:0}
   .prow-wrap>span .hint,.prow-wrap>.fld .hint{margin-top:4px;line-height:1.4}
-  .prow label{font-size:11px;margin-bottom:3px} .prow input,.prow select{padding:8px 10px;font-size:13px;border-radius:9px}
+  .prow label{font-size:10.5px;margin-bottom:5px} .prow input,.prow select{padding:10px 12px;font-size:13.5px;border-radius:9px}
 
   .mbtn{cursor:pointer;border:0;border-radius:10px;font-weight:600;font-size:13.5px;padding:11px 16px;margin:5px 7px 0 0;transition:.15s}
   .mbtn.p{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 5px 14px rgba(19,49,79,.22)}
@@ -121,9 +122,9 @@
      screen; the detailed input form + diagrams live in a left slide-in drawer opened from the ☰.
      ============================================================================================ */
   /* DESKTOP: inputs are an always-visible sticky sidebar; results fill the rest (roomier than before) */
-  .wrap{max-width:1320px}
-  .grid{grid-template-columns:404px minmax(0,1fr);gap:26px;align-items:start}
-  #inputCard{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;margin:0}
+  .wrap{max-width:1340px}
+  .grid{grid-template-columns:474px minmax(0,1fr);gap:26px;align-items:start}
+  #inputCard{position:sticky;top:16px;max-height:calc(100vh - 32px);overflow-y:auto;margin:0;padding:20px 22px}
   #drawerBackdrop{display:none}
   #drawerToggle{display:inline-flex}                      /* on desktop this collapses / expands the sidebar */
   .drawerClose{display:none}
@@ -243,20 +244,23 @@
           <button type="button" id="voiceBtn" onclick="voiceToggle()" style="background:#2456c7;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-weight:700;cursor:pointer">🎤 Speak or dictate</button>
           <span id="voiceStatus" style="font-size:11.5px;color:#6b7480;flex:1;min-width:180px">Speak with the mic, or paste / dictate with <a href="https://wisprflow.ai/" target="_blank" rel="noopener" style="color:#2456c7">Wispr Flow</a> into the box below — auto-fills after you stop typing.</span>
         </div>
-        <div class="prow" style="margin-top:6px;gap:6px">
-          <textarea id="voiceText" placeholder="Paste or dictate the full job brief here (any format — Subject, Close Size, GSM, Binding, etc.) — auto-parses when you stop typing." style="flex:1;min-width:0;resize:vertical;min-height:60px;font-family:inherit;padding:8px 11px;border:1px solid var(--line);border-radius:10px;font-size:13px" oninput="voiceAutoParse()"></textarea>
-          <button type="button" onclick="voiceApplyText()" style="cursor:pointer;align-self:flex-start">Fill now</button>
+        <div style="margin-top:8px">
+          <textarea id="voiceText" placeholder="Paste or dictate the full job brief here — any format (subject, close size, GSM, binding…). Auto-fills the fields when you stop typing." style="width:100%;resize:vertical;min-height:62px;font-family:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:13.5px" oninput="voiceAutoParse()"></textarea>
+          <button type="button" class="mbtn s" onclick="voiceApplyText()" style="margin-top:8px;padding:8px 15px">Fill now</button>
         </div>
         <div id="voiceParsed" style="font-size:12px;margin-top:6px"></div>
-        <div class="prow" style="margin-top:6px;gap:6px;align-items:center">
-          <span style="font-size:11.5px;color:#6b7480;white-space:nowrap">📚 or pick a product:</span>
-          <select id="taxProduct" onchange="onTaxProduct()" style="flex:1;min-width:0"><option value="">— product library (211 · suggests paper type + GSM) —</option></select>
-          <button type="button" id="saveProdBtn" onclick="saveCurrentProduct()" title="Save the current Product / job name + paper type + GSM to your library (this browser). NKK sir B4." style="cursor:pointer;white-space:nowrap;font-size:12px">➕ Save</button>
-          <button type="button" id="removeProdBtn" onclick="removeCurrentProduct()" title="Remove the selected saved product from your library" disabled style="cursor:pointer;white-space:nowrap;font-size:12px">🗑</button>
+        <div style="margin-top:10px">
+          <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.045em;color:#66717f;margin-bottom:6px">📚 or pick a saved product</div>
+          <div class="prow" style="gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="taxProduct" onchange="onTaxProduct()" style="flex:1;min-width:180px"><option value="">Product library (211) — suggests paper type + GSM</option></select>
+            <button type="button" id="saveProdBtn" class="mbtn s" onclick="saveCurrentProduct()" title="Save the current Product / job name + paper type + GSM to your library (this browser). NKK sir B4." style="flex:none;padding:8px 13px;font-size:12.5px;margin:0;white-space:nowrap">➕ Save</button>
+            <button type="button" id="removeProdBtn" class="mbtn s" onclick="removeCurrentProduct()" title="Remove the selected saved product from your library" disabled style="flex:none;padding:8px 12px;font-size:13px;margin:0">🗑</button>
+          </div>
         </div>
         <div id="saveProdNote" style="font-size:12px;margin-top:4px"></div>
         <div id="taxNote" style="font-size:12px;margin-top:4px"></div>
       </div>
+      <div class="ptitle" style="margin:2px 0 8px;font-size:12.5px">① What you're making — product · size</div>
       <div class="fld"><label>Product / job name</label><input id="product_name" type="text" placeholder="e.g. Annual brochure" /></div>
       <div class="row">
         <div class="fld"><label>Product type</label>
@@ -309,6 +313,7 @@
       <div class="hint" id="closedHint">Booklet: enter the <b>closed</b> page size — open spread is auto-calculated.</div>
 
       <div id="bookletFields">
+        <div class="ptitle" style="margin:8px 0;font-size:12.5px">② Extent &amp; quantity</div>
         <div class="row3">
           <div class="fld"><label>Extent (text pages)</label><input id="pages" type="number" placeholder="e.g. 80" /><div class="hint">Inside pages only — a separate cover is +4pp extra.</div></div>
           <div class="fld"><label>Signature</label><select id="sigPages"><option value="auto" selected>Auto (best fit)</option><option>4</option><option>8</option><option>12</option><option>16</option><option>24</option><option>32</option></select></div>
@@ -322,7 +327,7 @@
           </select></div>
         <input type="checkbox" id="separateCover" checked style="display:none" />
         <div id="coverFields" class="pbox" style="margin:0 0 10px">
-          <div class="ptitle">Cover component</div>
+          <div class="ptitle">③ Cover — paper · GSM · colour · coating</div>
           <div class="row3">
             <div class="fld"><label>Cover paper type</label><select id="coverTypeSel" onchange="onCoverTypeChange()"><option value="">All types</option></select></div>
             <div class="fld"><label>Cover paper (price list)</label><select id="coverGrade" onchange="onCoverPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual</option></select></div>
@@ -740,7 +745,7 @@
         </div>
       </div>
       <div class="pbox" id="paperBox" style="margin:0 0 10px">
-        <div class="ptitle" id="textCompTitle">Text component</div>
+        <div class="ptitle" id="textCompTitle">④ Inside / text — paper · GSM · colour · coating</div>
         <div class="row3">
           <div class="fld"><label id="paperTypeLabel">Text paper type</label><select id="paperTypeSel" onchange="onPaperTypeChange()"><option value="">All types</option></select></div>
           <div class="fld"><label id="paperGradeLabel">Text paper (price list)</label><select id="paperGrade" onchange="onPaperPick()"><option value="__auto" selected>Auto — best price at GSM</option><option value="">✏️ Manual rate</option></select></div>
@@ -748,10 +753,21 @@
         </div>
         <div class="row3">
           <div class="fld"><label id="paperRateLabel">Text paper ₹/sheet</label><input id="paperRate" type="number" step="0.01" placeholder="auto / manual" oninput="onPaperRateEdit()" /></div>
-          <div class="fld"><label>Text colours</label><select id="textColPreset" onchange="setColours(this.value); var c=document.getElementById('colpreset'); if(c) c.value=this.value;"><option value="1+0">1+0 (black)</option><option value="1+1">1+1</option><option value="2+0">2+0</option><option value="2+2">2+2</option><option value="4+0">4+0 (CMYK front)</option><option value="4+4" selected>4+4 (CMYK both)</option><option value="5+5">5+5</option><option value="6+6">6+6</option></select><div class="hint">drives Front/Back below</div></div>
           <div class="fld"><label>Specialty ₹/kg (text)</label><input id="paperSpecKg" type="number" step="1" placeholder="e.g. 220 for Montblanc" oninput="applySpecialtyRate('text')" /><div class="hint">For Montblanc / imported stock not in the DB — auto-computes ₹/sheet.</div></div>
+          <div class="fld"></div>
         </div>
         <div class="hint" id="paperRateNote">Auto rate from the price list after you run.</div>
+        <!-- INSIDE COLOURS + COATING (moved here so every Inside/text setting lives in one place — NKK sir UI reflow) -->
+        <div class="prow" style="margin-top:6px">
+          <span><label>Inside colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
+          <span><label>Front</label><input id="cf" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
+          <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
+        </div>
+        <div class="prow">
+          <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="velvet">Velvet / soft-touch lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select><div class="hint">Inside pages only. The <b>cover</b> has its own coating — set it in the Cover section above.</div></span>
+          <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
+          <span></span>
+        </div>
         <!-- INSIDE COLOUR BIFURCATION (NKK sir): inside pages aren't always one colour — some sections 4-col,
              some 2-col, some 1-col. Split the extent into up to 3 sections, each priced for its own plates +
              printing, then summed. OFF by default → the single "Text colours" spec above is used, unchanged. -->
@@ -803,18 +819,30 @@
       <div class="hint" id="ssCustNote" style="margin-top:2px">Any paper size — type inches and add it as a checkbox that flows through the whole engine (imposition, printing, paper cost).</div>
       </div><!-- /sheetSizeBox -->
 
+      <div class="pbox">
+        <div class="ptitle">⑤ Binding &amp; finishing</div>
+        <div class="prow prow-wrap" id="bindingFields">
+          <span><label>Type of binding (spine recommends)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="side">Side stitch</option><option value="sewn">Section sewn</option><option value="perfect">Perfect binding</option><option value="sewn_perfect">Section sewn + Perfect</option><option value="soft">Soft cover book</option><option value="case">Hard case book</option><option value="wireo">Wire-O</option><option value="spiral">Spiral</option><option value="comb">Comb</option><option value="pad">Pad binding</option><option value="b2b">Back-to-back paste</option><option value="other">Other / custom</option></select></span>
+          <span><label>Binding ₹/book (auto by pages·qty)</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="bindingRateEdited=true;showPrice()" /></span>
+          <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
+          <span><label>Finishing make-ready (sheets/op)</label><input id="finishMR" type="number" value="25" min="10" max="50" oninput="showPrice()" /><div class="hint">Per op (coating/fold/bind/embellish); sir: 10 min, 40–50 max</div></span>
+          <span><label>Finishing ₹/book (manual)</label><input id="finishRate" type="number" step="0.01" value="0" oninput="showPrice()" /><div class="hint">NKK sir: finishing (trim/fold) as its OWN line, separate from binding</div></span>
+        </div>
+        <div class="prow" style="margin-top:2px">
+          <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="packPcOn" type="checkbox" oninput="document.getElementById('packPcFields').style.display=this.checked?'flex':'none';showPrice()" style="width:auto"> Packing &amp; delivery per piece (NKK sir)</label></span>
+          <span id="packPcFields" style="display:none;gap:12px;flex:1">
+            <span><label>Packing ₹/pc</label><input id="packPc" type="number" step="0.05" value="2" oninput="showPrice()" /><div class="hint">polybag / insert per finished piece</div></span>
+            <span><label>Delivery ₹/pc</label><input id="delivPc" type="number" step="0.05" value="0.75" oninput="showPrice()" /><div class="hint">local delivery per piece (min ₹300)</div></span>
+          </span>
+        </div>
+        <div class="hint" style="margin:2px 0 0">NKK sir: books are individually polybagged &amp; delivered → price packing + delivery <b>per piece</b>. Off = the by-weight estimate (₹/kg). Editable; the by-weight figure is the fallback floor.</div>
+        <div class="prow" style="margin-top:-4px">
+          <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="forceBinding" type="checkbox" oninput="if(RESULT)run()" style="width:auto"> Force binding (override spine limit)</label></span>
+        </div>
+        <div id="bindingWarn"></div>
+      </div>
       <div class="pbox" id="colourBox">
-        <div class="ptitle">💰 Colour · plate · impression · price</div>
-        <div class="prow">
-          <span><label>Colours (preset)</label><select id="colpreset" onchange="setColours(this.value)"><option value="">Custom…</option><option>1+0</option><option>1+1</option><option>2+2</option><option>4+0</option><option selected>4+4</option><option>5+5</option><option>6+6</option></select></span>
-          <span><label>Front</label><input id="cf" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
-          <span><label>Back</label><input id="cb" type="number" value="4" oninput="document.getElementById('colpreset').value='';refreshMachineAndPrice()" /></span>
-        </div>
-        <div class="prow">
-          <span><label id="lamLabel">Inside / text coating</label><select id="lam" onchange="showPrice()"><option value="none" selected>None (cover-only job)</option><option value="matt">Matt lam</option><option value="gloss">Gloss lam</option><option value="velvet">Velvet / soft-touch lam</option><option value="bopp">BOPP</option><option value="uv">Gloss UV (full)</option><option value="mattuv">Matt UV</option><option value="gaqua">Gloss aqueous</option><option value="maqua">Matt aqueous</option><option value="varnish">Varnish</option><option value="drip">Drip-off UV</option></select><div class="hint">Inside pages only. The <b>cover</b> has its own coating — set it in the Cover section above.</div></span>
-          <span><label>Coating on</label><select id="coatArea" onchange="showPrice()"><option value="all" selected>All sheets</option><option value="cover">Cover pages only</option></select></span>
-          <span></span>
-        </div>
+        <div class="ptitle">⑥ Pricing &amp; commercials — margin · press · overhead · GST</div>
         <div class="prow prow-wrap">
           <span style="flex:2"><label>Press rate source</label><select id="printSrc" onchange="if(RESULT)run();else showPrice()">
             <option value="anderson" selected>Naba Mudran (agreement)</option>
@@ -844,28 +872,6 @@
           <span><label>GST % (manual, add if needed)</label><input id="gst" type="number" value="0" oninput="showPrice()" /><div class="hint">NKK sir: GST excluded from estimate — keep 0</div></span>
           <span><label>Paper discount %</label><input id="paperDiscount" type="number" value="0" step="0.5" oninput="showPrice()" /><div class="hint">NKK sir: vendor discount off paper cost (e.g. 13%)</div></span>
         </div>
-      </div>
-      <div class="pbox">
-        <div class="ptitle">📑 Type of binding &amp; finishing</div>
-        <div class="prow prow-wrap" id="bindingFields">
-          <span><label>Type of binding (spine recommends)</label><select id="binding" onchange="bindingEdited=true;setBinding(this.value)"><option value="none">None</option><option value="saddle" selected>Saddle stitch</option><option value="side">Side stitch</option><option value="sewn">Section sewn</option><option value="perfect">Perfect binding</option><option value="sewn_perfect">Section sewn + Perfect</option><option value="soft">Soft cover book</option><option value="case">Hard case book</option><option value="wireo">Wire-O</option><option value="spiral">Spiral</option><option value="comb">Comb</option><option value="pad">Pad binding</option><option value="b2b">Back-to-back paste</option><option value="other">Other / custom</option></select></span>
-          <span><label>Binding ₹/book (auto by pages·qty)</label><input id="bindingRate" type="number" step="0.01" value="3.5" oninput="bindingRateEdited=true;showPrice()" /></span>
-          <span><label>Binding minimum ₹</label><input id="bindingMin" type="number" value="500" oninput="showPrice()" /></span>
-          <span><label>Finishing make-ready (sheets/op)</label><input id="finishMR" type="number" value="25" min="10" max="50" oninput="showPrice()" /><div class="hint">Per op (coating/fold/bind/embellish); sir: 10 min, 40–50 max</div></span>
-          <span><label>Finishing ₹/book (manual)</label><input id="finishRate" type="number" step="0.01" value="0" oninput="showPrice()" /><div class="hint">NKK sir: finishing (trim/fold) as its OWN line, separate from binding</div></span>
-        </div>
-        <div class="prow" style="margin-top:2px">
-          <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="packPcOn" type="checkbox" oninput="document.getElementById('packPcFields').style.display=this.checked?'flex':'none';showPrice()" style="width:auto"> Packing &amp; delivery per piece (NKK sir)</label></span>
-          <span id="packPcFields" style="display:none;gap:12px;flex:1">
-            <span><label>Packing ₹/pc</label><input id="packPc" type="number" step="0.05" value="2" oninput="showPrice()" /><div class="hint">polybag / insert per finished piece</div></span>
-            <span><label>Delivery ₹/pc</label><input id="delivPc" type="number" step="0.05" value="0.75" oninput="showPrice()" /><div class="hint">local delivery per piece (min ₹300)</div></span>
-          </span>
-        </div>
-        <div class="hint" style="margin:2px 0 0">NKK sir: books are individually polybagged &amp; delivered → price packing + delivery <b>per piece</b>. Off = the by-weight estimate (₹/kg). Editable; the by-weight figure is the fallback floor.</div>
-        <div class="prow" style="margin-top:-4px">
-          <span style="flex:none"><label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input id="forceBinding" type="checkbox" oninput="if(RESULT)run()" style="width:auto"> Force binding (override spine limit)</label></span>
-        </div>
-        <div id="bindingWarn"></div>
       </div>
 
       <div class="pbox" id="multiQtyBox" style="margin:0 0 10px">
@@ -898,7 +904,7 @@
         <div id="calcExplain"></div>
         <div id="machine"></div>
         <div class="pbox">
-          <div class="ptitle">Quotation details</div>
+          <div class="ptitle">⑧ Quotation details</div>
           <div class="prow">
             <span><label>Customer / company</label><input id="customer" type="text" placeholder="Customer name" /></span>
             <span><label>Quotation no.</label><input id="quoteNo" type="text" placeholder="Auto-generated" /></span>
@@ -1154,7 +1160,7 @@ function onProductChange(){
   $("paperRateLabel").textContent=b?"Text paper ₹/sheet":"Paper ₹/sheet";
   if($("paperTypeLabel")) $("paperTypeLabel").textContent=b?"Text paper type":"Paper type";
   if($("paperGradeLabel")) $("paperGradeLabel").textContent=b?"Text paper (price list)":"Paper (price list)";
-  if($("textCompTitle")) $("textCompTitle").textContent=b?"Text component":"Paper";
+  if($("textCompTitle")) $("textCompTitle").textContent=b?"④ Inside / text — paper · GSM · colour · coating":"④ Paper";
   // DIELINE / converting: show the dieline panel + relabel the W/H fields to the assembled dims (A/B).
   const dln=isDieline($("product").value);
   if($("dielineFields")) $("dielineFields").style.display=dln?"block":"none";
@@ -2655,7 +2661,7 @@ function renderMachine(o){
       `<td>${runH}</td><td>${status}</td><td>${cost}</td></tr>`;
   }).join("");
   const selRoute=routeFor(m);
-  box.innerHTML=`<div class="pbox"><div class="ptitle">🖨 Machine — full press master (${MACHINES.length} presses), whole / cut route &amp; total cost</div>`+
+  box.innerHTML=`<div class="pbox"><div class="ptitle">⑦ Press / machine — full master (${MACHINES.length} presses), whole / cut route &amp; total cost</div>`+
     `<div class="prow"><span><label>Press selection</label><select onchange="setMachineMode(this.value)"><option value="auto" ${MACHINE_MODE==="auto"?"selected":""}>Auto (cheapest route)</option><option value="manual" ${MACHINE_MODE==="manual"?"selected":""}>Manual (choose any)</option></select></span>`+
     `<span style="flex:2"><label>Selected press</label><select onchange="selectMachine(this.value)">${opts}</select></span>`+
     `<span><label>Run time</label><input value="~${hrs.toFixed(1)} hr @ ${m.speed.toLocaleString('en-IN')}/hr" disabled></span></div>`+
