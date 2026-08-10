@@ -894,6 +894,11 @@
         </div>
         <div id="bindingWarn"></div>
       </div>
+      <div class="pbox" id="materialBox">
+        <div class="ptitle">🧰 Materials &amp; add-ons — live from your master sheet (optional)</div>
+        <div class="hint" style="margin:-2px 0 8px">Tick any material to add it to this quote. Each adds <b>qty × rate</b>, and (like every other cost line) flows through overhead + margin + GST. Rates are live from <b>MATERIAL_RATES</b>; quantity is per job.</div>
+        <div id="materialList" style="display:flex;flex-wrap:wrap;gap:8px"><span class="hint">No materials loaded yet.</span></div>
+      </div>
       <div class="pbox" id="colourBox">
         <div class="ptitle">⑥ Pricing &amp; commercials — margin · press · overhead · GST</div>
         <div class="prow prow-wrap">
@@ -3414,6 +3419,45 @@ function packFreight(wt, qty){
   }
   return { packing:Math.max(1,Math.ceil(wt/15))*35, freight:Math.max(wt*8,MINF), perPc:false };
 }
+// MATERIALS / ADD-ONS (NKK sir): optional per-job items (polypouch, box, T-shirt, …) priced qty × ₹/unit.
+// Live from MATERIAL_RATES; the built-in list below is the offline fallback. The picker is built into the
+// input card; materialAddon() sums the ticked rows and combinedPrice() re-flows that cost through the SAME
+// overhead + margin + GST chain as every other line (NKK sir: material carries the normal markup).
+var MATERIAL_DB=[
+  {cat:"Poly",name:"Polypouch (per pc)",rate:1.1},
+  {cat:"Poly",name:"Polypouch A5 (per pc)",rate:0.75},
+  {cat:"Box",name:"White box",rate:10.75},
+  {cat:"Button",name:"Snap fastener",rate:2.57},
+  {cat:"Frame",name:"Photo frame",rate:275},
+  {cat:"Card",name:"Plastic / ID card",rate:8},
+  {cat:"Apparel",name:"T-shirt",rate:235}
+];
+function buildMaterialPicker(){
+  const box=$("materialList"); if(!box) return;
+  if(!MATERIAL_DB.length){ box.innerHTML='<span class="hint">No materials available.</span>'; return; }
+  // remember current ticks + quantities across a rebuild (live load replaces the list)
+  const prev={}; box.querySelectorAll(".matrow").forEach(r=>{ const cb=r.querySelector(".matsel"), qn=r.querySelector(".matqty");
+    if(cb) prev[cb.getAttribute("data-name")]={on:cb.checked, qty:qn?qn.value:"1"}; });
+  const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+  box.innerHTML=MATERIAL_DB.map(m=>{ const k=prev[m.name]||{on:false,qty:"1"};
+    return `<span class="matrow" style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line,#d8d8e0);border-radius:8px;padding:5px 8px">
+      <label style="display:inline-flex;align-items:center;gap:5px;margin:0;cursor:pointer;font-weight:600">
+        <input type="checkbox" class="matsel" data-name="${esc(m.name)}" data-rate="${m.rate}" ${k.on?"checked":""} oninput="showPrice()" style="width:auto">
+        ${esc(m.name)}</label>
+      <span class="hint" style="margin:0">₹${m.rate}</span>
+      <input type="number" class="matqty" value="${esc(k.qty)}" min="0" step="1" title="quantity" oninput="showPrice()" style="width:58px">
+    </span>`; }).join("");
+}
+function materialAddon(){
+  if(typeof document==="undefined") return {total:0,items:[]};
+  const sel=document.querySelectorAll(".matsel"); const items=[]; let total=0;
+  sel.forEach(cb=>{ if(!cb.checked) return;
+    const rate=parseFloat(cb.getAttribute("data-rate"))||0;
+    const row=cb.closest(".matrow"); const qin=row&&row.querySelector(".matqty");
+    const qty=Math.max(0, qin?(parseFloat(qin.value)||0):1); const cost=rate*qty;
+    if(cost>0){ total+=cost; items.push({name:cb.getAttribute("data-name")||"Material", qty, rate, cost:+cost.toFixed(2)}); } });
+  return {total:+total.toFixed(2), items};
+}
 function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
   const band=press?machineBand(press):sizeBand(o.sw,o.sh), sheets=o.total;
@@ -3917,7 +3961,33 @@ function renderNCR(){
     `<div class="hint" style="margin-top:8px">Per-set carbonless model — no recorded NK anchor; rates are trade defaults, confirm with sir.</div>`;
   ["machine","tb","diagram","calcExplain","m_sub","suggest"].forEach(id=>{ if($(id)) $(id).innerHTML=""; });
 }
+// Wrapper: every product flows through here. If any material add-on is ticked, re-flow its cost through the
+// SAME overhead → margin → GST chain the core already applied (derive the rates from the computed q, so it
+// works for every product incl. the early-return ones). Zero materials → untouched (smoke stays exact).
 function combinedPrice(){
+  const R=_combinedPriceCore();
+  try{
+    if(R&&R.q){ const q=R.q; q.material=0; q.materialItems=[];
+      if(!R.unpriceable){
+        const mat=materialAddon();
+        if(mat.total>0){ const p=R.p||{};
+          const prod=+q.prod||0, overhead=+q.overhead||0, pretax=+q.pretax||prod, base=prod-overhead;
+          const ohPct = base>0 ? overhead/base : ((p.overheadPct!=null?p.overheadPct:12)/100);
+          const mFrac = pretax>0 ? Math.max(0,Math.min(0.99,1-prod/pretax)) : Math.min(0.99,(p.margin||0)/100);
+          const gstFrac = pretax>0 ? (+q.gst||0)/pretax : (p.gst||0)/100;
+          const books = (q.unit>0&&q.grand>0) ? (q.grand/q.unit) : (p.books||1);
+          const oh=mat.total*ohPct, pr=mat.total+oh, px=pr/(1-mFrac), mg=px-pr, gs=px*gstFrac, gr=px+gs;
+          q.material=Math.round(mat.total); q.materialItems=mat.items;
+          q.overhead=overhead+oh; q.prod=prod+pr; q.pretax=pretax+px;
+          q.margin=(+q.margin||0)+mg; q.gst=(+q.gst||0)+gs; q.grand=(+q.grand||0)+gr;
+          q.unit=q.grand/(books||1);
+        }
+      }
+    }
+  }catch(e){}
+  return R;
+}
+function _combinedPriceCore(){
   if(typeof isNCR==="function" && isNCR($("product")?$("product").value:"")) return ncrQuote();
   if(typeof isRigidBox==="function" && isRigidBox($("product")?$("product").value:"")) return rigidBoxQuote();
   if(typeof isPouch==="function" && isPouch($("product")?$("product").value:"")) return pouchQuote();
@@ -4770,7 +4840,9 @@ function showPrice(){
     if(x.text.lam) hrows.push(["Text coating",x.text.lam,hE.lam]);
     x.hardcase.items.forEach(i=>hrows.push(["Case — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)hrows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
-    hrows.push(["Packing",q.packing,hpf.pack],["Freight",q.freight,hpf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    hrows.push(["Packing",q.packing,hpf.pack],["Freight",q.freight,hpf.freight]);
+    if(q.material>0) hrows.push(["Materials",q.material,(q.materialItems||[]).map(m=>`${m.name} ${m.qty}×₹${m.rate}`).join(", ")]);
+    hrows.push([`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h2='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
     h2+=priceRowsHTML(hrows,inr);
     const S=x.hardcase.sizes;
@@ -4790,7 +4862,9 @@ function showPrice(){
     if(x.text.lam) brows.push(["Coating / lamination",x.text.lam,bE.lam]);
     x.boardbook.items.forEach(i=>brows.push(["Board book — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)brows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
-    brows.push(["Packing",q.packing,bpf.pack],["Freight",q.freight,bpf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    brows.push(["Packing",q.packing,bpf.pack],["Freight",q.freight,bpf.freight]);
+    if(q.material>0) brows.push(["Materials",q.material,(q.materialItems||[]).map(m=>`${m.name} ${m.qty}×₹${m.rate}`).join(", ")]);
+    brows.push([`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h3='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
     h3+=priceRowsHTML(brows,inr);
     const B=x.boardbook.sizes;
@@ -4809,7 +4883,9 @@ function showPrice(){
     if(x.text.lam) drows.push(["Coating / lamination",x.text.lam,dE.lam]);
     x.dieline.items.forEach(i=>drows.push(["Converting — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)drows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh, printed + paper)`,x.fmr.total]);
-    drows.push(["Packing",q.packing,dpf.pack],["Freight",q.freight,dpf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    drows.push(["Packing",q.packing,dpf.pack],["Freight",q.freight,dpf.freight]);
+    if(q.material>0) drows.push(["Materials",q.material,(q.materialItems||[]).map(m=>`${m.name} ${m.qty}×₹${m.rate}`).join(", ")]);
+    drows.push([`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h4='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
     h4+=priceRowsHTML(drows,inr);
     h4+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
@@ -4827,7 +4903,9 @@ function showPrice(){
     if(x.text.lam) srows.push(["Wrap lamination",x.text.lam,sE.lam]);
     x.slipcase.items.forEach(i=>srows.push(["Slipcase — "+i.name,i.cost]));
     if(x.fmr&&x.fmr.sheets>0)srows.push([`Finishing make-ready (${x.fmr.ops} ops)`,x.fmr.total]);
-    srows.push(["Packing",q.packing,spf.pack],["Freight",q.freight,spf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+    srows.push(["Packing",q.packing,spf.pack],["Freight",q.freight,spf.freight]);
+    if(q.material>0) srows.push(["Materials",q.material,(q.materialItems||[]).map(m=>`${m.name} ${m.qty}×₹${m.rate}`).join(", ")]);
+    srows.push([`Overhead (${p.overheadPct||0}%)`,q.overhead]);
     let h5='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
     h5+=priceRowsHTML(srows,inr);
     h5+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
@@ -4873,7 +4951,9 @@ function showPrice(){
   if(x.ptag){ x.ptag.items.forEach(i=>rows.push([`Pasted tag — ${i.name}`,i.cost])); }
   if(x.wallcal){ x.wallcal.items.forEach(i=>rows.push([`Wall calendar — ${i.name}`,i.cost])); }
   if(x.fmr&&x.fmr.sheets>0)rows.push([`Finishing make-ready (${x.fmr.ops} ops × ${x.fmr.perOp} sh = ${x.fmr.sheets} sheets, printed + paper)`,x.fmr.total]);
-  rows.push(["Packing",q.packing,pf.pack],["Freight",q.freight,pf.freight],[`Overhead (${p.overheadPct||0}%)`,q.overhead]);
+  rows.push(["Packing",q.packing,pf.pack],["Freight",q.freight,pf.freight]);
+  if(q.material>0) rows.push(["Materials",q.material,(q.materialItems||[]).map(m=>`${m.name} ${m.qty}×₹${m.rate}`).join(", ")]);
+  rows.push([`Overhead (${p.overheadPct||0}%)`,q.overhead]);
   let h='<table style="width:100%;border-collapse:collapse;font-size:13.5px">';
   h+=priceRowsHTML(rows,inr);
   h+=`<tr style="border-top:1px solid #ccc;font-weight:700"><td style="padding:5px 0">Production</td><td style="text-align:right">${inr(q.prod)}</td></tr>`;
@@ -5050,7 +5130,7 @@ function quoteSummary(){                                  // one flat record of 
     size:I.W+"x"+I.H+" in", pages:I.isSig?I.pages:"", qty:I.copies, gsm:I.gsm,
     sheet:CHOSEN.sw+"x"+CHOSEN.sh, machine:SELECTED_MACHINE?SELECTED_MACHINE.name:"",
     paper:Math.round(q.paper||0), printing:Math.round(q.printing||0), plates:Math.round(q.plates||0),
-    coating:Math.round(q.lam||0), packing:Math.round(q.packing||0), freight:Math.round(q.freight||0),
+    coating:Math.round(q.lam||0), packing:Math.round(q.packing||0), freight:Math.round(q.freight||0), material:Math.round(q.material||0),
     overhead:Math.round(q.overhead||0), margin:Math.round(q.margin||0), gst:Math.round(q.gst||0),
     grand:Math.round(q.grand||0), unit:+(q.unit||0).toFixed(2)};
 }
@@ -6218,7 +6298,8 @@ const LIVE_POSTPRESS_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0Ggb
 // returns the same CSV. TRANSPORT_RATES uses its export gid. Both keep the built-in rates as fallback.
 const LIVE_BINDING_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/gviz/tq?tqx=out:csv&headers=1&sheet=BOOK_BINDING_RATES";
 const LIVE_TRANSPORT_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1239683603";  // TRANSPORT_RATES
-const LIVE_STATUS={paper:null,printing:null,postpress:null,binding:null,digital:null,transport:null};
+const LIVE_MATERIAL_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/gviz/tq?tqx=out:csv&headers=1&sheet=MATERIAL_RATES";
+const LIVE_STATUS={paper:null,printing:null,postpress:null,binding:null,digital:null,transport:null,material:null};
 // Freight defaults pulled live from TRANSPORT_RATES (currently just a minimum-charge floor). null = use built-in.
 // var (not let) so packFreight — defined far earlier — never hits a temporal-dead-zone if it runs during init.
 var LIVE_FREIGHT=null;
@@ -6226,8 +6307,8 @@ function renderLiveBadge(){
   const el=$("liveDbStatus"); if(!el) return;
   const S=LIVE_STATUS, parts=[]; let live=false;
   const seg=(lbl,s)=>{ if(s==null) return; if(s.ok){live=true; parts.push(`${s.n} ${lbl}`);} else parts.push(`${lbl} ✕`); };
-  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress); seg("bindings",S.binding); seg("digital",S.digital); seg("transport",S.transport);
-  if(S.paper===null&&S.printing===null&&S.postpress===null&&S.binding===null&&S.digital===null&&S.transport===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
+  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress); seg("bindings",S.binding); seg("digital",S.digital); seg("transport",S.transport); seg("materials",S.material);
+  if(S.paper===null&&S.printing===null&&S.postpress===null&&S.binding===null&&S.digital===null&&S.transport===null&&S.material===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
   const t=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
   el.innerHTML = live
     ? `<span style="color:#1c7a52;font-weight:600">🟢 Live from your master sheet</span> <span style="color:#6b7480">· ${parts.join(" · ")} · ${t}</span>`
@@ -6395,9 +6476,30 @@ async function loadLiveTransport(){
     LIVE_STATUS.transport={ok:trips>0,n:trips};
   }catch(err){ LIVE_STATUS.transport={ok:false}; }
 }
+// MATERIAL_RATES — optional add-on items → MATERIAL_DB → the picker in the input card. Keep only rows with a
+// real (non-numeric) name and a rate>0 (skips the wiro-coil size rows and blanks). Sheet wins; built-in stays.
+async function loadLiveMaterial(){
+  try{
+    const rows=await fetchCSV(LIVE_MATERIAL_URL);
+    const head=(rows[0]||[]).map(h=>String(h).trim()), ci=n=>head.indexOf(n);
+    const iCat=ci("Material_Category"),iName=ci("Material_Name"),iDesc=ci("Material_Description"),iRate=ci("Price_Per_Unit");
+    if(iName<0||iRate<0) throw new Error("columns");
+    const out=[], seen={};
+    for(let r=1;r<rows.length;r++){ const row=rows[r];
+      let name=(row[iName]||"").trim(); const rate=parseFloat(row[iRate]);
+      if(!name || !/[A-Za-z]/.test(name) || !(rate>0)) continue;   // needs a real name + a price
+      let label=name; if(seen[label.toUpperCase()]) label=name+" (₹"+rate+")";   // disambiguate repeats (e.g. Polypouch)
+      seen[label.toUpperCase()]=1;
+      out.push({cat:(row[iCat]||"").trim(), name:label, rate:+rate.toFixed(2)}); }
+    if(out.length<1) throw new Error("no materials");
+    MATERIAL_DB.length=0; out.forEach(m=>MATERIAL_DB.push(m));
+    buildMaterialPicker();
+    LIVE_STATUS.material={ok:true,n:out.length};
+  }catch(err){ LIVE_STATUS.material={ok:false}; }
+}
 async function loadLiveRates(){
   renderLiveBadge();
-  await Promise.all([loadLivePaperDB(), loadLivePrinting(), loadLivePostPress(), loadLiveDigital(), loadLiveBinding(), loadLiveTransport()]);
+  await Promise.all([loadLivePaperDB(), loadLivePrinting(), loadLivePostPress(), loadLiveDigital(), loadLiveBinding(), loadLiveTransport(), loadLiveMaterial()]);
   applySheetOverrides();       // re-apply sir-confirmed overrides so they win over the live sheet
   if(RESULT) run(); else if(CHOSEN) showPrice();
   renderLiveBadge();
@@ -6406,6 +6508,7 @@ buildPaperPickers();
 buildCoverPickers();
 buildHcEndPickers();
 buildTaxonomyPicker();
+buildMaterialPicker();
 // DEFAULT PRESS = Komori L-32 (NKK sir). Auto (cheapest) and Manual (any press) stay selectable in the
 // Machine panel; this just sets the starting selection. A saved job restores its own press pick.
 MACHINE_MODE="manual";
