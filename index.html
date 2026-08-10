@@ -3404,13 +3404,15 @@ function pressSideCost(card,cols,sheets){ if(cols<=0)return 0;
 // individually polybagged/inserted and delivered) — packing = qty × ₹/pc, delivery = max(qty × ₹/pc, ₹300).
 // Gated behind the checkbox so the by-weight reconciliation (and the pricing-service smoke) is untouched by default.
 function packFreight(wt, qty){
+  // MIN freight floor: sheet-provided (TRANSPORT_RATES → LIVE_FREIGHT.min) when present, else the built-in ₹300.
+  const MINF=(typeof LIVE_FREIGHT==="object" && LIVE_FREIGHT && LIVE_FREIGHT.min>0)?LIVE_FREIGHT.min:300;
   const on = !!($("packPcOn") && $("packPcOn").checked);
   if(on){
     const q=Math.max(0,Math.round(qty||0));
     const packPc=Math.max(0,num("packPc",0)), delivPc=Math.max(0,num("delivPc",0));
-    return { packing:+(packPc*q).toFixed(2), freight:Math.max(+(delivPc*q).toFixed(2),300), perPc:true, packPc, delivPc, qty:q };
+    return { packing:+(packPc*q).toFixed(2), freight:Math.max(+(delivPc*q).toFixed(2),MINF), perPc:true, packPc, delivPc, qty:q };
   }
-  return { packing:Math.max(1,Math.ceil(wt/15))*35, freight:Math.max(wt*8,300), perPc:false };
+  return { packing:Math.max(1,Math.ceil(wt/15))*35, freight:Math.max(wt*8,MINF), perPc:false };
 }
 function priceJob(o,p,machine){
   const press=machine===undefined?SELECTED_MACHINE:machine;
@@ -6212,13 +6214,20 @@ function parseCSV(text){
 }
 const LIVE_PRINTING_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1782743102";   // PRINTING_RATES
 const LIVE_POSTPRESS_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1338566191";  // POST_PRESS_RATES
-const LIVE_STATUS={paper:null,printing:null,postpress:null,binding:null,digital:null};
+// BOOK_BINDING_RATES has no stable gid handy; the gviz sheet-name endpoint is CORS-enabled (echoes Origin) and
+// returns the same CSV. TRANSPORT_RATES uses its export gid. Both keep the built-in rates as fallback.
+const LIVE_BINDING_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/gviz/tq?tqx=out:csv&headers=1&sheet=BOOK_BINDING_RATES";
+const LIVE_TRANSPORT_URL="https://docs.google.com/spreadsheets/d/1hkzlLDvgPL0GgbX6T8msQwL6gpzHoYp-dsO960M0H2Y/export?format=csv&gid=1239683603";  // TRANSPORT_RATES
+const LIVE_STATUS={paper:null,printing:null,postpress:null,binding:null,digital:null,transport:null};
+// Freight defaults pulled live from TRANSPORT_RATES (currently just a minimum-charge floor). null = use built-in.
+// var (not let) so packFreight — defined far earlier — never hits a temporal-dead-zone if it runs during init.
+var LIVE_FREIGHT=null;
 function renderLiveBadge(){
   const el=$("liveDbStatus"); if(!el) return;
   const S=LIVE_STATUS, parts=[]; let live=false;
   const seg=(lbl,s)=>{ if(s==null) return; if(s.ok){live=true; parts.push(`${s.n} ${lbl}`);} else parts.push(`${lbl} ✕`); };
-  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress); seg("bindings",S.binding); seg("digital",S.digital);
-  if(S.paper===null&&S.printing===null&&S.postpress===null&&S.binding===null&&S.digital===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
+  seg("papers",S.paper); seg("presses",S.printing); seg("coatings",S.postpress); seg("bindings",S.binding); seg("digital",S.digital); seg("transport",S.transport);
+  if(S.paper===null&&S.printing===null&&S.postpress===null&&S.binding===null&&S.digital===null&&S.transport===null){ el.innerHTML='<span style="color:#6b7480">⏳ Checking live rates from your master sheet…</span>'; return; }
   const t=new Date().toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"});
   el.innerHTML = live
     ? `<span style="color:#1c7a52;font-weight:600">🟢 Live from your master sheet</span> <span style="color:#6b7480">· ${parts.join(" · ")} · ${t}</span>`
@@ -6342,9 +6351,53 @@ async function loadLivePostPress(){
     LIVE_STATUS.binding={ok:bKeys.length>0,n:bKeys.length};
   }catch(err){ LIVE_STATUS.postpress={ok:false}; LIVE_STATUS.binding={ok:false}; }
 }
+// BOOK_BINDING_RATES — per-copy binding rates (Perfect / Section Sewing / …) → BINDING_SAMPLES, so bindingRateFor()
+// can pick them by pages+quantity. ADDITIVE to the post-press binding samples (union, not replace) — more real
+// data points = better nearest-match. Runs once at load, so no cumulative duplication. Sheet wins; built-in stays.
+async function loadLiveBinding(){
+  try{
+    const rows=await fetchCSV(LIVE_BINDING_URL);
+    const head=(rows[0]||[]).map(h=>String(h).trim()), ci=n=>head.indexOf(n);
+    const iOp=ci("Operation_Type"),iPg=ci("Book_Pages"),iQty=ci("Quantity"),iRate=ci("Rate");
+    if(iOp<0||iRate<0) throw new Error("columns");
+    const BMAP=[[/hard\s*case|case\s*bind/i,"case"],[/(section\s*sew|sewing).*(perfect)|sew.*perfect/i,"sewn_perfect"],
+      [/section\s*sew|thread\s*sew|sewing/i,"sewn"],[/perfect/i,"perfect"],
+      [/centre\s*st|center\s*st|centre\s*pin|saddle/i,"saddle"],[/side\s*st/i,"side"],
+      [/wire\s*o|wiro/i,"wireo"],[/spiral/i,"spiral"],[/\bcomb\b/i,"comb"]];
+    const samp={};
+    for(let r=1;r<rows.length;r++){ const row=rows[r]; const op=(row[iOp]||"").trim(); if(!op) continue;
+      let key=null; for(const [re,k] of BMAP){ if(re.test(op)){ key=k; break; } } if(!key) continue;
+      const pp=parseInt(String(iPg>=0?row[iPg]:"").replace(/\D/g,""),10);
+      const qty=parseInt(String(iQty>=0?row[iQty]:"").replace(/\D/g,""),10);
+      const rr=parseFloat(row[iRate]);
+      if(!(pp>0&&qty>0&&rr>0)) continue;
+      (samp[key]=samp[key]||[]).push({pp,qty,r:rr}); }
+    const keys=Object.keys(samp);
+    keys.forEach(k=>{ BINDING_SAMPLES[k]=(BINDING_SAMPLES[k]||[]).concat(samp[k]); });
+    if(samp.perfect&&!BINDING_SAMPLES.soft) BINDING_SAMPLES.soft=samp.perfect;
+    if(keys.length) LIVE_STATUS.binding={ok:true,n:Object.keys(BINDING_SAMPLES).length};
+  }catch(err){ /* keep whatever post-press set for binding */ }
+}
+// TRANSPORT_RATES — routes are per-destination (no destination picker here), so we don't turn a trip cost into a
+// quote's freight. Instead we pull the freight DEFAULTS the packing/delivery math uses — currently the minimum
+// freight charge — so they live in the sheet. Absent (Minimum_Charge blank) → the built-in ₹300 floor stays and
+// nothing changes. The badge still shows the tab is connected (route-row count).
+async function loadLiveTransport(){
+  try{
+    const rows=await fetchCSV(LIVE_TRANSPORT_URL);
+    const head=(rows[0]||[]).map(h=>String(h).trim()), ci=n=>head.indexOf(n);
+    const iMin=ci("Minimum_Charge"),iTrip=ci("Rate_Per_Trip");
+    let min=0,trips=0;
+    for(let r=1;r<rows.length;r++){ const row=rows[r];
+      const mc=parseFloat(iMin>=0?row[iMin]:0); if(mc>0&&mc>min) min=mc;
+      if(parseFloat(iTrip>=0?row[iTrip]:0)>0) trips++; }
+    LIVE_FREIGHT=(min>0)?{min}:null;
+    LIVE_STATUS.transport={ok:trips>0,n:trips};
+  }catch(err){ LIVE_STATUS.transport={ok:false}; }
+}
 async function loadLiveRates(){
   renderLiveBadge();
-  await Promise.all([loadLivePaperDB(), loadLivePrinting(), loadLivePostPress(), loadLiveDigital()]);
+  await Promise.all([loadLivePaperDB(), loadLivePrinting(), loadLivePostPress(), loadLiveDigital(), loadLiveBinding(), loadLiveTransport()]);
   applySheetOverrides();       // re-apply sir-confirmed overrides so they win over the live sheet
   if(RESULT) run(); else if(CHOSEN) showPrice();
   renderLiveBadge();
