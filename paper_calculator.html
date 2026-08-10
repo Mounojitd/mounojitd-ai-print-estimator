@@ -6,12 +6,15 @@
 <title>Paper Calculator</title>
 <style>
   :root{
-    --ink:#101a26;--muted:#6a7686;--line:#e3e7ee;--line2:#eef1f6;
-    --bg1:#eef1f6;--bg2:#e6ebf2;
-    --brand:#13314f;--brand2:#1f5286;--accent:#b8862f;--accent2:#caa14e;
-    --good:#1c7a52;--good2:#249060;--bad:#c0392b;--warn:#a9761a;
-    --shadow:0 1px 2px rgba(16,26,38,.04),0 6px 20px rgba(16,26,38,.06);
-    --shadow-lg:0 2px 6px rgba(16,26,38,.06),0 18px 50px rgba(16,26,38,.10);
+    --ink:#171420;--muted:#5f6675;--line:#e7e9f1;--line2:#f0f2f8;
+    --bg1:#f2f4f9;--bg2:#e9ecf5;
+    /* CMYK press palette (the four process inks are the colour language) */
+    --c:#00a7e5;--m:#ec1c8e;--y:#ffcf1a;--k:#171227;
+    --c-ink:#0784b4;--m-ink:#c4126f;--y-ink:#a97e00;
+    --brand:#241a3a;--brand2:#c4126f;--accent:#ec1c8e;--accent2:#ff6a3d;
+    --good:#12b76a;--good2:#0f9d58;--bad:#c0392b;--warn:#b58900;
+    --shadow:0 1px 2px rgba(20,16,40,.05),0 8px 24px rgba(20,16,40,.07);
+    --shadow-lg:0 2px 6px rgba(20,16,40,.06),0 22px 58px rgba(30,10,50,.14);
   }
   *{box-sizing:border-box}
   html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
@@ -20,9 +23,11 @@
 
   /* ---- Masthead ---- */
   header{background:
-      radial-gradient(120% 140% at 92% -20%,rgba(184,134,47,.30),transparent 55%),
-      linear-gradient(120deg,#0e2740 0%,#13314f 45%,#1f5286 120%);
-    color:#fff;padding:0;border-bottom:3px solid var(--accent);box-shadow:var(--shadow)}
+      radial-gradient(120% 170% at 90% -30%,rgba(236,28,142,.36),transparent 58%),
+      radial-gradient(100% 160% at 8% 130%,rgba(0,167,229,.28),transparent 60%),
+      linear-gradient(120deg,#140f24 0%,#241a3f 50%,#3a1c54 120%);
+    color:#fff;padding:0;border-bottom:4px solid transparent;
+    border-image:linear-gradient(90deg,var(--c),var(--m) 44%,var(--y) 76%,var(--k)) 1;box-shadow:var(--shadow)}
   .masthead{max-width:1140px;margin:0 auto;padding:22px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
   .masthead>div{min-width:0}                              /* title block shrinks instead of forcing page width */
   .brandmark{width:46px;height:46px;border-radius:12px;flex:none;display:flex;align-items:center;justify-content:center;
@@ -51,7 +56,7 @@
     background:#fbfcfe;color:var(--ink);transition:border-color .15s,box-shadow .15s,background .15s}
   input::placeholder{color:#aab2bd}
   input:hover,select:hover{border-color:#c4ccd6}
-  input:focus,select:focus{outline:none;border-color:var(--brand2);box-shadow:0 0 0 3px rgba(31,82,134,.15)}
+  input:focus,select:focus{outline:none;border-color:var(--m);box-shadow:0 0 0 3px rgba(236,28,142,.16)}
   input:disabled{background:#f3f5f8;color:#7c8694}
   input.bad{border-color:var(--bad);background:#fdf2f2;box-shadow:0 0 0 3px rgba(192,57,43,.10)}
   select{appearance:none;-webkit-appearance:none;
@@ -70,10 +75,10 @@
   .chip input{width:auto;accent-color:var(--brand2)}
   .chip:has(input:checked){background:#eef4fa;border-color:var(--brand2);color:var(--brand)}
 
-  .go{cursor:pointer;border:0;border-radius:12px;font-weight:700;font-size:15px;letter-spacing:.2px;padding:14px;color:#fff;
-    background:linear-gradient(135deg,var(--good),var(--good2));width:100%;margin-top:18px;
-    box-shadow:0 8px 18px rgba(28,122,82,.28);transition:transform .12s,box-shadow .12s,filter .12s}
-  .go:hover{filter:brightness(1.05);box-shadow:0 10px 24px rgba(28,122,82,.34)}
+  .go{cursor:pointer;border:0;border-radius:13px;font-weight:800;font-size:15px;letter-spacing:.2px;padding:15px;color:#fff;
+    background:linear-gradient(120deg,var(--c) 0%,var(--m) 55%,var(--accent2) 100%);width:100%;margin-top:18px;
+    box-shadow:0 12px 26px rgba(236,28,142,.32);transition:transform .12s,box-shadow .12s,filter .12s}
+  .go:hover{filter:brightness(1.06);box-shadow:0 14px 30px rgba(236,28,142,.4)}
   .go:active{transform:translateY(1px)}
   .err{color:var(--bad);font-size:13px;margin-top:11px;min-height:1px;font-weight:500}
   .placeholder{color:var(--muted);font-size:13.5px;text-align:center;padding:56px 18px;line-height:1.6;
@@ -81,11 +86,14 @@
 
   .opensize{background:linear-gradient(#f3f8fd,#eef5fc);border:1px solid #d4e4f3;border-radius:12px;padding:11px 14px;
     font-size:13px;color:#1a3f63;margin-bottom:14px}
-  .resulthead{border-radius:14px;padding:18px 20px;color:#fff;position:relative;overflow:hidden;
-    background:radial-gradient(120% 130% at 88% -10%,rgba(202,161,78,.34),transparent 55%),linear-gradient(125deg,#10341f,#1c7a52)}
-  .rh-lbl{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;opacity:.86}
-  .rh-big{font-size:27px;font-weight:800;margin:3px 0;letter-spacing:.2px}
-  .rh-sub{font-size:13px;opacity:.95;line-height:1.5}
+  .resulthead{border-radius:16px;padding:19px 21px;color:#fff;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,#171227 0%,#2a2140 46%,#8a1259 120%);box-shadow:var(--shadow-lg)}
+  .resulthead::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;
+    background-image:radial-gradient(circle at center,#fff 1.1px,transparent 1.5px);background-size:11px 11px}
+  .rh-lbl{font-size:11.5px;letter-spacing:.6px;text-transform:uppercase;opacity:.8;position:relative}
+  .rh-big{font-size:30px;font-weight:900;margin:3px 0;letter-spacing:-.4px;position:relative;
+    background:linear-gradient(90deg,var(--c),var(--y));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .rh-sub{font-size:13px;opacity:.95;line-height:1.5;position:relative}
 
   table{width:100%;border-collapse:separate;border-spacing:0;font-size:13px;margin-top:8px}
   th,td{padding:9px 8px;border-bottom:1px solid var(--line2);text-align:right}
@@ -99,7 +107,13 @@
 
   .pill{display:inline-block;color:#fff;border-radius:6px;padding:2px 7px;font-size:9.5px;font-weight:700;letter-spacing:.4px;
     text-transform:uppercase;margin-left:6px;background:var(--brand2);vertical-align:middle}
-  .pbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px;box-shadow:0 1px 2px rgba(16,26,38,.03)}
+  .pbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-top:14px;box-shadow:0 1px 2px rgba(16,26,38,.03);position:relative}
+  /* CMYK coloured left edge on each input section, cycling the four inks */
+  #inputCard>.pbox::before,#inputCard #bookletFields>.pbox::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:0 4px 4px 0;background:var(--m)}
+  #inputCard>.pbox:nth-of-type(4n+1)::before{background:var(--c)}
+  #inputCard>.pbox:nth-of-type(4n+2)::before{background:var(--m)}
+  #inputCard>.pbox:nth-of-type(4n+3)::before{background:var(--y)}
+  #inputCard>.pbox:nth-of-type(4n+4)::before{background:var(--k)}
   .ptitle{font-size:13px;font-weight:800;color:var(--brand);margin:-2px 0 13px;letter-spacing:-.1px;
     padding-bottom:10px;border-bottom:1px solid var(--line2)}
   .prow{display:flex;gap:12px;margin-bottom:11px} .prow span{flex:1}
