@@ -209,45 +209,6 @@
   #hero .heroSkip a{color:#cfe0f4;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
   #hero .heroSkip a:hover{color:#fff}
   body.app-live #hero{display:none}                      /* revealed app hides the hero */
-  /* ===================== DARK MODE — default (NKK sir) ===================== */
-  :root{
-    --ink:#eceaf6;--muted:#9a9bb6;--line:#2c2846;--line2:#241f3a;
-    --bg1:#0f0b1a;--bg2:#171021;
-    --c:#2ab8f0;--m:#ff4fa6;--y:#ffd94a;--c-ink:#78d5f6;--m-ink:#ff86c2;--y-ink:#ffe58a;
-    --brand:#ff86c2;--brand2:#ff4fa6;--accent:#ff4fa6;--accent2:#ff7a45;
-    --good:#37d98a;--good2:#28c07a;--warn:#e6b45a;
-    --card:#181327;--card2:#221b35;
-    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px rgba(0,0,0,.42);
-    --shadow-lg:0 2px 6px rgba(0,0,0,.45),0 24px 64px rgba(0,0,0,.6);
-  }
-  body{background:linear-gradient(180deg,#0f0b1a,#171021) fixed;color:var(--ink)}
-  .card{background:var(--card);border-color:var(--line)}
-  .pbox{background:var(--card);border-color:var(--line);box-shadow:none}
-  input,select,textarea{background-color:var(--card2);border-color:var(--line);color:var(--ink)}
-  input::placeholder,textarea::placeholder{color:#71718f}
-  input:hover,select:hover{border-color:#3b3560}
-  input:disabled{background-color:#14101f;color:#6b6b86}
-  select{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a0a0c0' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");background-repeat:no-repeat;background-position:right 11px center}
-  label,.lab{color:#a2a3bd}
-  .hint{color:#8788a4}
-  h2{color:var(--m-ink);border-bottom-color:var(--line)}
-  .ptitle{color:var(--brand);border-bottom-color:var(--line2)}
-  thead th,table th{background:#221d38;color:#9a9bb6;border-bottom-color:var(--line)}
-  th,td{border-bottom-color:var(--line2)}
-  tbody tr[data-click]:hover{background:#221d38}
-  tr.best{background:#15281f!important} tr.best td{color:#7be0a8}
-  tr.nofit td{color:var(--warn)}
-  .chip{background:var(--card2);border-color:var(--line);color:var(--ink)}
-  .chip:hover{background:#271f3c;border-color:var(--m)}
-  .chip:has(input:checked){background:#3a1030;border-color:var(--m);color:#ff9fd0}
-  .opensize{background:#141a2e;border-color:#2b3a58;color:#bcd3f2}
-  .placeholder{color:var(--muted);border-color:var(--line)}
-  .mbtn.s{background:#271f3c;color:#ff9fd0;border-color:var(--line)}
-  .mbtn.s:hover{background:#31264a}
-  .suggest{background:#2a2412;border-color:#4a3f1c;color:#e6cf94}
-  #voiceBox{background:#151a2c!important;border-color:#2b3a58!important}
-  /* result diagrams represent real paper — keep them light so "paper" still reads as paper on the dark UI */
-  #diagram,#calcExplain svg,#diagram svg{background:#fff;border-radius:10px}
 </style>
 </head>
 <body>
