@@ -48,6 +48,8 @@ DIELINE / CONVERTING (flat blank → die-cut → fold/glue; give finished size +
 - sleeve          → sleeve / wrap
 - carton_tuck     → mono carton, tuck-end box
 - carton_seal     → mono carton, seal-end (glued-bottom) box
+RIGID SET-UP BOX (per-piece, hand-assembled greyboard box — give L×W×H + style + qty):
+- rigidbox        → rigid box, gift box, set-up box, magnetic box, shoulder/neck box, drawer/slider box
 
 Specs the tool needs:
 - Always: product, copies (quantity).
@@ -58,8 +60,9 @@ Specs the tool needs:
 - Optional finishing: coverLam (matt/gloss/velvet/none) and gold (screen_gold/screen_silver, with sides 1 for cover-only or 2 for cover+back).
 - Pick the bound type by what the client calls it — a "catalogue"/"brochure"/"annual report" is design-heavy (higher standard margin) vs a plain "book/booklet".
 - Dieline jobs (envelope/folder/sleeve/carton_tuck/carton_seal): W and H are the FINISHED (assembled) size in inches; gsm is the board (usually 250-350). For a box/carton also give depth (inches). The engine computes the flat blank and adds standard die + cutting + gluing charges (editable in the full estimator). Cartons usually print one side (cf 4, cb 0).
+- Rigid box (rigidbox): a hand-assembled greyboard box. Give the internal size as W = length, H = width, depth = box height (all inches), copies = quantity, and style (topbottom / traylid / shoulder / slider / magnetic). Board, wrap-print, lining, lid depth and box-making labour use standard editable defaults; gsm/pages/binding don't apply. If they mention foil or a partition/insert, note it's an editable add-on in the full estimator.
 
-If asked for something NOT in the list above — rigid/set-up box, calendar (table/wall), paper bag, pouch, lanyard, NCR form, banner/standee/flex — say honestly that it's not wired into me yet, and offer the closest supported option or the full estimator page for it. Keep replies short. Be helpful and confident.`;
+If asked for something NOT in the list above — calendar (table/wall), paper bag, pouch, lanyard, NCR form, banner/standee/flex — say honestly that it's not wired into me yet, and offer the closest supported option or the full estimator page for it. Keep replies short. Be helpful and confident.`;
 
 const TOOLS = [{
   name: 'quote',
@@ -67,7 +70,7 @@ const TOOLS = [{
   input_schema: {
     type: 'object',
     properties: {
-      product:  { type: 'string', enum: ['booklet','catalogue','magazine','annual','brochure_multi','card','insert','leaflet','dangler','pasted_tag','poster','envelope','folder','sleeve','carton_tuck','carton_seal'], description: 'engine product family — bound: booklet/catalogue/magazine/annual/brochure_multi; flat: card/insert/leaflet/dangler/pasted_tag/poster; dieline: envelope/folder/sleeve/carton_tuck/carton_seal' },
+      product:  { type: 'string', enum: ['booklet','catalogue','magazine','annual','brochure_multi','card','insert','leaflet','dangler','pasted_tag','poster','envelope','folder','sleeve','carton_tuck','carton_seal','rigidbox'], description: 'engine product family — bound: booklet/catalogue/magazine/annual/brochure_multi; flat: card/insert/leaflet/dangler/pasted_tag/poster; dieline: envelope/folder/sleeve/carton_tuck/carton_seal; rigidbox' },
       W:        { type: 'number', description: 'width in inches (finished/closed)' },
       H:        { type: 'number', description: 'height in inches (finished/closed)' },
       pages:    { type: 'number', description: 'inside page count (booklet only)' },
@@ -80,7 +83,8 @@ const TOOLS = [{
       coverLam: { type: 'string', enum: ['matt','gloss','velvet','none'] },
       gold:     { type: 'string', enum: ['none','screen_gold','screen_silver'] },
       sides:    { type: 'number', description: 'gold screen sides: 1 cover-only, 2 cover+back' },
-      depth:    { type: 'number', description: 'dieline only — box/carton depth in inches (dlC); 0 or omit for envelope/folder/sleeve' }
+      depth:    { type: 'number', description: 'box depth/height in inches — dieline carton depth, or rigid-box height' },
+      style:    { type: 'string', enum: ['topbottom','traylid','shoulder','slider','magnetic'], description: 'rigidbox only — box style' }
     },
     required: ['product','copies']
   }
