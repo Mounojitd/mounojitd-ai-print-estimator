@@ -42,6 +42,12 @@ FLAT SHEET (no pages/binding):
 - dangler         → dangler, tent card, shelf-talker
 - pasted_tag      → hang tag, pasted tag (two sheets pasted back-to-back)
 - poster          → poster, floor plan, large flat sheet
+DIELINE / CONVERTING (flat blank → die-cut → fold/glue; give finished size + board GSM, and depth for boxes):
+- envelope        → envelope
+- folder          → presentation folder / folder with pocket
+- sleeve          → sleeve / wrap
+- carton_tuck     → mono carton, tuck-end box
+- carton_seal     → mono carton, seal-end (glued-bottom) box
 
 Specs the tool needs:
 - Always: product, copies (quantity).
@@ -51,8 +57,9 @@ Specs the tool needs:
 - Bound jobs (booklet/catalogue/magazine/annual/brochure_multi): pages (inside page count) and binding (saddle = centre stitch, perfect, sewn_perfect = section sewn, wireo).
 - Optional finishing: coverLam (matt/gloss/velvet/none) and gold (screen_gold/screen_silver, with sides 1 for cover-only or 2 for cover+back).
 - Pick the bound type by what the client calls it — a "catalogue"/"brochure"/"annual report" is design-heavy (higher standard margin) vs a plain "book/booklet".
+- Dieline jobs (envelope/folder/sleeve/carton_tuck/carton_seal): W and H are the FINISHED (assembled) size in inches; gsm is the board (usually 250-350). For a box/carton also give depth (inches). The engine computes the flat blank and adds standard die + cutting + gluing charges (editable in the full estimator). Cartons usually print one side (cf 4, cb 0).
 
-If asked for something NOT in the list above — rigid/set-up box, calendar (table/wall), envelope, paper bag, pouch, lanyard, folder, sleeve, carton, NCR form, banner/standee/flex — say honestly that it's not wired into me yet, and offer the closest supported option or the full estimator page for it. Keep replies short. Be helpful and confident.`;
+If asked for something NOT in the list above — rigid/set-up box, calendar (table/wall), paper bag, pouch, lanyard, NCR form, banner/standee/flex — say honestly that it's not wired into me yet, and offer the closest supported option or the full estimator page for it. Keep replies short. Be helpful and confident.`;
 
 const TOOLS = [{
   name: 'quote',
@@ -60,7 +67,7 @@ const TOOLS = [{
   input_schema: {
     type: 'object',
     properties: {
-      product:  { type: 'string', enum: ['booklet','catalogue','magazine','annual','brochure_multi','card','insert','leaflet','dangler','pasted_tag','poster'], description: 'engine product family (bound: booklet/catalogue/magazine/annual/brochure_multi; flat: card/insert/leaflet/dangler/pasted_tag/poster)' },
+      product:  { type: 'string', enum: ['booklet','catalogue','magazine','annual','brochure_multi','card','insert','leaflet','dangler','pasted_tag','poster','envelope','folder','sleeve','carton_tuck','carton_seal'], description: 'engine product family — bound: booklet/catalogue/magazine/annual/brochure_multi; flat: card/insert/leaflet/dangler/pasted_tag/poster; dieline: envelope/folder/sleeve/carton_tuck/carton_seal' },
       W:        { type: 'number', description: 'width in inches (finished/closed)' },
       H:        { type: 'number', description: 'height in inches (finished/closed)' },
       pages:    { type: 'number', description: 'inside page count (booklet only)' },
@@ -72,7 +79,8 @@ const TOOLS = [{
       binding:  { type: 'string', enum: ['saddle','perfect','sewn_perfect','wireo','none'], description: 'booklet binding' },
       coverLam: { type: 'string', enum: ['matt','gloss','velvet','none'] },
       gold:     { type: 'string', enum: ['none','screen_gold','screen_silver'] },
-      sides:    { type: 'number', description: 'gold screen sides: 1 cover-only, 2 cover+back' }
+      sides:    { type: 'number', description: 'gold screen sides: 1 cover-only, 2 cover+back' },
+      depth:    { type: 'number', description: 'dieline only — box/carton depth in inches (dlC); 0 or omit for envelope/folder/sleeve' }
     },
     required: ['product','copies']
   }
