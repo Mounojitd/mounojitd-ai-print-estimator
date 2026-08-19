@@ -53,6 +53,13 @@ RIGID SET-UP BOX (per-piece, hand-assembled greyboard box — give L×W×H + sty
 CALENDARS (leaves priced via the paper fields; give W×H of a leaf + gsm + colours + extent = number of leaves):
 - calendar_table  → table / desk calendar (wire-o + tent stand)
 - calendar_sheet  → wall calendar (wire-o from top + hanger + backboard)
+PER-PIECE / LARGE-FORMAT (priced per piece; most rates default, editable in the estimator):
+- bag             → printed paper carry bag — give finished W×H (inches), board gsm, depth (gusset), copies
+- pouch           → fabric/board pouch — give copies (material defaults to velvet + foil)
+- lanyard         → printed neck strap — give copies (optional width_mm 10/15/20/25, and cf/cb for print sides)
+- ncr             → NCR / carbonless form — give copies (sets), parts (2/3/4), paper_size (a6/a5/half/a4)
+- banner          → flex / vinyl banner (large format, per sq.ft) — give W×H + unit (ft or in) + copies
+- standee         → roll-up standee (large format) — give W×H + unit + copies (roller stand auto-added)
 
 Specs the tool needs:
 - Always: product, copies (quantity).
@@ -65,8 +72,11 @@ Specs the tool needs:
 - Dieline jobs (envelope/folder/sleeve/carton_tuck/carton_seal): W and H are the FINISHED (assembled) size in inches; gsm is the board (usually 250-350). For a box/carton also give depth (inches). The engine computes the flat blank and adds standard die + cutting + gluing charges (editable in the full estimator). Cartons usually print one side (cf 4, cb 0).
 - Rigid box (rigidbox): a hand-assembled greyboard box. Give the internal size as W = length, H = width, depth = box height (all inches), copies = quantity, and style (topbottom / traylid / shoulder / slider / magnetic). Board, wrap-print, lining, lid depth and box-making labour use standard editable defaults; gsm/pages/binding don't apply. If they mention foil or a partition/insert, note it's an editable add-on in the full estimator.
 - Calendars: W and H are one LEAF's size (inches), gsm is the leaf paper, extent = number of leaves (e.g. 12), copies = quantity. calendar_table (desk): defaults to full wire-o + tent stand — set wiro (none/part/full) and stand (none/tent) if the client specifies otherwise. calendar_sheet (wall): wire-o + hanger + backboard + pack are included by default. Jacket/pouch and all finishing rates are editable in the full estimator.
+- bag: finished W×H in inches, gsm = board (usually 250-350), depth = side gusset in inches, copies = quantity. Bag-making (eyelets/rope/paste) uses standard editable defaults.
+- pouch: give copies; material defaults to velvet with foil decoration (editable). lanyard: give copies; width_mm (default 20) and cf/cb (print sides) optional; strap/hardware default. ncr: copies = number of sets, parts = plies (2/3/4), paper_size = a6/a5/half/a4; numbering/perf/padding default on.
+- banner/standee (large format): W×H is the finished size — set unit to "ft" for feet or "in" for inches — and copies = pieces. Media defaults (vinyl for banner) and per-sq-ft rate are editable; a standee auto-includes the roller stand. No paper/plates.
 
-If asked for something NOT in the list above — paper bag, pouch, lanyard, NCR form, banner/standee/flex — say honestly that it's not wired into me yet, and offer the closest supported option or the full estimator page for it. Keep replies short. Be helpful and confident.`;
+If a request is genuinely outside all of the above, say honestly it's not wired in yet and offer the full estimator page. Keep replies short. Be helpful and confident.`;
 
 const TOOLS = [{
   name: 'quote',
@@ -74,7 +84,7 @@ const TOOLS = [{
   input_schema: {
     type: 'object',
     properties: {
-      product:  { type: 'string', enum: ['booklet','catalogue','magazine','annual','brochure_multi','card','insert','leaflet','dangler','pasted_tag','poster','envelope','folder','sleeve','carton_tuck','carton_seal','rigidbox','calendar_table','calendar_sheet'], description: 'engine product family — bound: booklet/catalogue/magazine/annual/brochure_multi; flat: card/insert/leaflet/dangler/pasted_tag/poster; dieline: envelope/folder/sleeve/carton_tuck/carton_seal; rigidbox; calendar_table (desk); calendar_sheet (wall)' },
+      product:  { type: 'string', enum: ['booklet','catalogue','magazine','annual','brochure_multi','card','insert','leaflet','dangler','pasted_tag','poster','envelope','folder','sleeve','carton_tuck','carton_seal','rigidbox','calendar_table','calendar_sheet','bag','pouch','lanyard','ncr','banner','standee'], description: 'engine product family — bound; flat; dieline; rigidbox; calendars; per-piece: bag/pouch/lanyard/ncr; large-format: banner/standee' },
       W:        { type: 'number', description: 'width in inches (finished/closed)' },
       H:        { type: 'number', description: 'height in inches (finished/closed)' },
       pages:    { type: 'number', description: 'inside page count (booklet only)' },
@@ -91,7 +101,11 @@ const TOOLS = [{
       style:    { type: 'string', enum: ['topbottom','traylid','shoulder','slider','magnetic'], description: 'rigidbox only — box style' },
       extent:   { type: 'number', description: 'calendars only — number of leaves (e.g. 12)' },
       wiro:     { type: 'string', enum: ['none','part','full'], description: 'calendar_table only — wire-o binding (default full)' },
-      stand:    { type: 'string', enum: ['none','tent'], description: 'calendar_table only — back stand (default tent)' }
+      stand:    { type: 'string', enum: ['none','tent'], description: 'calendar_table only — back stand (default tent)' },
+      unit:     { type: 'string', enum: ['in','ft'], description: 'unit for W/H — use "ft" for banner/standee sizes given in feet; default in' },
+      width_mm: { type: 'number', description: 'lanyard only — strap width in mm (10/15/20/25; default 20)' },
+      parts:    { type: 'number', enum: [2,3,4], description: 'ncr only — plies per set (2/3/4)' },
+      paper_size:{ type: 'string', enum: ['a6','a5','half','a4'], description: 'ncr only — form size' }
     },
     required: ['product','copies']
   }
