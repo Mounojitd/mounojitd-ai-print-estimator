@@ -76,9 +76,25 @@ Specs the tool needs:
 - pouch: give copies; material defaults to velvet with foil decoration (editable). lanyard: give copies; width_mm (default 20) and cf/cb (print sides) optional; strap/hardware default. ncr: copies = number of sets, parts = plies (2/3/4), paper_size = a6/a5/half/a4; numbering/perf/padding default on.
 - banner/standee (large format): W×H is the finished size — set unit to "ft" for feet or "in" for inches — and copies = pieces. Media defaults (vinyl for banner) and per-sq-ft rate are editable; a standee auto-includes the roller stand. No paper/plates.
 
-If a request is genuinely outside all of the above, say honestly it's not wired in yet and offer the full estimator page. Keep replies short. Be helpful and confident.`;
+If a request is genuinely outside all of the above, say honestly it's not wired in yet and offer the full estimator page. Keep replies short. Be helpful and confident.
+
+MEMORY — you have a persistent memory of this shop, shown to you under "## Shop memory" below when present. Two kinds:
+- FACTS NK Sir has told you to remember (standing preferences, default clients, usual paper/margins, vendor notes). Treat these as true and apply them without re-asking. Example: if a fact says "our house cover is 300 gsm art card, matt lam", use that unless the client overrides it.
+- PAST QUOTES you've already given (product, specs, price, client, date). If a new request looks like one you priced before, say so ("You quoted a similar 500-copy A5 booklet last week at ₹X") and offer to reuse or adjust it.
+When NK Sir tells you a standing fact to remember for next time ("always…", "our usual…", "remember that…", "by default…"), call the \`remember\` tool to save it. Don't call it for one-off job specs — only durable shop knowledge. If you learn a client name for the current job, pass it as the \`client\` field on the quote.`;
 
 const TOOLS = [{
+  name: 'remember',
+  description: 'Save a durable fact about the shop to persistent memory (standing preferences, usual papers/margins, default clients, vendor notes). Use ONLY for lasting knowledge NK Sir wants applied to future quotes — never for one-off job specs. Returns confirmation; the fact is stored on NK Sir\'s device and reused every session.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      fact:  { type: 'string', description: 'the standing fact to remember, in one clear sentence (e.g. "House cover stock is 300 gsm art card with matt lamination")' },
+      topic: { type: 'string', description: 'short category tag, e.g. paper, margin, client, binding, vendor, delivery' }
+    },
+    required: ['fact']
+  }
+},{
   name: 'quote',
   description: 'Price a print job using the validated Andreal engine and the LIVE vendor rates. Call only once you have the required specs; the app runs the real engine and returns the itemised quote.',
   input_schema: {
@@ -105,17 +121,22 @@ const TOOLS = [{
       unit:     { type: 'string', enum: ['in','ft'], description: 'unit for W/H — use "ft" for banner/standee sizes given in feet; default in' },
       width_mm: { type: 'number', description: 'lanyard only — strap width in mm (10/15/20/25; default 20)' },
       parts:    { type: 'number', enum: [2,3,4], description: 'ncr only — plies per set (2/3/4)' },
-      paper_size:{ type: 'string', enum: ['a6','a5','half','a4'], description: 'ncr only — form size' }
+      paper_size:{ type: 'string', enum: ['a6','a5','half','a4'], description: 'ncr only — form size' },
+      client:   { type: 'string', description: 'client / party name for this job, if known — logged with the quote so it can be recalled later' }
     },
     required: ['product','copies']
   }
 }];
 
-async function callClaude(messages) {
+async function callClaude(messages, memory) {
+  // memory is a compact, browser-supplied string (facts + recent quotes) held on NK Sir's device.
+  const system = (memory && String(memory).trim())
+    ? SYSTEM + '\n\n## Shop memory (persistent — apply it, and mention past quotes when relevant)\n' + String(memory).trim()
+    : SYSTEM;
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': KEY, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-    body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system: SYSTEM, tools: TOOLS, messages })
+    body: JSON.stringify({ model: MODEL, max_tokens: MAX_TOKENS, system, tools: TOOLS, messages })
   });
   return { status: res.status, text: await res.text() };
 }
@@ -135,10 +156,10 @@ const server = http.createServer(async (req, res) => {
       if (!KEY) { res.writeHead(500, { 'content-type': 'application/json' });
         return res.end(JSON.stringify({ error: 'ANTHROPIC_API_KEY is not set. Add it as a Space secret.' })); }
       let body = ''; for await (const c of req) { body += c; if (body.length > 2e6) break; }
-      let messages;
-      try { messages = JSON.parse(body).messages; if (!Array.isArray(messages)) throw 0; }
+      let messages, memory;
+      try { const p = JSON.parse(body); messages = p.messages; memory = p.memory; if (!Array.isArray(messages)) throw 0; }
       catch { res.writeHead(400, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ error: 'bad request' })); }
-      const out = await callClaude(messages);
+      const out = await callClaude(messages, memory);
       res.writeHead(out.status, { 'content-type': 'application/json' });
       return res.end(out.text);
     }

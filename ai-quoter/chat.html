@@ -41,6 +41,28 @@
   .composer button{border:none;border-radius:999px;padding:0 20px;font-weight:700;color:#fff;background:linear-gradient(120deg,var(--m),#ff7a45);cursor:pointer;font-size:15px}
   .composer button:disabled{opacity:.5;cursor:default}
   a{color:var(--m)}
+  .memBtn{position:fixed;top:12px;right:100px;font-size:12px;color:#fff;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:5px 10px;cursor:pointer}
+  .memBtn b{background:var(--m);color:#fff;border-radius:999px;padding:0 6px;margin-left:4px;font-size:11px}
+  .memWrap{position:fixed;inset:0;background:rgba(20,16,40,.45);backdrop-filter:blur(3px);display:none;z-index:50;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+  .memWrap.open{display:flex}
+  .memPanel{width:100%;max-width:640px;background:var(--card);border:1px solid var(--line);border-radius:16px;box-shadow:0 20px 60px rgba(20,20,50,.3);overflow:hidden}
+  .memPanel .ph{background:linear-gradient(120deg,#241a3a,#3a2a5c);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:center}
+  .memPanel .ph h2{margin:0;font-size:16px;font-weight:800}
+  .memPanel .ph .x{cursor:pointer;font-size:20px;opacity:.8;line-height:1}
+  .memBody{padding:16px 18px;max-height:60vh;overflow:auto}
+  .memBody h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:2px 0 8px}
+  .memBody h3:not(:first-child){margin-top:20px}
+  .memItem{display:flex;gap:8px;align-items:flex-start;padding:8px 10px;border:1px solid var(--line);border-radius:10px;margin-bottom:7px;font-size:13.5px}
+  .memItem .tag{font-size:10.5px;font-weight:700;color:#fff;background:var(--c);border-radius:999px;padding:1px 7px;flex:none;margin-top:1px}
+  .memItem .txt{flex:1;line-height:1.45}
+  .memItem .sub{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .memItem .del{cursor:pointer;color:var(--muted);font-size:15px;flex:none;opacity:.6}
+  .memItem .del:hover{opacity:1;color:var(--m)}
+  .memEmpty{color:var(--muted);font-size:13px;padding:6px 2px}
+  .memFoot{border-top:1px solid var(--line);padding:12px 18px;display:flex;gap:8px;flex-wrap:wrap;background:var(--bg)}
+  .memFoot button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;font-size:12.5px;cursor:pointer;font-weight:600;color:var(--ink)}
+  .memFoot button.danger{color:#b42318;border-color:#f3c7c1}
+  .memFoot .grow{flex:1}
 </style>
 </head>
 <body>
@@ -48,8 +70,26 @@
   <h1>🤖 Andreal AI Quoter</h1>
   <div class="sub">Tell me the job in your own words — I'll ask what I need and price it from your live vendor sheet.</div>
   <div class="live" id="liveState">⏳ warming up the engine…</div>
+  <button class="memBtn" onclick="openMem()">🧠 Memory<b id="memCount">0</b></button>
   <button class="restart" onclick="restart()">↻ New chat</button>
 </header>
+
+<div class="memWrap" id="memWrap" onclick="if(event.target===this)closeMem()">
+  <div class="memPanel">
+    <div class="ph"><h2>🧠 Shop memory</h2><span class="x" onclick="closeMem()">✕</span></div>
+    <div class="memBody">
+      <h3>Standing facts</h3><div id="memFacts"></div>
+      <h3>Recent quotes</h3><div id="memQuotes"></div>
+    </div>
+    <div class="memFoot">
+      <button onclick="exportMem()">⬇ Export</button>
+      <button onclick="document.getElementById('memFile').click()">⬆ Import</button>
+      <input type="file" id="memFile" accept="application/json" style="display:none" onchange="importMem(this)" />
+      <span class="grow"></span>
+      <button class="danger" onclick="clearMem()">Clear all</button>
+    </div>
+  </div>
+</div>
 <div class="wrap"><div class="chat" id="chat"></div></div>
 <div class="composer"><div class="inner">
   <input id="in" placeholder='e.g. "300 copies of a 48-page A4 booklet, 170 gsm inside, 300 cover, 4+4, perfect bound"' autocomplete="off" />
@@ -112,6 +152,60 @@ function runQuote(s){
     note:'INR, computed by the validated engine from live vendor rates' };
 }
 
+/* ---------- persistent shop memory (localStorage — survives Space restarts, lives on NK Sir's device) ---------- */
+const MEM_KEY='andreal_ai_memory_v1';
+let MEM={ facts:[], quotes:[] };
+function memLoad(){ try{ const r=JSON.parse(localStorage.getItem(MEM_KEY)); if(r&&typeof r==='object'){ MEM={facts:Array.isArray(r.facts)?r.facts:[], quotes:Array.isArray(r.quotes)?r.quotes:[]}; } }catch(e){} }
+function memSave(){ try{ localStorage.setItem(MEM_KEY, JSON.stringify(MEM)); }catch(e){} memBadge(); }
+function memBadge(){ const n=MEM.facts.length+MEM.quotes.length; const b=document.getElementById('memCount'); if(b) b.textContent=n; }
+function nowStamp(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function addFact(fact,topic){ fact=String(fact||'').trim(); if(!fact) return false;
+  if(MEM.facts.some(f=>f.fact.toLowerCase()===fact.toLowerCase())) return false;   // de-dupe
+  MEM.facts.unshift({ fact, topic:(topic||'').trim(), at:nowStamp() }); MEM.facts=MEM.facts.slice(0,60); memSave(); return true; }
+function logQuote(input,result){ if(!result||result.error) return;
+  const specParts=[]; const s=input;
+  if(s.W&&s.H) specParts.push(s.W+'×'+s.H+(s.unit==='ft'?'ft':'in'));
+  if(s.pages) specParts.push(s.pages+'pg'); if(s.gsm) specParts.push(s.gsm+'gsm');
+  if(s.coverGsm) specParts.push(s.coverGsm+'gsm cvr');
+  if(s.cf!=null||s.cb!=null) specParts.push((s.cf||0)+'+'+(s.cb||0));
+  if(s.binding&&s.binding!=='none') specParts.push(s.binding);
+  if(s.gold&&s.gold!=='none') specParts.push(s.gold.replace('screen_',''));
+  MEM.quotes.unshift({ product:s.product, client:(s.client||'').trim(), copies:result.quantity,
+    grand:result.grand, per_piece:result.per_piece, specs:specParts.join(' · '), at:nowStamp() });
+  MEM.quotes=MEM.quotes.slice(0,40); memSave(); }
+function buildMemoryContext(){
+  const parts=[];
+  if(MEM.facts.length){ parts.push('FACTS:\n'+MEM.facts.map(f=>'• '+(f.topic?'['+f.topic+'] ':'')+f.fact).join('\n')); }
+  if(MEM.quotes.length){ parts.push('RECENT QUOTES (newest first):\n'+MEM.quotes.slice(0,15).map(q=>
+    '• '+q.at+' — '+q.product+(q.client?' for '+q.client:'')+': '+q.copies+' pcs'+(q.specs?' ('+q.specs+')':'')+
+    ' → ₹'+q.grand.toLocaleString('en-IN')+' (₹'+q.per_piece+'/pc)').join('\n')); }
+  return parts.join('\n\n');
+}
+/* memory panel UI */
+function openMem(){ renderMem(); document.getElementById('memWrap').classList.add('open'); }
+function closeMem(){ document.getElementById('memWrap').classList.remove('open'); }
+function renderMem(){
+  const fh=document.getElementById('memFacts'), qh=document.getElementById('memQuotes');
+  fh.innerHTML = MEM.facts.length ? MEM.facts.map((f,i)=>
+    `<div class="memItem"><span class="tag">${esc(f.topic||'note')}</span><div class="txt">${esc(f.fact)}<div class="sub">added ${esc(f.at)}</div></div><span class="del" onclick="delFact(${i})" title="forget">✕</span></div>`).join('')
+    : '<div class="memEmpty">No standing facts yet. Tell the assistant things like "our usual cover is 300 gsm matt" and it\'ll remember.</div>';
+  qh.innerHTML = MEM.quotes.length ? MEM.quotes.map((q,i)=>
+    `<div class="memItem"><span class="tag">${esc(q.product)}</span><div class="txt">${q.copies.toLocaleString('en-IN')} pcs${q.client?' · '+esc(q.client):''} — <b>₹${q.grand.toLocaleString('en-IN')}</b> <span class="sub">(₹${q.per_piece}/pc)</span>${q.specs?'<div class="sub">'+esc(q.specs)+' · '+esc(q.at)+'</div>':'<div class="sub">'+esc(q.at)+'</div>'}</div><span class="del" onclick="delQuote(${i})" title="remove">✕</span></div>`).join('')
+    : '<div class="memEmpty">No quotes logged yet. Every quote you make is saved here automatically.</div>';
+}
+function delFact(i){ MEM.facts.splice(i,1); memSave(); renderMem(); }
+function delQuote(i){ MEM.quotes.splice(i,1); memSave(); renderMem(); }
+function clearMem(){ if(confirm('Forget all standing facts and quote history? This cannot be undone.')){ MEM={facts:[],quotes:[]}; memSave(); renderMem(); } }
+function exportMem(){ const blob=new Blob([JSON.stringify(MEM,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='andreal-memory-'+nowStamp()+'.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000); }
+function importMem(inp){ const f=inp.files&&inp.files[0]; if(!f) return; const rd=new FileReader();
+  rd.onload=()=>{ try{ const r=JSON.parse(rd.result); if(!r||typeof r!=='object') throw 0;
+    const nf=Array.isArray(r.facts)?r.facts:[], nq=Array.isArray(r.quotes)?r.quotes:[];
+    MEM.facts=[...nf,...MEM.facts].slice(0,60); MEM.quotes=[...nq,...MEM.quotes].slice(0,40); memSave(); renderMem();
+    addMsg('bot','🧠 Imported '+nf.length+' fact(s) and '+nq.length+' past quote(s) into memory.');
+  }catch(e){ alert('That file could not be read as memory JSON.'); } inp.value=''; }; rd.readAsText(f); }
+memLoad(); memBadge();
+
 /* ---------- chat + Claude tool loop ---------- */
 const chat=document.getElementById('chat'), input=document.getElementById('in'), sendBtn=document.getElementById('send');
 let messages=[];   // Anthropic message history (source of truth)
@@ -132,10 +226,23 @@ function quoteCard(r){
   chat.appendChild(m); window.scrollTo(0,document.body.scrollHeight);
 }
 async function postChat(){
-  const res=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({messages})});
+  const res=await fetch('/api/chat',{method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({ messages, memory: buildMemoryContext() })});   // ship the shop memory each turn
   const data=await res.json().catch(()=>({error:'server error'}));
   if(!res.ok || data.error) throw new Error(data.error || ('HTTP '+res.status));
   return data;   // raw Anthropic response {content:[...], stop_reason}
+}
+function runTool(t){
+  if(t.name==='remember'){
+    const ok=addFact((t.input||{}).fact, (t.input||{}).topic);
+    return { saved:ok, message: ok?'Saved to shop memory.':'Already remembered.' };
+  }
+  if(t.name==='quote'){
+    const result=runQuote(t.input||{});
+    if(!result.error){ quoteCard(result); logQuote(t.input||{}, result); }   // auto-log every successful quote
+    return result;
+  }
+  return { error:'unknown tool '+t.name };
 }
 async function turn(){
   const typing=addMsg('bot','…','typing');
@@ -143,12 +250,11 @@ async function turn(){
   typing.remove();
   messages.push({ role:'assistant', content: resp.content });   // keep the full assistant turn (text + any tool_use)
   for(const blk of resp.content){ if(blk.type==='text' && blk.text.trim()) addMsg('bot', esc(blk.text)); }
-  const tool=resp.content.find(b=>b.type==='tool_use');
-  if(resp.stop_reason==='tool_use' && tool && tool.name==='quote'){
-    const result=runQuote(tool.input||{});
-    if(!result.error) quoteCard(result);
-    messages.push({ role:'user', content:[{ type:'tool_result', tool_use_id:tool.id, content: JSON.stringify(result) }] });
-    await turn();   // let Claude read the numbers and reply in plain language
+  const tools=resp.content.filter(b=>b.type==='tool_use');
+  if(resp.stop_reason==='tool_use' && tools.length){
+    const results=tools.map(t=>({ type:'tool_result', tool_use_id:t.id, content: JSON.stringify(runTool(t)) }));
+    messages.push({ role:'user', content: results });
+    await turn();   // let Claude read the tool output and reply in plain language
   }
 }
 async function onSend(){
