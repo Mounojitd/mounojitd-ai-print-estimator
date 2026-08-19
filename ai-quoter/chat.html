@@ -81,6 +81,11 @@ function runQuote(s){
   if(s.coverLam)eset('coverLam',s.coverLam);
   if(s.gold && s.gold!=='none'){ eset('coverEmb1',s.gold); if(s.sides)eset('scrSides',s.sides); }
   if(s.depth!=null) eset('dlC', s.depth);   // dieline box/carton depth (inches)
+  if(s.product==='rigidbox'){               // rigid box uses its own panel: W=length, H=width, rbH=height
+    if(s.depth!=null) eset('rbH', s.depth);
+    if(s.copies!=null) eset('rbQty', s.copies);
+    if(s.style) eset('rbStyle', s.style);
+  }
   if(s.binding){ eset('binding',s.binding); if(typeof E.setBinding==='function') E.setBinding(s.binding); }
   try{ E.run(); }catch(e){}
   let q=null; try{ q=E.combinedPrice().q; }catch(e){ return {error:String(e)}; }
