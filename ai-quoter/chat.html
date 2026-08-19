@@ -72,6 +72,7 @@ function echk(id,on){ const el=ED.getElementById(id); if(el){ el.checked=!!on; t
 function runQuote(s){
   if(!engineReady) return { error:'engine not ready' };
   eset('product', s.product); if(typeof E.onProductChange==='function') E.onProductChange();
+  eset('unit', s.unit || 'in');   // reset each quote; 'ft' for large-format sizes in feet
   if(s.W)eset('W',s.W); if(s.H)eset('H',s.H);
   if(s.pages!=null)eset('pages',s.pages);
   if(s.copies!=null){ eset('copies',s.copies); eset('copies2',s.copies); }
@@ -91,6 +92,14 @@ function runQuote(s){
     eset('tcWiro', s.wiro || 'full');
     eset('tcStand', s.stand || 'tent');
   }
+  // per-piece + large-format products use their own quantity fields
+  if((s.product==='banner'||s.product==='standee') && s.copies!=null) eset('lfQty', s.copies);
+  if(s.product==='lanyard'){ if(s.copies!=null) eset('lanQty', s.copies);
+    if(s.width_mm!=null) eset('lanWidth', s.width_mm);
+    if(s.cf!=null||s.cb!=null){ eset('lanSides', (s.cb>0)?'2':'1'); if(s.cf>0) eset('lanColors', s.cf); } }
+  if(s.product==='pouch' && s.copies!=null) eset('pouQty', s.copies);
+  if(s.product==='ncr'){ if(s.copies!=null) eset('ncrQty', s.copies);
+    if(s.parts!=null) eset('ncrParts', s.parts); if(s.paper_size) eset('ncrSize', s.paper_size); }
   if(s.binding){ eset('binding',s.binding); if(typeof E.setBinding==='function') E.setBinding(s.binding); }
   try{ E.run(); }catch(e){}
   let q=null; try{ q=E.combinedPrice().q; }catch(e){ return {error:String(e)}; }
