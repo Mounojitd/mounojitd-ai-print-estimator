@@ -2727,7 +2727,7 @@ function activeCoat(){ return (COAT_SOURCES[($("coatSrc")&&$("coatSrc").value)||
 // EMBELLISH rate bumps (NKK sir 2026-07-18 batch reconcile — Apeejay A3 cert w/ red foil real ₹17,880
 // vs old est ₹7,596; foil was under-priced 5×). Real vendor min ~₹5k + ~₹2/sq.in for foil / metal
 // stamp / raised UV. Screen printing tiers already realistic.
-const EMBELLISH={none:{r:0,min:0,name:"None"},spotuv:{r:1.20,min:3000,name:"Spot UV"},raiseduv:{r:2.00,min:4000,name:"Raised / Textured UV"},foil:{r:2.50,min:5000,name:"Foil stamping"},metal_stamp:{r:3.00,min:6000,name:"Metal stamping"},emboss:{r:2.00,min:4000,name:"Embossing"},deboss:{r:2.00,min:4000,name:"Debossing"},texture:{r:1.50,min:3500,name:"Texture effect"},specialty:{r:2.20,min:5000,name:"Specialty finish"},drip:{r:1.80,min:5000,name:"Drip-off UV"},mgi_uv:{r:2.80,min:8000,name:"MGI UV (digital)"},screen_gold:{r:1.10,min:8000,name:"Screen printing — gold"},screen_silver:{r:1.10,min:8000,name:"Screen printing — silver"},screen_other:{r:0.80,min:6000,name:"Screen printing — other"}};
+const EMBELLISH={none:{r:0,min:0,name:"None"},spotuv:{r:1.20,min:3000,name:"Spot UV"},raiseduv:{r:2.00,min:4000,name:"Raised / Textured UV"},foil:{r:2.50,min:5000,name:"Foil stamping"},metal_stamp:{r:3.00,min:6000,name:"Metal stamping"},emboss:{r:2.00,min:4000,name:"Embossing"},deboss:{r:2.00,min:4000,name:"Debossing"},texture:{r:1.50,min:3500,name:"Texture effect"},specialty:{r:2.20,min:5000,name:"Specialty finish"},drip:{r:1.80,min:5000,name:"Drip-off UV"},mgi_uv:{r:2.80,min:8000,name:"MGI UV (digital)"},screen_gold:{r:1.10,min:8000,pc:40,setup:4000,name:"Screen printing — gold"},screen_silver:{r:1.10,min:8000,pc:40,setup:4000,name:"Screen printing — silver"},screen_other:{r:0.80,min:6000,pc:25,setup:3000,name:"Screen printing — other"}};
 function coverEmbList(){
   // NKK sir 2026-07-18: for flat products (card/leaflet/tag/insert) also read flatEmb1/2/3.
   // Booklet/catalogue jobs use coverEmb1/2/3 (on the cover). Only one set is visible at a time.
@@ -2753,14 +2753,20 @@ function coverEmbCost(area,sheets){   // area = cover sheet sq.in, sheets = cove
   const qty = (LASTINP&&LASTINP.copies)||parseInt(String((($("copies2")||$("copies")||{}).value)||"").replace(/[^0-9]/g,""),10)||0;
   return coverEmbList().map(v=>{ const e=EMBELLISH[v]||EMBELLISH.none;
     const isScreen = /^screen_/.test(v);
-    if(isScreen && (scrRate>0||scrSetup>0) && qty>0){     // override: one-time setup + per-copy ink (amortises over qty)
-      const cost=Math.max(scrSetup + scrRate*qty*scrSides, scrMin>0?scrMin:e.min);
-      const parts=[]; if(scrSetup>0)parts.push(`₹${scrSetup} setup`); if(scrRate>0)parts.push(`₹${scrRate}/copy × ${scrSides} side${scrSides>1?"s":""}`);
-      return {name:`${e.name} (${parts.join(" + ")})`, cost};
+    if(isScreen && qty>0){
+      // NKK sir 2026-08-11: screen inks are setup-heavy + coverage-driven, so gold/silver screen now price by
+      // DEFAULT as one-time setup + per-copy ink × sides, floored at the job minimum — the old area rate
+      // under-quoted premium runs (Plan brochure reconcile). Confirmed defaults: gold/silver ₹40/copy/side +
+      // ₹4,000 setup (screen_other ₹25 + ₹3,000). The Screen ink/setup/sides/min override fields still WIN when
+      // filled. Cover default = 2 sides (cover+back); flat products default to 1 side.
+      const setup = scrSetup>0 ? scrSetup : (e.setup||0);
+      const pc    = scrRate>0  ? scrRate  : (e.pc||0);
+      const mn    = scrMin>0   ? scrMin   : e.min;
+      const cost  = Math.max(setup + pc*qty*scrSides, mn);
+      const parts=[]; if(setup>0)parts.push(`₹${setup} setup`); if(pc>0)parts.push(`₹${pc}/copy × ${scrSides} side${scrSides>1?"s":""}`);
+      return {name:`${e.name}${parts.length?` (${parts.join(" + ")})`:""}`, cost};
     }
-    const s = isScreen ? sides : 1;                       // only screen embellishments are side-scaled
-    const minScaled = e.min*(1+(s-1)*SCREEN_SIDE_MIN_SCALE);
-    return {name:e.name+(isScreen&&s>1?` (×${s} sides)`:""), cost:Math.max(e.r*(area/100)*sheets*s, minScaled)}; });
+    return {name:e.name, cost:Math.max(e.r*(area/100)*sheets, e.min)}; });
 }
 function setCoverColours(v){ if(!v)return; const p=v.split("+").map(Number); $("coverCf").value=p[0]; $("coverCb").value=p[1]; showPrice(); }
 // binding ₹/book + job minimum — real POST_PRESS rates (hardcase 95, perfect 9, section-sew+perfect 6.75, centre-stitch 3.5)
