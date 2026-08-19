@@ -86,6 +86,11 @@ function runQuote(s){
     if(s.copies!=null) eset('rbQty', s.copies);
     if(s.style) eset('rbStyle', s.style);
   }
+  if(s.extent!=null) eset('extentFlat', s.extent);   // calendars: number of leaves
+  if(s.product==='calendar_table'){         // table calendar defaults: full wiro + tent stand
+    eset('tcWiro', s.wiro || 'full');
+    eset('tcStand', s.stand || 'tent');
+  }
   if(s.binding){ eset('binding',s.binding); if(typeof E.setBinding==='function') E.setBinding(s.binding); }
   try{ E.run(); }catch(e){}
   let q=null; try{ q=E.combinedPrice().q; }catch(e){ return {error:String(e)}; }

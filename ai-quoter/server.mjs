@@ -50,6 +50,9 @@ DIELINE / CONVERTING (flat blank → die-cut → fold/glue; give finished size +
 - carton_seal     → mono carton, seal-end (glued-bottom) box
 RIGID SET-UP BOX (per-piece, hand-assembled greyboard box — give L×W×H + style + qty):
 - rigidbox        → rigid box, gift box, set-up box, magnetic box, shoulder/neck box, drawer/slider box
+CALENDARS (leaves priced via the paper fields; give W×H of a leaf + gsm + colours + extent = number of leaves):
+- calendar_table  → table / desk calendar (wire-o + tent stand)
+- calendar_sheet  → wall calendar (wire-o from top + hanger + backboard)
 
 Specs the tool needs:
 - Always: product, copies (quantity).
@@ -61,8 +64,9 @@ Specs the tool needs:
 - Pick the bound type by what the client calls it — a "catalogue"/"brochure"/"annual report" is design-heavy (higher standard margin) vs a plain "book/booklet".
 - Dieline jobs (envelope/folder/sleeve/carton_tuck/carton_seal): W and H are the FINISHED (assembled) size in inches; gsm is the board (usually 250-350). For a box/carton also give depth (inches). The engine computes the flat blank and adds standard die + cutting + gluing charges (editable in the full estimator). Cartons usually print one side (cf 4, cb 0).
 - Rigid box (rigidbox): a hand-assembled greyboard box. Give the internal size as W = length, H = width, depth = box height (all inches), copies = quantity, and style (topbottom / traylid / shoulder / slider / magnetic). Board, wrap-print, lining, lid depth and box-making labour use standard editable defaults; gsm/pages/binding don't apply. If they mention foil or a partition/insert, note it's an editable add-on in the full estimator.
+- Calendars: W and H are one LEAF's size (inches), gsm is the leaf paper, extent = number of leaves (e.g. 12), copies = quantity. calendar_table (desk): defaults to full wire-o + tent stand — set wiro (none/part/full) and stand (none/tent) if the client specifies otherwise. calendar_sheet (wall): wire-o + hanger + backboard + pack are included by default. Jacket/pouch and all finishing rates are editable in the full estimator.
 
-If asked for something NOT in the list above — calendar (table/wall), paper bag, pouch, lanyard, NCR form, banner/standee/flex — say honestly that it's not wired into me yet, and offer the closest supported option or the full estimator page for it. Keep replies short. Be helpful and confident.`;
+If asked for something NOT in the list above — paper bag, pouch, lanyard, NCR form, banner/standee/flex — say honestly that it's not wired into me yet, and offer the closest supported option or the full estimator page for it. Keep replies short. Be helpful and confident.`;
 
 const TOOLS = [{
   name: 'quote',
@@ -70,7 +74,7 @@ const TOOLS = [{
   input_schema: {
     type: 'object',
     properties: {
-      product:  { type: 'string', enum: ['booklet','catalogue','magazine','annual','brochure_multi','card','insert','leaflet','dangler','pasted_tag','poster','envelope','folder','sleeve','carton_tuck','carton_seal','rigidbox'], description: 'engine product family — bound: booklet/catalogue/magazine/annual/brochure_multi; flat: card/insert/leaflet/dangler/pasted_tag/poster; dieline: envelope/folder/sleeve/carton_tuck/carton_seal; rigidbox' },
+      product:  { type: 'string', enum: ['booklet','catalogue','magazine','annual','brochure_multi','card','insert','leaflet','dangler','pasted_tag','poster','envelope','folder','sleeve','carton_tuck','carton_seal','rigidbox','calendar_table','calendar_sheet'], description: 'engine product family — bound: booklet/catalogue/magazine/annual/brochure_multi; flat: card/insert/leaflet/dangler/pasted_tag/poster; dieline: envelope/folder/sleeve/carton_tuck/carton_seal; rigidbox; calendar_table (desk); calendar_sheet (wall)' },
       W:        { type: 'number', description: 'width in inches (finished/closed)' },
       H:        { type: 'number', description: 'height in inches (finished/closed)' },
       pages:    { type: 'number', description: 'inside page count (booklet only)' },
@@ -84,7 +88,10 @@ const TOOLS = [{
       gold:     { type: 'string', enum: ['none','screen_gold','screen_silver'] },
       sides:    { type: 'number', description: 'gold screen sides: 1 cover-only, 2 cover+back' },
       depth:    { type: 'number', description: 'box depth/height in inches — dieline carton depth, or rigid-box height' },
-      style:    { type: 'string', enum: ['topbottom','traylid','shoulder','slider','magnetic'], description: 'rigidbox only — box style' }
+      style:    { type: 'string', enum: ['topbottom','traylid','shoulder','slider','magnetic'], description: 'rigidbox only — box style' },
+      extent:   { type: 'number', description: 'calendars only — number of leaves (e.g. 12)' },
+      wiro:     { type: 'string', enum: ['none','part','full'], description: 'calendar_table only — wire-o binding (default full)' },
+      stand:    { type: 'string', enum: ['none','tent'], description: 'calendar_table only — back stand (default tent)' }
     },
     required: ['product','copies']
   }
